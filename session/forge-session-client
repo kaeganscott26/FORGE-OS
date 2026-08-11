@@ -15,6 +15,10 @@ export FORGE_OS_SESSION=1
 export FORGE_SHELL_MODE=1
 export FORGE_OS_VERSION="$(</etc/forge-os-version)"
 
+if [ -n "${FORGE_X_READY_MARKER:-}" ]; then
+  : >"$FORGE_X_READY_MARKER"
+fi
+
 printf '[%s] X session active; DISPLAY=%s\n' "$(date --iso-8601=seconds)" "${DISPLAY:-unset}"
 
 # Make the graphical environment available to D-Bus/systemd activated user
