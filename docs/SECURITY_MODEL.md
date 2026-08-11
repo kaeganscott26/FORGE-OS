@@ -1,22 +1,9 @@
-# Security Model
+# Security model
 
-FORGE runs as the logged-in normal user. Linux/PAM authenticates the user;
-systemd/logind and polkit remain the authority for session and privileged
-operations. The renderer has context isolation and only typed, allowlisted IPC.
+Linux remains the authority for users, PAM authentication, permissions, services, networking, and hardware. tuigreet runs as the unprivileged dedicated `greeter` account; the authenticated session and FORGE run as the selected normal user. Autologin is not configured.
 
-Threat boundaries:
+The installer uses sudo only for packages, service configuration, and root-owned files. Immutable runtime directories are root-owned. The Chromium helper is root-owned mode `4755`, and FORGE is never launched with permanent `--no-sandbox`.
 
-- A compromised renderer must not receive Node, arbitrary process, filesystem,
-  systemd, or root access.
-- Workspace content and agent requests are untrusted input and cannot broaden
-  tool or OS privileges.
-- Desktop files are untrusted metadata. Their `Exec` values must be parsed into
-  executable/argument arrays and never interpolated into a shell.
-- Tokens, passwords, Wi-Fi secrets, environment secrets, and keyring values are
-  excluded from logs, project metadata, and AI context.
-- Storage mutation, package updates, service changes, shutdown, and reboot need
-  narrow allowlisted adapters and explicit user confirmation where disruptive.
-- FORGE must never become a generic `sudo` frontend or arbitrary root daemon.
+Session logs record stages, runtime identity, and exit status but never credentials or environment contents that may contain secrets. FORGE child-process filtering passes only explicit safe session variables and continues to block secret-like requested variables.
 
-The current graphical-login scripts only stage tracked files. Enabling remains
-human-gated and rollback preserves runtime and workspace data.
+Recovery access on tty2 is a required security and availability control.

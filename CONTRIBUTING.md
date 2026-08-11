@@ -1,9 +1,5 @@
 # Contributing
 
-Keep FORGE application changes in the separate FORGE repository and Linux
-integration here. Preserve normal-user execution, TTY recovery, `startx`
-fallback, deterministic installation, and human gates around persistent boot
-changes. Never add destructive storage automation or blanket sudo rules.
+Keep FORGE application changes in `~/FORGE` and Arch/session/package integration here. Preserve PAM authentication, normal-user execution, content-addressed verification, and tty2 recovery. Do not add autologin, profile-driven startup, manual `startx` setup, acceptance markers, `--no-sandbox`, or a second installation path.
 
-Run `tests/verify.sh` and the corresponding FORGE source checks. Record manual
-graphical observations separately from automated verification.
+Run shell syntax checks and `tests/verify.sh`; run the complete FORGE quality gates for application changes. Document which physical UI checks remain unperformed.

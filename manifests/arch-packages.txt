@@ -20,7 +20,7 @@ nss
 libxss
 noto-fonts
 libxcrypt-compat
-# Minimal desktop-session glue. greetd is staged but never enabled by bootstrap.
+# Desktop-session glue. The installer enables greetd after a complete preflight.
 xdg-utils
 xdg-user-dirs
 xdg-desktop-portal

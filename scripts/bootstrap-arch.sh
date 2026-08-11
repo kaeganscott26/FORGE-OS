@@ -9,4 +9,5 @@ command -v pacman >/dev/null || { echo 'pacman is required.' >&2; exit 1; }
 mapfile -t packages < <(sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$manifest")
 (( ${#packages[@]} > 0 )) || { echo 'Package manifest is empty.' >&2; exit 1; }
 echo "Installing ${#packages[@]} declared packages from $manifest"
-sudo pacman -Syu --needed "${packages[@]}"
+sudo install -o root -g root -m 0644 "$repository_root/config/mirrorlist" /etc/pacman.d/mirrorlist
+sudo pacman -Syu --needed --noconfirm "${packages[@]}"

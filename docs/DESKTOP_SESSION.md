@@ -1,20 +1,7 @@
-# FORGE Desktop Session
+# Desktop session
 
-The accepted reference session remains Xorg plus Openbox. `session/xinitrc`
-exports the FORGE desktop identity, synchronizes the inherited X11 environment
-with D-Bus and the user systemd manager, starts only minimal desktop glue, then
-runs Openbox as window-management plumbing and FORGE as the visible workspace.
+greetd owns VT1 and runs tuigreet as the dedicated `greeter` account. After PAM authentication, greetd runs `/usr/local/bin/forge-xsession` as the authenticated user. That launcher exports the FORGE-OS contract and invokes `/usr/bin/xinit` with the repository-owned client `/usr/local/libexec/forge-session-client` and `/usr/lib/Xorg` explicitly.
 
-The staged graphical-login path uses greetd and standard PAM authentication.
-It does not implement passwords in FORGE, enable automatic login, or replace
-the working `startx` path. Install files with
-`scripts/install-graphical-login.sh`, test from a recovery-safe console, and do
-not enable the service until the human acceptance record exists.
+The client publishes the environment to D-Bus/systemd user activation, starts notification and polkit helpers, starts Openbox, and launches FORGE. It logs session stages and failures to `~/.local/state/forge/session.log`. Exiting FORGE ends the X session and returns to the greeter.
 
-`forge-xsession` is the greetd-to-Xorg handoff. The installer validates its
-shell syntax and verifies that `/usr/local/bin/forge-xsession` is byte-for-byte
-identical to the tracked launcher. An immediate return to tuigreet after a
-successful PAM login usually means that this handoff exited before Xorg could
-start; use the login-loop checks in `RECOVERY.md`, then rerun the installer.
-
-Wayland and labwc are future migration candidates, not part of this milestone.
+Required values include the real `DISPLAY`, applicable `XAUTHORITY`, `XDG_RUNTIME_DIR`, `DBUS_SESSION_BUS_ADDRESS`, `XDG_CURRENT_DESKTOP=FORGE`, `XDG_SESSION_TYPE=x11`, `FORGE_OS_SESSION=1`, `FORGE_SHELL_MODE=1`, and the installed `FORGE_OS_VERSION`. `DISPLAY` is established by Xorg and is never hard-coded.

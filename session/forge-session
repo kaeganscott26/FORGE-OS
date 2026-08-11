@@ -21,6 +21,7 @@ for candidate in "$runtime_root/forge" "$runtime_root/FORGE"; do
   [[ -x "$candidate" ]] && forge_binary="$candidate" && break
 done
 [[ -n "$forge_binary" ]] || { echo "No packaged FORGE executable found beneath $runtime_root" >&2; exit 69; }
+runtime_identity="$(basename "$(readlink -f "$runtime_root")")"
 
-printf '\n[%s] starting %s --workspace=%s\n' "$(date --iso-8601=seconds)" "$forge_binary" "$workspace" >>"$log_file"
+printf '[%s] runtime selected: %s; launching FORGE\n' "$(date --iso-8601=seconds)" "$runtime_identity" >>"$log_file"
 exec "$forge_binary" --workspace="$workspace" >>"$log_file" 2>&1
