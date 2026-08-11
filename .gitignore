@@ -1,0 +1,10 @@
+.forge/
+build/acceptance.env
+build/graphical-login-acceptance.env
+*.log
+*.tmp
+*.bak
+.DS_Store
+node_modules/
+dist/
+cache/
