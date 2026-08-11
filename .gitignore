@@ -1,6 +1,8 @@
 .forge/
 build/acceptance.env
 build/graphical-login-acceptance.env
+build/forge-dist/
+build/forge-source.*/
 *.log
 *.tmp
 *.bak
