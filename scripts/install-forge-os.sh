@@ -16,18 +16,48 @@ target_home="$(getent passwd "$target_user" | cut -d: -f6)"
 [[ "$(id -u)" -ne 0 ]] || { echo 'Run this as the target desktop user; sudo is invoked only for system files.' >&2; exit 1; }
 [[ -n "$target_home" && -d "$target_home" && "$target_user" != root ]] || { echo "Invalid desktop user: $target_user" >&2; exit 1; }
 
+forge_source="${FORGE_SOURCE:-$HOME/FORGE}"
+
+require_current_main() {
+  local repository="$1"
+  local label="$2"
+  [[ -d "$repository/.git" ]] || { echo "$label is not a Git repository: $repository" >&2; exit 1; }
+  [[ "$(git -C "$repository" branch --show-current)" == main ]] || { echo "$label must be on main for a production FORGE-OS install." >&2; exit 1; }
+  [[ -z "$(git -C "$repository" status --porcelain)" ]] || { echo "$label has uncommitted changes; refusing to package a commit that does not describe the working tree." >&2; exit 1; }
+  git -C "$repository" fetch --quiet origin main || { echo "Unable to refresh origin/main for $label." >&2; exit 1; }
+  local local_head remote_head
+  local_head="$(git -C "$repository" rev-parse HEAD)"
+  remote_head="$(git -C "$repository" rev-parse origin/main)"
+  [[ "$local_head" == "$remote_head" ]] || {
+    echo "$label is not current with origin/main." >&2
+    echo "  local:  $local_head" >&2
+    echo "  remote: $remote_head" >&2
+    echo "Run: git -C '$repository' pull --ff-only" >&2
+    exit 1
+  }
+  printf '%s current at %s\n' "$label" "$local_head"
+}
+
+# Production installation must never silently package a stale local checkout.
+# Fetch and compare both repositories before doing package, runtime, or system
+# changes. The installer intentionally refuses dirty/diverged trees rather than
+# modifying or discarding developer work.
+require_current_main "$root" FORGE-OS
+require_current_main "$forge_source" FORGE
+
 if [[ "$skip_packages" == false ]]; then "$root/scripts/bootstrap-arch.sh"; fi
 "$root/scripts/configure-hardware.sh"
 if [[ "$use_current_build" == false ]]; then
-  "$root/scripts/build-forge.sh" "${FORGE_SOURCE:-$HOME/FORGE}"
+  "$root/scripts/build-forge.sh" "$forge_source"
 else
   [[ -r "$root/build/latest.env" ]] || { echo 'No current local build record exists.' >&2; exit 1; }
   source "$root/build/latest.env"
-  [[ "$FORGE_SOURCE_COMMIT" == "$(git -C "${FORGE_SOURCE:-$HOME/FORGE}" rev-parse HEAD)" ]] || { echo 'Current build does not match FORGE HEAD.' >&2; exit 1; }
+  [[ "$FORGE_SOURCE_COMMIT" == "$(git -C "$forge_source" rev-parse HEAD)" ]] || { echo 'Current build does not match FORGE HEAD.' >&2; exit 1; }
 fi
 "$root/scripts/install-runtime.sh"
 
 source "$root/build/latest.env"
+[[ "$FORGE_SOURCE_COMMIT" == "$(git -C "$forge_source" rev-parse origin/main)" ]] || { echo 'Built runtime does not match current FORGE origin/main.' >&2; exit 1; }
 version="$(<"$root/VERSION")"
 issue="$(mktemp)"
 trap 'rm -f -- "$issue"' EXIT
