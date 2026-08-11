@@ -18,7 +18,7 @@ sudo visudo -c >/dev/null 2>&1 && pass 'sudo policy parses' || fail 'sudo policy
 for package in nodejs-lts-jod xorg-server xorg-xinit openbox gtk3 mesa; do
   pacman -Q "$package" >/dev/null 2>&1 && pass "$package is installed" || fail "$package is not installed"
 done
-for file in session/forge-xsession session/forge.desktop config/greetd-config.toml scripts/install-graphical-login.sh scripts/enable-graphical-login.sh scripts/disable-graphical-login.sh scripts/rollback-graphical-login.sh scripts/configure-user-desktop.sh scripts/rollback-user-desktop.sh docs/SHELL_MODE.md; do
+for file in session/forge-xsession session/forge.desktop config/greetd-config.toml config/issue scripts/install-graphical-login.sh scripts/enable-graphical-login.sh scripts/disable-graphical-login.sh scripts/rollback-graphical-login.sh scripts/configure-user-desktop.sh scripts/rollback-user-desktop.sh docs/SHELL_MODE.md; do
   [[ -e "$HOME/FORGE-OS/$file" ]] && pass "$file is tracked integration input" || fail "$file is absent"
 done
 systemctl is-enabled greetd.service >/dev/null 2>&1 && warn 'greetd is enabled before graphical acceptance is recorded' || pass 'greetd persistent startup is disabled'
