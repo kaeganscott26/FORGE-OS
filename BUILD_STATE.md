@@ -2,6 +2,48 @@
 
 ## Checkpoint
 
+### Implemented but not human-tested — 2026-08-11
+
+- FORGE source now carries validated X11/XDG/D-Bus variables from its Electron
+  main process into integrated PTYs; focused automated tests pass.
+- The X session identifies itself as FORGE and synchronizes inherited graphical
+  variables with D-Bus/systemd activation. Minimal notification and polkit
+  agents start when installed.
+- The package manifest declares the minimal desktop glue, Chromium reference
+  browser, Thunar fallback file manager, and greetd/tuigreet login components.
+- A greetd FORGE X session plus install/enable/disable/rollback scripts exists.
+  It has not been installed or enabled by this pass.
+- FORGE source implements typed desktop discovery/launch, explicit shell-mode
+  context, a locale clock, Applications surface, System Overview, settings
+  category foundation, and a fixed session-action menu. Automated source gates
+  pass; graphical behavior and graphical login remain human-unverified.
+
+### Planned / next dependency-ready work
+
+- Run full FORGE quality gates, package a new immutable runtime, then complete
+  `docs/ACCEPTANCE.md` under X11.
+- Stage and manually exercise greetd only after the current startx runtime is
+  accepted. Persistent greetd startup remains disabled.
+
+### Failed / rejected
+
+- Hard-coding graphical environment values in `.bashrc` was rejected.
+- Wayland migration and a full desktop-environment dependency were rejected for
+  this milestone.
+
+### Automated verification — 2026-08-11
+
+- FORGE TypeScript, ESLint, 118 tests (2 skipped), and Electron/Vite production
+  build passed. The first sandboxed build attempt could not spawn Git; the same
+  build passed with the normal host execution boundary.
+- FORGE-OS shell syntax checks passed. Repository verification reached installed
+  runtime/session checks, but systemd system-bus and sudo policy checks are not
+  observable from the managed Codex sandbox and must be rerun in a physical TTY.
+- Shell integration source is committed in FORGE as `1f383db` on local `main`.
+  The installed immutable runtime remains the older accepted build candidate
+  recorded below; a new Linux package/runtime has not been installed or
+  graphically accepted.
+
 - Observed: 2026-08-11T00:20:17-05:00
 - Phase: packaged-runtime staging and session installation
 - Status: build and non-graphical verification complete; manual X acceptance pending

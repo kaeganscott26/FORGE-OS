@@ -25,3 +25,16 @@ Session source and rollback exist before any login startup mutation.
 The launcher opens the `FORGE-OS` workspace; it does not start Codex or encode a
 provider dependency. CLI agents inherit the normal-user workspace terminal.
 Workspace-owned `.forge/metadata.sqlite` remains the persistent state authority.
+
+## ADR-005: Separate repositories and versions
+
+FORGE owns the cross-platform application. FORGE-OS owns Linux integration and
+consumes an explicitly pinned FORGE commit/artifact. FORGE-OS begins its own
+0.x lifecycle; source is not duplicated or included as a Git submodule.
+
+## ADR-006: Staged greetd login path
+
+greetd with tuigreet is the minimal staged display/login manager. PAM remains
+the authentication authority. Installation, enablement, disablement, and
+rollback are separate operations; enablement requires a human-created marker.
+The `startx` path and recovery VTs remain intact.

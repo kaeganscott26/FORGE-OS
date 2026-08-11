@@ -37,3 +37,21 @@ immutable packaged FORGE artifact identified by source commit and SHA-256.
 - Session logs are inspectable without FORGE.
 - Automatic startup has a documented disable/rollback path.
 - Privileged actions are narrow and explicit in the stable system.
+
+## Desktop ownership boundary
+
+- Xorg/Openbox owns window management and provides a recovery-friendly
+  graphical substrate and fallback launcher.
+- FORGE owns the visible shell, application discovery and launch, workspace,
+  terminal, Git, agents, browser/research, status, settings, and OS UX.
+- greetd is the staged login broker. PAM owns authentication; greetd is not
+  enabled until a separate human acceptance record exists.
+- A future Wayland/labwc port may replace the substrate after the X11 reference
+  implementation is accepted without changing the FORGE shell contract.
+
+See `docs/SECURITY_MODEL.md` for renderer, desktop-file, workspace, secret, and
+privilege boundaries.
+
+FORGE shell mode and its typed main-process boundary are documented in
+`docs/SHELL_MODE.md`. System/session operations are a closed action set; the
+renderer cannot supply executables, arguments, systemd units, or sudo strings.

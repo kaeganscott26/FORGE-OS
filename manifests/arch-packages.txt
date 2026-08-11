@@ -17,3 +17,22 @@ nss
 libxss
 noto-fonts
 libxcrypt-compat
+# Minimal desktop-session glue. greetd is staged but never enabled by bootstrap.
+xdg-utils
+xdg-user-dirs
+xdg-desktop-portal
+xdg-desktop-portal-gtk
+polkit-gnome
+dunst
+xclip
+thunar
+thunar-volman
+gvfs
+chromium
+networkmanager
+pipewire
+pipewire-pulse
+wireplumber
+upower
+greetd
+greetd-tuigreet

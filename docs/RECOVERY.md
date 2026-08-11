@@ -20,3 +20,17 @@ No login autostart is enabled at the current checkpoint. If enabled after
 manual acceptance, run `~/FORGE-OS/scripts/disable-autostart.sh` from a recovery
 TTY. A one-user opt-out is also available with
 `mkdir -p ~/.config/forge && touch ~/.config/forge/disable-autostart`.
+
+If greetd is later enabled, switch to `Ctrl+Alt+F2`, log in, and run:
+
+```sh
+sudo systemctl disable --now greetd.service
+~/FORGE-OS/scripts/rollback-graphical-login.sh
+```
+
+The rollback removes only the tracked greetd/FORGE session integration. It
+preserves `~/.xinitrc`, `/opt/forge`, workspace data, and console gettys.
+
+If the user MIME/default-application configuration needs reverting, run
+`~/FORGE-OS/scripts/rollback-user-desktop.sh`. It restores the backup created by
+`configure-user-desktop.sh`; it does not guess when no backup exists.

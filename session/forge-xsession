@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "$EUID" -eq 0 ]]; then
+  echo 'FORGE must run as a normal user.' >&2
+  exit 77
+fi
+
+export XDG_CURRENT_DESKTOP=FORGE
+export XDG_SESSION_DESKTOP=FORGE
+export DESKTOP_SESSION=forge
+export XDG_SESSION_TYPE=x11
+export FORGE_OS_SESSION=1
+export FORGE_SHELL_MODE=1
+export FORGE_OS_VERSION=0.1.0-alpha
+exec startx "$HOME/.xinitrc" -- vt"${XDG_VTNR:-1}" -keeptty

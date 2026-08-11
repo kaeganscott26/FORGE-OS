@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Corrected PTY graphical-session environment inheritance in FORGE source.
+- Added minimal XDG portal, notification, polkit, browser, file-manager,
+  NetworkManager, PipeWire, UPower, and greetd dependencies.
+- Added an acceptance-gated greetd/tuigreet FORGE X session with rollback.
+- Added desktop-session and security-model documentation.
+- Excluded live `.forge` workspace state from future commits.
+- Added FORGE-OS shell mode with safe desktop discovery/launch, clock, System
+  Overview, settings destinations, and controlled session actions.
+- Added reversible XDG browser/file-manager configuration tooling.
+
 - Added an Arch package manifest for the minimal graphical/build stack.
 - Added the benchmarked package mirror order used to recover the slow bootstrap.
 - Added `libxcrypt-compat` for electron-builder's bundled FPM DEB backend.
