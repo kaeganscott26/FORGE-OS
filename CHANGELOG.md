@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added an ArchISO builder, checksum generation, and ISO release checklist.
+- Added AMD microcode/Vulkan, performance, IRQ, Bluetooth, DBus, and platform verification integration.
+- Added a complete setup/configuration/recovery manual and orchestrated enablement command.
+
 - Docked the FORGE-OS system controls above the application chrome so they no
   longer cover browser tabs or the address bar.
 - Kept the Browser launcher visible at compact window widths and improved its

@@ -1,5 +1,6 @@
 # Minimal graphical substrate and Electron runtime dependencies.
 base-devel
+archiso
 git
 npm
 python
@@ -10,6 +11,8 @@ openbox
 xterm
 gtk3
 mesa
+vulkan-radeon
+amd-ucode
 alsa-lib
 libnotify
 cups
@@ -34,5 +37,11 @@ pipewire
 pipewire-pulse
 wireplumber
 upower
+power-profiles-daemon
+irqbalance
+bluez
+bluez-utils
+dbus
+dbus-broker
 greetd
 greetd-tuigreet

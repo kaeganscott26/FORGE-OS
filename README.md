@@ -1,4 +1,4 @@
-# FORGE OS Integration
+# 🔥 FORGE-OS
 
 > **Experimental:** FORGE-OS is an Arch Linux-based reference implementation,
 > not yet a stable general-purpose distribution. Use test hardware or a machine
@@ -28,7 +28,17 @@ copied into this repository.
 Current FORGE-OS integration version: **0.1.0-alpha**. See `VERSION` for the
 machine-readable value. The project is licensed under the MIT License.
 
-## Safety boundary
+## 🧭 Start here
+
+- [📘 User manual](docs/USER_MANUAL.md)
+- [🏗️ Architecture](ARCHITECTURE.md)
+- [✅ Acceptance](docs/ACCEPTANCE.md)
+- [🛟 Recovery](docs/RECOVERY.md)
+- [🚢 ISO release checklist](docs/RELEASE_CHECKLIST.md)
+- [🧾 Implementation log and human actions](docs/IMPLEMENTATION_LOG.md)
+- [📝 Changelog](CHANGELOG.md)
+
+## 🛡️ Safety boundary
 
 - Do not repartition, format, or erase storage.
 - Do not rewrite firmware or the bootloader without a separately reviewed need.
@@ -41,7 +51,7 @@ machine-readable value. The project is licensed under the MIT License.
 Current observed state and the next dependency-ready work are recorded in
 `BUILD_STATE.md`.
 
-## Current workflow
+## 🚀 Install workflow
 
 ```text
 scripts/bootstrap-arch.sh
@@ -53,7 +63,7 @@ scripts/bootstrap-arch.sh
   -> optional scripts/enable-autostart.sh
 ```
 
-Login autostart is intentionally withheld until the packaged runtime passes the
-manual acceptance boundary. Read `docs/RECOVERY.md` before changing startup.
-
-The staged greetd path is separately acceptance-gated and remains disabled.
+Use `scripts/enable-forge-os.sh` for the reproducible installation sequence.
+After human acceptance, `scripts/enable-graphical-login.sh` makes the next boot
+present the FORGE-OS login and launch the FORGE UI. Build release media with
+`scripts/build-iso.sh`; see `docs/RELEASE_CHECKLIST.md` before publishing.
