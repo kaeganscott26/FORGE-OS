@@ -11,4 +11,10 @@ the working `startx` path. Install files with
 `scripts/install-graphical-login.sh`, test from a recovery-safe console, and do
 not enable the service until the human acceptance record exists.
 
+`forge-xsession` is the greetd-to-Xorg handoff. The installer validates its
+shell syntax and verifies that `/usr/local/bin/forge-xsession` is byte-for-byte
+identical to the tracked launcher. An immediate return to tuigreet after a
+successful PAM login usually means that this handoff exited before Xorg could
+start; use the login-loop checks in `RECOVERY.md`, then rerun the installer.
+
 Wayland and labwc are future migration candidates, not part of this milestone.

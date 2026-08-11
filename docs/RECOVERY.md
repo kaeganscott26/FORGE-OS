@@ -31,6 +31,31 @@ sudo systemctl disable --now greetd.service
 The rollback removes only the tracked greetd/FORGE session integration. It
 preserves `~/.xinitrc`, `/opt/forge`, workspace data, and console gettys.
 
+## Login returns immediately to tuigreet
+
+A successful password followed by an immediate login-screen return means the
+selected session command exited. Check the greetd journal and validate that the
+installed launcher is both syntactically valid and current:
+
+```sh
+journalctl -u greetd.service -b --no-pager -n 100
+bash -n /usr/local/bin/forge-xsession
+cmp ~/FORGE-OS/session/forge-xsession /usr/local/bin/forge-xsession
+```
+
+If the syntax or comparison check fails, reinstall the tracked session files:
+
+```sh
+cd ~/FORGE-OS
+./scripts/install-session.sh
+./scripts/install-graphical-login.sh
+sudo systemctl restart greetd.service
+```
+
+The restart ends the current greeter, so run it from a recovery TTY. If login
+still fails, inspect `~/.local/state/forge/session.log` and keep greetd disabled
+while testing the preserved `startx` path.
+
 If the user MIME/default-application configuration needs reverting, run
 `~/FORGE-OS/scripts/rollback-user-desktop.sh`. It restores the backup created by
 `configure-user-desktop.sh`; it does not guess when no backup exists.

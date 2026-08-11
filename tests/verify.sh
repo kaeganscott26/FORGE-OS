@@ -21,6 +21,13 @@ done
 for file in session/forge-xsession session/forge.desktop config/greetd-config.toml config/issue scripts/install-graphical-login.sh scripts/enable-graphical-login.sh scripts/disable-graphical-login.sh scripts/rollback-graphical-login.sh scripts/configure-user-desktop.sh scripts/rollback-user-desktop.sh docs/SHELL_MODE.md; do
   [[ -e "$HOME/FORGE-OS/$file" ]] && pass "$file is tracked integration input" || fail "$file is absent"
 done
+bash -n "$HOME/FORGE-OS/session/forge-xsession" && pass 'tracked graphical-session launcher parses' || fail 'tracked graphical-session launcher has invalid shell syntax'
+if [[ -e /usr/local/bin/forge-xsession ]]; then
+  bash -n /usr/local/bin/forge-xsession && pass 'installed graphical-session launcher parses' || fail 'installed graphical-session launcher has invalid shell syntax'
+  cmp -s "$HOME/FORGE-OS/session/forge-xsession" /usr/local/bin/forge-xsession && pass 'installed graphical-session launcher matches repository' || fail 'installed graphical-session launcher is stale'
+else
+  warn 'graphical-session launcher is not installed yet'
+fi
 systemctl is-enabled greetd.service >/dev/null 2>&1 && warn 'greetd is enabled before graphical acceptance is recorded' || pass 'greetd persistent startup is disabled'
 [[ -d "$HOME/FORGE/.git" ]] && pass 'FORGE repository exists' || fail 'FORGE repository is absent'
 [[ -d "$HOME/FORGE-OS/.git" ]] && pass 'FORGE-OS repository exists' || fail 'FORGE-OS repository is absent'
