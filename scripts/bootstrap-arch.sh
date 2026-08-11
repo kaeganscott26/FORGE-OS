@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+manifest="$repository_root/manifests/arch-packages.txt"
+source /etc/os-release
+[[ "${ID:-}" == arch ]] || { echo 'This bootstrap supports Arch Linux only.' >&2; exit 1; }
+command -v pacman >/dev/null || { echo 'pacman is required.' >&2; exit 1; }
+mapfile -t packages < <(sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$manifest")
+(( ${#packages[@]} > 0 )) || { echo 'Package manifest is empty.' >&2; exit 1; }
+echo "Installing ${#packages[@]} declared packages from $manifest"
+sudo pacman -Syu --needed "${packages[@]}"

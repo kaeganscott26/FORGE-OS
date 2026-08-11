@@ -2,107 +2,108 @@
 
 ## Checkpoint
 
-- Observed: 2026-08-10T16:15:26-05:00
-- Phase: 1 - initial reality discovery
-- Status: bootstrap prerequisites incomplete; no graphical session installed
-- Next dependency-ready action: establish a supported Node 22 toolchain, then
-  verify FORGE from source before installing a minimal graphical stack.
+- Observed: 2026-08-11T00:20:17-05:00
+- Phase: packaged-runtime staging and session installation
+- Status: build and non-graphical verification complete; manual X acceptance pending
+- Next dependency-ready action: the human runs `startx`, completes
+  `docs/ACCEPTANCE.md`, and records the result before enabling the TTY1 handoff.
+- Login autostart is deliberately **disabled**. No reboot was requested or run.
 
 ## Machine and operating system
 
-- Hostname: `forge-linux`
-- Hardware: ASUS TUF Gaming FX705DY
-- Architecture: x86_64
-- CPU: AMD Ryzen 5 3550H, 4 cores / 8 threads
-- Memory: 15 GiB; no swap configured
-- OS: Arch Linux rolling release
-- Kernel: `7.1.6-arch1-1`
-- Boot: persistent internal installation; EFI is mounted at `/boot`
-- Root filesystem: ext4 on `/dev/sda2`, UUID
-  `3af3cece-c6b1-47a7-8508-fea94eeb7d04`
-- Root capacity at checkpoint: 915 GiB total, 5.0 GiB used
-- Secondary storage observed: NVMe device with existing NTFS partitions; it has
-  not been mounted or modified by this experiment.
+- Hostname: `forge-linux`; ASUS TUF Gaming FX705DY; x86_64.
+- CPU: AMD Ryzen 5 3550H, 4 cores / 8 threads.
+- Memory: 15 GiB; no swap configured.
+- OS: Arch Linux on ext4 `/dev/sda2`; EFI remains mounted at `/boot`.
+- Running kernel: `7.1.6-arch1-1`.
+- Installed kernel package: `7.1.7.arch1-1`; activation requires a later
+  human-controlled reboot.
+- Root filesystem at checkpoint: 915 GiB total, 6.8 GiB used.
+- The secondary NVMe/NTFS storage was not mounted or modified.
 
-## Hardware observations
+## User, privilege, network, and recovery
 
-- Integrated GPU: AMD Picasso/Raven 2 Vega, `amdgpu`
-- Discrete GPU: AMD Baffin RX 460/560 family, `amdgpu`
-- Wi-Fi: Qualcomm Atheros QCA9377, `ath10k_pci`
-- Ethernet: Realtek RTL8111/8168 family, `r8169`
-- Audio: AMD HDMI/DP and Ryzen HD Audio, `snd_hda_intel`
+- Session user: `North3rnLight3r` (UID 1000), a member of `wheel`.
+- NetworkManager is enabled and active.
+- The getty recovery path is enabled; no display manager was installed.
+- `systemctl --failed` reported no failed units.
+- `visudo -c` passes.
+- Main `/etc/sudoers` line 128 contains `%wheel ALL=(ALL:ALL) NOPASSWD: ALL`;
+  line 125 also retains the password-protected wheel rule. This pre-existing
+  blanket rule was not removed because password authentication must be tested
+  with the human first. No `/etc/sudoers.d/90-forge-experiment` file exists.
 
-## User, privilege, and recovery state
+## Installed prerequisites
 
-- Active user: `North3rnLight3r` (UID 1000), member of `wheel`
-- Prompt assumption mismatch: no `forge` user is currently active.
-- Session: local `tty1`; no display manager; `$DISPLAY` is unset.
-- Default systemd target: `graphical.target`
-- Recovery getty: `getty@.service` is enabled.
-- Sudo: `sudo -l` reports both normal ALL and blanket `NOPASSWD: ALL` rules.
-- `/etc/sudoers.d/90-forge-experiment` was not present during inspection; the
-  actual source of NOPASSWD authority remains to be identified before removal.
-- No failed systemd units were reported.
+- Node changed from unsupported v26 to `nodejs-lts-jod 22.23.2-1`.
+- The minimal Xorg/Openbox runtime, GTK/Mesa/audio/notification/printing
+  libraries, `libxss`, and Noto fonts are installed from
+  `manifests/arch-packages.txt`.
+- `libxcrypt-compat 4.5.2-1` is installed for electron-builder's bundled FPM
+  DEB backend.
+- The tracked mirror order is installed at `/etc/pacman.d/mirrorlist`; the
+  prior file is preserved as
+  `/etc/pacman.d/mirrorlist.pre-forge-20260810`.
 
-## Networking and graphical stack
+## FORGE source and verified build
 
-- NetworkManager: enabled and active.
-- Connectivity: full at checkpoint; connection reported metered (guessed).
-- Xorg server: not installed as a pacman package.
-- xinit: not installed as a pacman package.
-- Openbox: not installed as a pacman package.
-- No display-manager unit exists.
-- No X11/Wayland desktop session is active.
+- Source: `/home/North3rnLight3r/FORGE`, branch `main`.
+- Artifact source commit: `1c1b50ef26d3a86d8c815ba3ab56f71d256003d5`.
+- Lockfile SHA-256:
+  `af710a4d6cfee19eb43ffab37194592bf0539f5aae00ac4f67092253f3a4262a`.
+- Source gates passed: TypeScript, ESLint, 27 Vitest files, 113 tests passed,
+  2 tests intentionally skipped, Electron/Vite production build.
+- Packaging passed for AppImage and DEB. The unpacked native `node-pty` module
+  is an x86-64 ELF shared object and has no missing dynamic libraries.
+- electron-builder emitted a non-fatal desktop-name/window-association warning.
 
-## Development toolchain
+Artifacts:
 
-- Node.js: `v26.7.0`
-- npm: `12.0.2`
-- Git: `2.55.0`
-- Codex CLI: `0.147.0`
-- `base-devel`: installed
-- Prompt/toolchain mismatch: repository documentation requires Node.js 22 LTS;
-  the installed Node 26 runtime must not be treated as verified compatibility.
+| Artifact | SHA-256 |
+| --- | --- |
+| `FORGE/dist_electron/FORGE-2.3.0-beta.1-x86_64.AppImage` | `907eb23757c8deb593ba0f0e51df22e214dfc1c48e96a8082ffc6631271f812a` |
+| `FORGE/dist_electron/FORGE-2.3.0-beta.1-amd64.deb` | `54584158a5ecc64bc03d255f5eb32f9f9fda89dca67807f83d67ad9a683937bf` |
+| `FORGE/dist_electron/linux-unpacked/forge` | `57defb643d7c3e0718419a414dfd758986d6d50ba9b50c9f7ff154eeb26e973d` |
 
-## FORGE source
+The first package attempt exposed missing maintainer metadata. The second
+exposed FPM's `libcrypt.so.1` dependency. The third exposed a Linux verifier
+that incorrectly required node-pty's macOS-only `spawn-helper`. Each failure
+stopped before acceptance; the final build was rerun from the committed fix.
 
-- Path: `/home/North3rnLight3r/FORGE`
-- Branch: `main`, tracking `origin/main`
-- Commit: `ab650e63714b9e23b87200b8c0d61a327f5ec118`
-- Remote: `https://github.com/kaeganscott26/FORGE`
-- Tree state: dirty before FORGE-OS work. Existing generated file
-  `apps/desktop/out/main/index.js` contains updated build commit/date constants.
-  It is treated as user-owned and has not been reverted or edited.
-- Native Linux packaging entrypoint: `scripts/package-linux.sh`
-- Package targets: x86_64 AppImage and DEB via `npm run package:linux`
-- Packaging script requires Node, npm, Python 3, make, and g++; runs clean install,
-  typecheck, lint, tests, build, packaging, and node-pty artifact checks.
-- Current Linux build status: not yet verified on this installation.
+## Installed runtime and session boundary
 
-## Startup path
+- Immutable runtime:
+  `/opt/forge/releases/1c1b50ef26d3a86d8c815ba3ab56f71d256003d5`.
+- Stable pointer: `/opt/forge/current` resolves to that release.
+- Root-owned launcher: `/usr/local/bin/forge-session` (mode 0755).
+- User-owned xinit entry: `/home/North3rnLight3r/.xinitrc` (mode 0755).
+- The launcher rejects root, uses the immutable runtime, opens
+  `/home/North3rnLight3r/FORGE-OS`, and logs to
+  `~/.local/state/forge/session.log`.
+- `tests/verify.sh`: 0 failures, 1 warning. The warning is the pre-existing
+  non-interactive wheel sudo authority described above.
+- `/etc/profile.d/forge-autostart.sh` is absent, so console login behavior is
+  unchanged and `startx` remains an explicit manual action. The enable script
+  was verified to refuse installation while the acceptance marker is absent.
 
-Current startup is Arch console login on `tty1`. The prompt's assumed temporary
-`startx + Openbox + npm run dev` path is not present on this machine. No FORGE
-autostart, launcher, user service, or graphical session has been installed.
+## Preserved state and remaining acceptance
 
-## Known limitations and risks
+- The pre-existing generated-file modification in
+  `FORGE/apps/desktop/out/main/index.js` remains user-owned and must retain its
+  observed commit/date constants after build cleanup.
+- The repositories and `FORGE-OS/.forge` workspace state were preserved.
+- Graphical launch, hybrid-GPU behavior, file persistence, integrated PTY,
+  Codex availability inside the PTY, close/reopen persistence, physical VT
+  recovery, and post-kernel-update reboot remain unverified.
+- Do not create `build/acceptance.env` or run `scripts/enable-autostart.sh`
+  until a human completes every check in `docs/ACCEPTANCE.md`.
 
-1. The active username differs from the experiment prompt.
-2. Node 26 differs from the documented Node 22 LTS requirement.
-3. The minimal graphical dependencies are absent.
-4. No packaged FORGE Linux artifact has been built or manually accepted.
-5. Blanket passwordless sudo is active and its defining rule is not yet located.
-6. No swap is configured.
-7. Hybrid AMD graphics behavior under Electron/Xorg is unverified.
-8. Reboot, graphical startup, workspace persistence, and integrated PTY behavior
-   have not been tested in this checkpoint.
+## Rollback
 
-## Recovery and non-actions
-
-- `Ctrl+Alt+F2` or another getty-backed virtual terminal is the intended recovery
-  route once graphics are introduced; it has not yet been physically tested.
-- No packages, system files, services, login configuration, partitions,
-  bootloader settings, or FORGE source files were changed in this phase.
-- Do not point boot/login startup at the mutable FORGE checkout.
-- Do not remove sudo authority until the source rule is identified and a
-  password-protected wheel path is verified with the human.
+- From a recovery TTY, run `~/FORGE-OS/scripts/rollback-session.sh` to remove
+  the installed launcher and matching `.xinitrc` while preserving releases and
+  workspace data.
+- If autostart is later accepted and installed, run
+  `~/FORGE-OS/scripts/disable-autostart.sh` or create
+  `~/.config/forge/disable-autostart` before the next login.
+- Restore the former mirror list, if needed, from the dated backup above.

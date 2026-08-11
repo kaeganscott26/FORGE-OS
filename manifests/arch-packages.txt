@@ -1,0 +1,19 @@
+# Minimal graphical substrate and Electron runtime dependencies.
+base-devel
+git
+npm
+python
+nodejs-lts-jod
+xorg-server
+xorg-xinit
+openbox
+xterm
+gtk3
+mesa
+alsa-lib
+libnotify
+cups
+nss
+libxss
+noto-fonts
+libxcrypt-compat

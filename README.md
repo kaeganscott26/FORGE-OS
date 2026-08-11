@@ -21,3 +21,18 @@ competing memory store.
 
 Current observed state and the next dependency-ready work are recorded in
 `BUILD_STATE.md`.
+
+## Current workflow
+
+```text
+scripts/bootstrap-arch.sh
+  -> scripts/build-forge.sh
+  -> scripts/install-runtime.sh
+  -> scripts/install-session.sh
+  -> tests/verify.sh
+  -> manual packaged-app acceptance with startx
+  -> optional scripts/enable-autostart.sh
+```
+
+Login autostart is intentionally withheld until the packaged runtime passes the
+manual acceptance boundary. Read `docs/RECOVERY.md` before changing startup.
