@@ -3,4 +3,4 @@ vt = 1
 
 [default_session]
 command = "tuigreet --issue --time --remember --remember-session --asterisks --width 72 --theme border=green;text=white;prompt=green;time=cyan;action=green;button=green;container=black;input=white --power-shutdown 'systemctl poweroff' --power-reboot 'systemctl reboot' --xsessions /usr/share/xsessions --cmd /usr/local/bin/forge-xsession"
-user = "greeter"
+user = "North3rnLight3r"
