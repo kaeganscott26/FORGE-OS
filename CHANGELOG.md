@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Docked the FORGE-OS system controls above the application chrome so they no
+  longer cover browser tabs or the address bar.
+- Kept the Browser launcher visible at compact window widths and improved its
+  active-state and responsive styling.
 - Corrected PTY graphical-session environment inheritance in FORGE source.
 - Added minimal XDG portal, notification, polkit, browser, file-manager,
   NetworkManager, PipeWire, UPower, and greetd dependencies.
