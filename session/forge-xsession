@@ -18,4 +18,20 @@ state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/forge"
 mkdir -p "$state_dir"
 exec >>"$state_dir/session.log" 2>&1
 printf '\n[%s] authenticated session entered; starting Xorg on VT %s\n' "$(date --iso-8601=seconds)" "${XDG_VTNR:-1}"
-exec /usr/bin/xinit /usr/local/libexec/forge-session-client -- /usr/lib/Xorg vt"${XDG_VTNR:-1}" -keeptty -nolisten tcp
+
+# xinit defaults to :0, but a crashed/manual X server can leave :0 occupied or
+# leave its lock/socket behind.  Treat both files as reserved: deleting them is
+# racy and could disrupt another live login.  Selecting a free display lets the
+# authenticated greetd session boot independently and Xorg will export the
+# matching DISPLAY value to the client.
+display_number=''
+for candidate in $(seq 0 63); do
+  if [[ ! -e "/tmp/.X${candidate}-lock" && ! -e "/tmp/.X11-unix/X${candidate}" ]]; then
+    display_number="$candidate"
+    break
+  fi
+done
+[[ -n "$display_number" ]] || { echo 'No free local X display is available.' >&2; exit 70; }
+
+printf '[%s] selected X display :%s\n' "$(date --iso-8601=seconds)" "$display_number"
+exec /usr/bin/xinit /usr/local/libexec/forge-session-client -- /usr/lib/Xorg ":$display_number" vt"${XDG_VTNR:-1}" -keeptty -nolisten tcp

@@ -50,6 +50,8 @@ grep -q '^user = "greeter"$' /etc/greetd/config.toml 2>/dev/null && pass 'greetd
 getent passwd greeter >/dev/null && pass 'greeter account exists' || fail 'greeter account is missing'
 grep -q '/usr/local/bin/forge-xsession' /etc/greetd/config.toml 2>/dev/null && pass 'greetd selects FORGE session' || fail 'greetd session command is wrong'
 ! rg -q 'startx|\.xinitrc' "$root/session" && pass 'production session has no startx or .xinitrc dependency' || fail 'legacy startx dependency remains in production session'
+rg -q '"/tmp/\.X\$\{candidate\}-lock".*"/tmp/\.X11-unix/X\$\{candidate\}"' "$root/session/forge-xsession" && pass 'X session allocates an unoccupied display' || fail 'X session still assumes a fixed display'
+rg -q '/usr/lib/Xorg "\:\$display_number"' "$root/session/forge-xsession" && pass 'selected X display is passed explicitly to Xorg' || fail 'selected X display is not passed to Xorg'
 [[ ! -e /etc/profile.d/forge-autostart.sh && ! -e /etc/forge/session.env ]] && pass 'legacy tty1 profile autostart is absent' || fail 'legacy tty1 profile autostart remains installed'
 ! rg -q 'PACKAGED_RUNTIME_ACCEPTED|GRAPHICAL_LOGIN_ACCEPTED' "$root/scripts" "$root/session" && [[ ! -e "$root/docs/ACCEPTANCE.md" ]] && pass 'acceptance gating is absent' || fail 'acceptance gating remains'
 rg -q "'FORGE_OS_SESSION'.*'FORGE_SHELL_MODE'.*'FORGE_OS_VERSION'" "$HOME/FORGE/packages/shell/src/index.ts" && pass 'FORGE child environment contract is implemented' || fail 'FORGE child environment contract is incomplete'
