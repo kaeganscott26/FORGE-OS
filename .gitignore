@@ -5,6 +5,8 @@ build/forge-source.*/
 build/archiso-profile/
 build/archiso-work/
 build/iso/
+build/user-desktop-backup/
+UserFiles/
 *.log
 *.tmp
 *.bak

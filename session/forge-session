@@ -2,7 +2,7 @@
 set -euo pipefail
 
 runtime_root="${FORGE_RUNTIME_ROOT:-/opt/forge/current}"
-workspace="${FORGE_WORKSPACE:-$HOME/FORGE-OS}"
+workspace="${FORGE_WORKSPACE:-$HOME}"
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/forge"
 log_file="$state_dir/session.log"
 
@@ -17,11 +17,19 @@ fi
 [[ -d "$workspace" ]] || { echo "FORGE workspace does not exist: $workspace" >&2; exit 66; }
 
 forge_binary=""
-for candidate in "$runtime_root/forge" "$runtime_root/FORGE"; do
-  [[ -x "$candidate" ]] && forge_binary="$candidate" && break
-done
+if [[ -r "$runtime_root/.forge-runtime.env" ]]; then
+  source "$runtime_root/.forge-runtime.env"
+  recorded="$runtime_root/${FORGE_EXECUTABLE_RELATIVE_PATH:-}"
+  [[ -n "${FORGE_EXECUTABLE_RELATIVE_PATH:-}" && -x "$recorded" ]] && forge_binary="$recorded"
+fi
+if [[ -z "$forge_binary" ]]; then
+  for candidate in "$runtime_root/forge" "$runtime_root/FORGE"; do
+    [[ -x "$candidate" ]] && forge_binary="$candidate" && break
+  done
+fi
 [[ -n "$forge_binary" ]] || { echo "No packaged FORGE executable found beneath $runtime_root" >&2; exit 69; }
 runtime_identity="$(basename "$(readlink -f "$runtime_root")")"
 
-printf '[%s] runtime selected: %s; launching FORGE\n' "$(date --iso-8601=seconds)" "$runtime_identity" >>"$log_file"
+printf '[%s] runtime selected: %s; executable: %s; workspace: %s; launching FORGE\n' \
+  "$(date --iso-8601=seconds)" "$runtime_identity" "$forge_binary" "$workspace" >>"$log_file"
 exec "$forge_binary" --workspace="$workspace" >>"$log_file" 2>&1

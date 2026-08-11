@@ -1,7 +1,20 @@
 # Desktop session
 
-greetd owns VT1 and runs tuigreet as the dedicated `greeter` account. After PAM authentication, greetd runs `/usr/local/bin/forge-xsession` as the authenticated user. That launcher exports the FORGE-OS contract and invokes `/usr/bin/xinit` with the repository-owned client `/usr/local/libexec/forge-session-client` and `/usr/lib/Xorg` explicitly.
+greetd owns VT1 and runs tuigreet as the dedicated `greeter` account. `source_profile = false`, so graphical startup does not source system or user shell profiles.
 
-The client publishes the environment to D-Bus/systemd user activation, starts notification and polkit helpers, starts Openbox, and launches FORGE. It logs session stages and failures to `~/.local/state/forge/session.log`. Exiting FORGE ends the X session and returns to the greeter.
+Tuigreet is configured with:
 
-Required values include the real `DISPLAY`, applicable `XAUTHORITY`, `XDG_RUNTIME_DIR`, `DBUS_SESSION_BUS_ADDRESS`, `XDG_CURRENT_DESKTOP=FORGE`, `XDG_SESSION_TYPE=x11`, `FORGE_OS_SESSION=1`, `FORGE_SHELL_MODE=1`, and the installed `FORGE_OS_VERSION`. `DISPLAY` is established by Xorg and is never hard-coded.
+- default command `/usr/local/bin/forge-xsession`;
+- X session directory `/usr/share/forge-os/xsessions`;
+- Wayland session directory `/usr/share/forge-os/wayland-sessions`;
+- `--no-xsession-wrapper`, preventing the default `startx /usr/bin/env` wrapper.
+
+After PAM authentication, `/usr/local/bin/forge-xsession` runs as the authenticated user. It selects an unused X display and invokes `/usr/bin/xinit` with the repository-owned client `/usr/local/libexec/forge-session-client` and `/usr/lib/Xorg` explicitly.
+
+The client validates `DISPLAY`, publishes the XDG/FORGE environment to D-Bus/systemd activation, starts notification and polkit helpers, starts Openbox, and launches `/usr/local/bin/forge-session`. Session stages and failures are written to `~/.local/state/forge/session.log`.
+
+`forge-session` resolves the content-addressed runtime through `/opt/forge/current`, prefers the executable path recorded in `.forge-runtime.env`, and opens the authenticated user's home directory by default. A development checkout at `~/FORGE-OS` is not required for the graphical session to survive.
+
+Required session values include the live `DISPLAY`, applicable `XAUTHORITY`, `XDG_RUNTIME_DIR`, `DBUS_SESSION_BUS_ADDRESS`, `XDG_CURRENT_DESKTOP=FORGE`, `XDG_SESSION_TYPE=x11`, `FORGE_OS_SESSION=1`, `FORGE_SHELL_MODE=1`, and installed `FORGE_OS_VERSION`. `DISPLAY` is selected at runtime and is never hard-coded.
+
+Exiting FORGE ends the X client/session and returns to the greeter. `Ctrl+Alt+F2` remains outside this chain as the recovery console.

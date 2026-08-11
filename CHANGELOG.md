@@ -1,42 +1,28 @@
 # Changelog
 
-## 2026-08-11
-
-- Replaced acceptance-gated and tty1/profile startup with a complete greetd graphical-login installation enabled by default.
-- Added content-addressed runtime identity and byte-for-byte payload verification, including `app.asar`.
-- Removed split, duplicate, and obsolete session/autostart scripts.
-- Made the production Xorg handoff independent of `startx` and user `.xinitrc` files.
-- Corrected Electron sandbox permissions, ISO layout, session logging, strict verification, and recovery documentation.
-
 ## Unreleased
 
-- Restored greetd login by reinstalling the corrected FORGE X-session launcher.
-- Added launcher syntax and installed-file drift checks to prevent an invalid or
-  stale greetd handoff from silently returning users to the login screen.
-- Documented diagnosis and recovery for immediate tuigreet login loops.
-- Added an ArchISO builder, checksum generation, and ISO release checklist.
-- Added AMD microcode/Vulkan, performance, IRQ, Bluetooth, DBus, and platform verification integration.
-- Added a complete setup/configuration/recovery manual and orchestrated enablement command.
+- Audited the complete FORGE-OS boot, session, configuration, packaging, and documentation tree for path/architecture drift.
+- Disabled greetd shell-profile sourcing so graphical startup no longer depends on `/etc/profile` or user profile files.
+- Isolated tuigreet to FORGE-owned session directories and disabled its default X11 `startx` wrapper, leaving `forge-xsession` as the only X server startup boundary.
+- Renamed the single authoritative physical-machine installer to `scripts/install-forge-linux.sh` and removed the old installer path.
+- Made FORGE overlay identity independent of checkout paths and changed overlay application to zero-fuzz dry-run + apply.
+- Explicitly inject the FORGE source commit/date during exported-source packaging so the build cannot inherit the surrounding FORGE-OS Git identity.
+- Made runtime/session launch honor the recorded executable path and removed the requirement that `~/FORGE-OS` exist as the initial FORGE workspace.
+- Moved user MIME backup state out of the Git repository and into the user's XDG state directory.
+- Made graphical-login disablement return the machine to an actual tty1/tty2 console recovery state.
+- Updated the ISO layout to use the same dedicated session paths, branded issue, display-manager alias, runtime record, graphical default, recovery getty, and core enabled services as the physical install.
+- Expanded verification to cover greetd profile sourcing, tuigreet wrapper/session isolation, dedicated desktop entry placement, recorded executable paths, stale repository artifacts, and build-identity contracts.
+- Removed stale Codex prompt/debug documents and tracked machine-generated artifacts.
 
-- Docked the FORGE-OS system controls above the application chrome so they no
-  longer cover browser tabs or the address bar.
-- Kept the Browser launcher visible at compact window widths and improved its
-  active-state and responsive styling.
-- Corrected PTY graphical-session environment inheritance in FORGE source.
-- Added minimal XDG portal, notification, polkit, browser, file-manager,
-  NetworkManager, PipeWire, UPower, and greetd dependencies.
-- Added an acceptance-gated greetd/tuigreet FORGE X session with rollback.
-- Added desktop-session and security-model documentation.
-- Excluded live `.forge` workspace state from future commits.
-- Added FORGE-OS shell mode with safe desktop discovery/launch, clock, System
-  Overview, settings destinations, and controlled session actions.
-- Added reversible XDG browser/file-manager configuration tooling.
+## 2026-08-11 — graphical boot/runtime consolidation
 
-- Added an Arch package manifest for the minimal graphical/build stack.
-- Added the benchmarked package mirror order used to recover the slow bootstrap.
-- Added `libxcrypt-compat` for electron-builder's bundled FPM DEB backend.
-- Added deterministic packaged-runtime staging under `/opt/forge`.
-- Added a logged, normal-user xinit/Openbox session boundary.
-- Added an acceptance-gated, easily disabled TTY1 login handoff.
-- Added bootstrap, build, install, rollback, and verification tools.
-- Documented architectural decisions and console recovery.
+- Replaced acceptance-gated and tty1/profile startup with greetd graphical login enabled by default.
+- Added content-addressed runtime identity and byte-for-byte payload verification, including `app.asar`.
+- Removed manual `startx`/`.xinitrc` production setup and split session installers.
+- Corrected Electron sandbox installation, Xorg handoff, session logging, tty2 recovery, and strict production verification.
+- Added FORGE-OS shell surfaces, application discovery/launch, system overview, desktop defaults, and ArchISO packaging work.
+
+## Retired experimental approaches
+
+Earlier development temporarily used acceptance-marker gating, tty1 shell/profile autostart, manual `startx`, and split graphical-session installers. Those approaches are historical only and are not supported by the current architecture.

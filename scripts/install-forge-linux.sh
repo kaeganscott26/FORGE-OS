@@ -11,19 +11,18 @@ for argument in "$@"; do
     *) echo "Unknown option: $argument" >&2; exit 64 ;;
   esac
 done
+
 target_user="${FORGE_USER:-${SUDO_USER:-$USER}}"
 target_home="$(getent passwd "$target_user" | cut -d: -f6)"
 [[ "$(id -u)" -ne 0 ]] || { echo 'Run this as the target desktop user; sudo is invoked only for system files.' >&2; exit 1; }
 [[ -n "$target_home" && -d "$target_home" && "$target_user" != root ]] || { echo "Invalid desktop user: $target_user" >&2; exit 1; }
-
-forge_source="${FORGE_SOURCE:-$HOME/FORGE}"
+forge_source="${FORGE_SOURCE:-$target_home/FORGE}"
 
 require_current_main() {
-  local repository="$1"
-  local label="$2"
+  local repository="$1" label="$2"
   [[ -d "$repository/.git" ]] || { echo "$label is not a Git repository: $repository" >&2; exit 1; }
   [[ "$(git -C "$repository" branch --show-current)" == main ]] || { echo "$label must be on main for a production FORGE-OS install." >&2; exit 1; }
-  [[ -z "$(git -C "$repository" status --porcelain)" ]] || { echo "$label has uncommitted changes; refusing to package a commit that does not describe the working tree." >&2; exit 1; }
+  [[ -z "$(git -C "$repository" status --porcelain)" ]] || { echo "$label has uncommitted changes; refusing to package a tree that differs from its commit." >&2; exit 1; }
   git -C "$repository" fetch --quiet origin main || { echo "Unable to refresh origin/main for $label." >&2; exit 1; }
   local local_head remote_head
   local_head="$(git -C "$repository" rev-parse HEAD)"
@@ -38,15 +37,12 @@ require_current_main() {
   printf '%s current at %s\n' "$label" "$local_head"
 }
 
-# Production installation must never silently package a stale local checkout.
-# Fetch and compare both repositories before doing package, runtime, or system
-# changes. The installer intentionally refuses dirty/diverged trees rather than
-# modifying or discarding developer work.
 require_current_main "$root" FORGE-OS
 require_current_main "$forge_source" FORGE
 
 if [[ "$skip_packages" == false ]]; then "$root/scripts/bootstrap-arch.sh"; fi
 "$root/scripts/configure-hardware.sh"
+
 if [[ "$use_current_build" == false ]]; then
   "$root/scripts/build-forge.sh" "$forge_source"
 else
@@ -54,22 +50,32 @@ else
   source "$root/build/latest.env"
   [[ "$FORGE_SOURCE_COMMIT" == "$(git -C "$forge_source" rev-parse HEAD)" ]] || { echo 'Current build does not match FORGE HEAD.' >&2; exit 1; }
 fi
-"$root/scripts/install-runtime.sh"
 
+"$root/scripts/install-runtime.sh"
 source "$root/build/latest.env"
 [[ "$FORGE_SOURCE_COMMIT" == "$(git -C "$forge_source" rev-parse origin/main)" ]] || { echo 'Built runtime does not match current FORGE origin/main.' >&2; exit 1; }
+
 version="$(<"$root/VERSION")"
 issue="$(mktemp)"
 trap 'rm -f -- "$issue"' EXIT
 sed -e "s/@VERSION@/$version/g" -e "s/@SOURCE_COMMIT@/${FORGE_SOURCE_COMMIT:0:12}/g" "$root/config/issue" >"$issue"
-for command in greetd tuigreet Xorg xinit openbox; do command -v "$command" >/dev/null || { echo "Required command is missing: $command" >&2; exit 1; }; done
+
+for command in greetd tuigreet Xorg xinit openbox openbox-session dbus-update-activation-environment; do
+  command -v "$command" >/dev/null || { echo "Required command is missing: $command" >&2; exit 1; }
+done
+tuigreet --help 2>&1 | grep -q -- '--no-xsession-wrapper' || { echo 'Installed tuigreet does not support --no-xsession-wrapper.' >&2; exit 1; }
 for file in session/forge-xsession session/forge-session-client session/forge-session; do bash -n "$root/$file"; done
 
-sudo install -d -o root -g root -m 0755 /usr/local/libexec /etc/greetd
+sudo install -d -o root -g root -m 0755 \
+  /usr/local/libexec \
+  /etc/greetd \
+  /usr/share/forge-os/xsessions \
+  /usr/share/forge-os/wayland-sessions
 sudo install -o root -g root -m 0755 "$root/session/forge-xsession" /usr/local/bin/forge-xsession
 sudo install -o root -g root -m 0755 "$root/session/forge-session" /usr/local/bin/forge-session
 sudo install -o root -g root -m 0755 "$root/session/forge-session-client" /usr/local/libexec/forge-session-client
-sudo install -o root -g root -m 0644 "$root/session/forge.desktop" /usr/share/xsessions/forge.desktop
+sudo install -o root -g root -m 0644 "$root/session/forge.desktop" /usr/share/forge-os/xsessions/forge.desktop
+sudo rm -f /usr/share/xsessions/forge.desktop
 sudo install -o root -g root -m 0644 "$root/config/greetd-config.toml" /etc/greetd/config.toml
 sudo install -o root -g root -m 0644 "$issue" /etc/issue
 printf '%s\n' "$version" | sudo tee /etc/forge-os-version >/dev/null
@@ -78,16 +84,34 @@ sudo chmod 0644 /etc/forge-os-version
 install -d -m 0700 "$target_home/.local/state/forge"
 
 sudo rm -f /etc/profile.d/forge-autostart.sh /etc/forge/session.env
-if [[ -f "$target_home/.xinitrc" ]] && grep -q '/usr/local/bin/forge-session' "$target_home/.xinitrc" && grep -q 'FORGE_OS_SESSION=1' "$target_home/.xinitrc"; then rm -f "$target_home/.xinitrc"; fi
-for pair in "$root/session/forge-xsession:/usr/local/bin/forge-xsession" "$root/session/forge-session:/usr/local/bin/forge-session" "$root/session/forge-session-client:/usr/local/libexec/forge-session-client" "$root/config/greetd-config.toml:/etc/greetd/config.toml"; do
+if [[ -f "$target_home/.xinitrc" ]] && grep -q '/usr/local/bin/forge-session' "$target_home/.xinitrc" && grep -q 'FORGE_OS_SESSION=1' "$target_home/.xinitrc"; then
+  rm -f "$target_home/.xinitrc"
+fi
+
+for pair in \
+  "$root/session/forge-xsession:/usr/local/bin/forge-xsession" \
+  "$root/session/forge-session:/usr/local/bin/forge-session" \
+  "$root/session/forge-session-client:/usr/local/libexec/forge-session-client" \
+  "$root/session/forge.desktop:/usr/share/forge-os/xsessions/forge.desktop" \
+  "$root/config/greetd-config.toml:/etc/greetd/config.toml"; do
   sudo cmp -s "${pair%%:*}" "${pair#*:}" || { echo "Installed file mismatch: ${pair#*:}" >&2; exit 1; }
 done
-[[ -x /opt/forge/current/forge && -r /opt/forge/current/resources/app.asar ]] || { echo 'Installed runtime is incomplete.' >&2; exit 1; }
+
+installed_executable="/opt/forge/current/${FORGE_EXECUTABLE_RELATIVE_PATH}"
+[[ -x "$installed_executable" && -r /opt/forge/current/resources/app.asar ]] || { echo 'Installed runtime is incomplete.' >&2; exit 1; }
+[[ "$(sha256sum "$installed_executable" | awk '{print $1}')" == "$FORGE_EXECUTABLE_SHA256" ]] || { echo 'Installed FORGE executable does not match the build record.' >&2; exit 1; }
 [[ "$(sha256sum /opt/forge/current/resources/app.asar | awk '{print $1}')" == "$FORGE_APP_ASAR_SHA256" ]] || { echo 'Refusing to enable greetd with stale app.asar.' >&2; exit 1; }
 getent passwd greeter >/dev/null || { echo 'The dedicated greeter account is missing.' >&2; exit 1; }
 
+grep -q '^source_profile = false$' /etc/greetd/config.toml || { echo 'greetd profile sourcing is not disabled.' >&2; exit 1; }
+grep -q -- '--no-xsession-wrapper' /etc/greetd/config.toml || { echo 'tuigreet X11 wrapper is not disabled.' >&2; exit 1; }
+grep -q -- '--xsessions /usr/share/forge-os/xsessions' /etc/greetd/config.toml || { echo 'tuigreet is not isolated to the FORGE X session directory.' >&2; exit 1; }
+
+sudo systemctl disable getty@tty1.service >/dev/null 2>&1 || true
 sudo systemctl enable getty@tty2.service
 sudo systemctl enable greetd.service
+sudo ln -sfn /usr/lib/systemd/system/greetd.service /etc/systemd/system/display-manager.service
+sudo systemctl daemon-reload
 sudo systemctl set-default graphical.target
 "$root/scripts/configure-user-desktop.sh"
 "$root/tests/verify.sh"
