@@ -63,7 +63,7 @@ sed -e "s/@VERSION@/$version/g" -e "s/@SOURCE_COMMIT@/${FORGE_SOURCE_COMMIT:0:12
 for command in greetd tuigreet Xorg xinit openbox openbox-session dbus-update-activation-environment; do
   command -v "$command" >/dev/null || { echo "Required command is missing: $command" >&2; exit 1; }
 done
-tuigreet --help 2>&1 | grep -q -- '--no-xsession-wrapper' || { echo 'Installed tuigreet does not support --no-xsession-wrapper.' >&2; exit 1; }
+tuigreet --help 2>&1 | grep -F -- '--no-xsession-wrapper' >/dev/null || { echo 'Installed tuigreet does not support --no-xsession-wrapper.' >&2; exit 1; }
 for file in session/forge-xsession session/forge-session-client session/forge-session; do bash -n "$root/$file"; done
 
 sudo install -d -o root -g root -m 0755 \
