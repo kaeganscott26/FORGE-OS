@@ -19,12 +19,19 @@ mkdir -p "$state_dir"
 exec >>"$state_dir/session.log" 2>&1
 printf '\n[%s] authenticated session entered; starting Xorg on VT %s\n' "$(date --iso-8601=seconds)" "${XDG_VTNR:-1}"
 
-# xinit defaults to :0, but a crashed/manual X server can leave :0 occupied or
-# leave its lock/socket behind. Treat both files as reserved: deleting them is
-# racy and could disrupt another live login. During a VT handoff, an old Xorg
-# may also retain DRM master briefly after authentication. Retry only when X
-# failed before the client became ready; never relaunch after a normal FORGE
-# exit.
+# Use Arch's public X server entry point rather than /usr/lib/Xorg directly.
+# /usr/bin/X routes through the distribution Xorg launcher/wrapper policy,
+# which can use Xorg.wrap when the hardware/session requires elevated DRM/VT
+# access. Calling /usr/lib/Xorg directly bypasses that policy and can leave
+# AMDGPU device initialization failing with EACCES even though manual startx
+# works on the same machine.
+x_server=/usr/bin/X
+[[ -x "$x_server" ]] || { echo "Arch X server launcher is missing: $x_server" >&2; exit 69; }
+
+# A crashed/manual X server can leave a display occupied or leave its lock/socket
+# behind. Treat both files as reserved; deleting them is racy and could disrupt
+# another live login. Retry only when X failed before the client became ready;
+# never relaunch after a normal FORGE exit.
 ready_marker="$(mktemp "${XDG_RUNTIME_DIR:-/tmp}/forge-x-ready.XXXXXX")"
 rm -f "$ready_marker"
 trap 'rm -f "$ready_marker"' EXIT HUP INT TERM
@@ -40,9 +47,9 @@ for attempt in 1 2 3; do
   done
   [[ -n "$display_number" ]] || { echo 'No free local X display is available.' >&2; exit 70; }
 
-  printf '[%s] X startup attempt %s selected display :%s\n' "$(date --iso-8601=seconds)" "$attempt" "$display_number"
+  printf '[%s] X startup attempt %s selected display :%s via %s\n' "$(date --iso-8601=seconds)" "$attempt" "$display_number" "$x_server"
   set +e
-  /usr/bin/xinit /usr/local/libexec/forge-session-client -- /usr/lib/Xorg ":$display_number" vt"${XDG_VTNR:-1}" -keeptty -nolisten tcp
+  /usr/bin/xinit /usr/local/libexec/forge-session-client -- "$x_server" ":$display_number" vt"${XDG_VTNR:-1}" -keeptty -nolisten tcp
   status=$?
   set -e
   [[ -e "$ready_marker" ]] && exit "$status"
