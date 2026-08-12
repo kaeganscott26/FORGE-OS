@@ -1,39 +1,64 @@
-# Current build state
+# ✅ Current Build State
 
-Updated 2026-08-11 after physical login-loop diagnosis on the reference AMD laptop.
+**Updated: 2026-08-12**
 
-## Repository state
+FORGE-OS now has a physically demonstrated login path that reaches the FORGE desktop after credential verification. The decisive runtime command is the direct X11 client launch below:
 
-The tracked architecture uses one default-enabled graphical path: greetd/tuigreet on VT1, PAM authentication, repository-owned `forge-xsession`, one explicit xinit/Xorg boundary, `forge-session-client`, Openbox, and the content-addressed packaged FORGE runtime. Shell profile sourcing, tuigreet's implicit X11 `startx` wrapper, global session discovery, acceptance markers, tty1 profile autostart, `.xinitrc`, and manual `startx` are excluded from production startup.
-
-Build identity is portable across checkout paths and the FORGE source commit is injected explicitly during exported-source packaging. Runtime executable and `app.asar` paths/hashes are recorded and verified before greetd is enabled.
-
-## Latest physical diagnosis
-
-The machine cold-boots directly to the FORGE-branded tuigreet screen and PAM authentication reaches `forge-xsession`, but Xorg previously terminated before `forge-session-client` became ready. The session log reproduced the decisive failure on each retry:
-
-```text
-amdgpu_device_initialize: amdgpu_query_info(ACCEL_WORKING) failed (-13)
-Fatal server error:
-AddScreen/ScreenInit failed for driver 0
+```bash
+/usr/bin/xinit /usr/local/libexec/forge-session-client
 ```
 
-Inspection of the reference machine showed that Arch's normal X entry point is `/usr/bin/X -> Xorg`; `/usr/bin/Xorg` is the distribution launcher, `/usr/lib/Xorg.wrap` is the setuid wrapper, and `/usr/lib/Xorg` is the private real server binary. FORGE-OS was explicitly passing `/usr/lib/Xorg` to xinit, bypassing the distribution launcher/wrapper path that the previously working manual Arch X startup used.
+## 🟢 Confirmed working
 
-`session/forge-xsession` now passes `/usr/bin/X` to xinit instead. The verifier explicitly rejects direct `/usr/lib/Xorg` use. This repair requires another physical login test; repository inspection alone cannot prove the GPU/VT handoff succeeds.
+- System boots into the FORGE-branded greetd/tuigreet login flow.
+- PAM authentication succeeds.
+- The direct `xinit` + `forge-session-client` command reaches the FORGE graphical environment.
+- The repository default session command has been changed to match that verified runtime path.
+- `session/forge-xsession` now resolves to the same verified command instead of maintaining a separate custom display/Xorg-launch policy.
+- The desktop entry and verifier are aligned with the same runtime command.
+- tty2 remains the independent recovery console.
 
-## Human validation still required
+## 🧱 Production chain
 
-After pulling FORGE-OS and reinstalling the current session, verify on the physical machine:
+```text
+systemd graphical.target
+  -> greetd on VT1
+  -> FORGE-branded tuigreet
+  -> PAM authentication
+  -> /usr/bin/xinit /usr/local/libexec/forge-session-client
+  -> Openbox + desktop helpers
+  -> /usr/local/bin/forge-session
+  -> /opt/forge/current/<recorded FORGE executable>
+```
 
-- cold boot reaches the FORGE login without an Arch console step;
-- PAM login no longer produces the AMDGPU `-13` initialization failure;
-- login does not loop;
-- FORGE remains visible and fills the session;
-- integrated terminal receives the XDG/D-Bus/FORGE environment contract;
-- Chromium and Thunar launch;
-- logout returns to the greeter and login works again;
-- `Ctrl+Alt+F2` remains a usable independent recovery console;
-- `tests/verify.sh` reports zero failures before an ISO is treated as release candidate.
+## 🧪 Validation still required before a stable ISO tag
 
-Host-specific runtime identities are intentionally generated locally in ignored `build/latest.env` rather than frozen in this document.
+The runtime path is stable enough to proceed with release-candidate work, but the repository version remains `0.1.0-alpha` until the complete release gate passes.
+
+Before publishing an ISO as stable:
+
+- cold boot after pulling and reinstalling the current repository state;
+- confirm login requires no F2 command override;
+- confirm FORGE remains active after login;
+- verify integrated-terminal XDG/D-Bus/FORGE environment variables;
+- launch Chromium and Thunar;
+- validate networking and audio;
+- test logout → greeter → login;
+- confirm tty2 recovery;
+- run `tests/verify.sh` with zero failures;
+- build the ISO and verify its checksum;
+- boot the ISO on the reference machine and at least one additional hardware/VM target.
+
+Use the full [Release Checklist](docs/RELEASE_CHECKLIST.md) as the publication gate.
+
+## 📚 Current documentation
+
+- [README](README.md)
+- [Documentation Hub](docs/README.md)
+- [Architecture](ARCHITECTURE.md)
+- [Desktop Session](docs/DESKTOP_SESSION.md)
+- [User Manual](docs/USER_MANUAL.md)
+- [Recovery](docs/RECOVERY.md)
+- [Release Checklist](docs/RELEASE_CHECKLIST.md)
+
+Historical experimental startup approaches are not part of the current production documentation. Git history and the [Changelog](CHANGELOG.md) preserve that development record.
