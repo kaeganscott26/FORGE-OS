@@ -2,19 +2,20 @@
 
 This file records remaining work that is not represented as a Codex prompt. It should stay short and be deleted when the items are resolved.
 
-## FORGE numeric `file.read` normalization
+## FORGE `file.read` continuation normalization
 
-The former FORGE-OS overlay `overlays/0002-accept-numeric-file-read-ranges.patch` was removed because it no longer applied cleanly to current FORGE and was blocking packaging. The behavior it attempted to add is a generic FORGE agent-tools improvement, not an operating-system integration requirement, and it is not required for FORGE-OS graphical boot.
+FORGE agents can legitimately continue a bounded `file.read` using the returned `offset`. In practice, model-generated continuation calls may repeat the earlier `startLine` / `endLine` fields while also supplying that offset. Current upstream FORGE rejects the entire request with `offset cannot be combined with line ranges`, which can abort broad workspace scans.
 
-The remaining upstream FORGE work is:
+FORGE-OS currently carries `overlays/0002-tolerate-file-read-continuation-arguments.patch` as a temporary compatibility fix so the packaged FORGE runtime remains usable during the OS experiment. The overlay:
 
-- update `packages/agent-tools/src/index.ts` so numeric-string values for `file.read` range fields are normalized to integers before validation;
-- retain the rule that `offset` cannot be combined with line ranges;
-- add a regression test in `packages/agent-tools/test/runtime.test.ts` for string-valued numeric ranges;
-- run FORGE typecheck, lint, tests, and build;
-- commit/push the FORGE change.
+- normalizes numeric-string range values to integers;
+- treats a supplied continuation `offset` as authoritative;
+- discards repeated `startLine` / `endLine` values when `offset` is present instead of failing validation;
+- adds regression coverage for the mixed continuation argument shape.
 
-Do not reintroduce this as a FORGE-OS overlay. FORGE-OS packaging must remain independent of this non-OS behavior fix.
+This behavior belongs upstream in FORGE, not permanently in FORGE-OS. The remaining upstream work is to implement the same contract in `packages/agent-tools/src/index.ts`, retain the regression test under `packages/agent-tools/test`, run FORGE typecheck/lint/tests/build, commit/push the FORGE change, then remove this overlay in a later FORGE-OS commit and rebuild so the overlay identity changes intentionally.
+
+The overlay is compatibility scaffolding only; it is not part of the graphical boot architecture.
 
 ## Human-only validation
 
