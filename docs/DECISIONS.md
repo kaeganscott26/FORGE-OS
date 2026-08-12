@@ -1,29 +1,45 @@
-# Decisions
+# 🧭 Architectural Decisions
 
-## Graphical login is the default
+This file records durable production decisions. Temporary debugging approaches belong in Git history and the changelog, not in the active architecture.
 
-greetd/tuigreet on VT1 provides the branded PAM-authenticated login. Acceptance gating and tty1 shell-profile startup are obsolete.
+## 🖥️ Graphical login is the default
 
-## Graphical startup does not source shell profiles
+`greetd`/`tuigreet` on VT1 provides the FORGE-branded PAM-authenticated login. Acceptance gating and tty1 shell-profile startup are obsolete.
+
+## 🧼 Graphical startup does not source shell profiles
 
 `greetd` sets `source_profile = false`. `/etc/profile`, `~/.profile`, `.bash_profile`, `.bashrc`, and similar shell startup files are not part of the production graphical-session contract.
 
-## FORGE owns the only X startup boundary
+## 🚀 The post-auth runtime path is explicit
 
-`tuigreet` is restricted to FORGE-owned session directories and uses `--no-xsession-wrapper`; it must not prepend its default `startx /usr/bin/env` wrapper. The authenticated command is `/usr/local/bin/forge-xsession`, which calls `xinit` with explicit client and Xorg paths.
+Tuigreet is restricted to FORGE-owned session directories and uses `--no-xsession-wrapper`; it must not inject its default `startx /usr/bin/env` wrapper.
 
-## Content-addressed runtime
+After successful PAM authentication, the production command is:
 
-A FORGE source commit alone cannot identify an overlaid application. Release identity therefore incorporates the source commit, ordered path-independent overlay identity, and full payload identity, while the build record also pins lockfile, executable, and `app.asar` hashes.
+```bash
+/usr/bin/xinit /usr/local/libexec/forge-session-client
+```
 
-## Exported builds receive explicit source identity
+`session/forge-xsession` is retained as a compatibility/recovery alias and resolves to the same verified path.
+
+## 📦 Runtime releases are content-addressed
+
+A FORGE source commit alone cannot identify an overlaid application. Release identity therefore incorporates the source commit, ordered path-independent overlay identity, and full payload identity. The build record also pins the lockfile, executable, and `app.asar` hashes.
+
+## 🏷️ Exported builds receive explicit source identity
 
 FORGE-OS packages a `git archive` of FORGE rather than the live checkout. `FORGE_BUILD_COMMIT` is passed explicitly during packaging so FORGE cannot accidentally discover the enclosing FORGE-OS Git repository and embed the wrong commit.
 
-## User state does not live in Git
+## 🗃️ User state does not live in Git
 
-Desktop/MIME rollback data belongs under the user's XDG state directory, not beneath a tracked repository `build/` directory.
+Desktop/MIME rollback data and other machine-specific state belong under the user's XDG state directory, not beneath tracked repository paths.
 
-## Recovery is independent
+## 🛟 Recovery remains independent
 
-tty2 remains an enabled getty and is not owned by the graphical session. The graphical disable script switches back to `multi-user.target` and restores tty1/tty2 console login. No graphical component may be considered production-ready unless the verifier sees the complete chain.
+`getty@tty2.service` remains enabled and outside the graphical session. The graphical-disable script switches back to `multi-user.target` and restores tty1/tty2 console login.
+
+## 🔀 FORGE and FORGE-OS remain separate repositories
+
+Generic application features and fixes belong upstream in FORGE. Boot, session, Arch integration, hardware configuration, distribution packaging, recovery, and ISO release behavior belong in FORGE-OS.
+
+See the [Architecture](../ARCHITECTURE.md), [Desktop Session](DESKTOP_SESSION.md), and [Release Checklist](RELEASE_CHECKLIST.md).
