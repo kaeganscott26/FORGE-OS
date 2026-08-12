@@ -24,7 +24,14 @@ cleanup() { rm -rf -- "$staging"; }
 trap cleanup EXIT
 git -C "$forge_source" archive "$commit" | tar -x -C "$staging"
 for overlay in "${overlays[@]}"; do
-  patch --dry-run --batch --forward --fuzz=0 -d "$staging" -p1 <"$overlay" >/dev/null
+  relative="${overlay#"$repository_root/"}"
+  echo "Checking FORGE-OS overlay: $relative"
+  if ! patch --dry-run --batch --forward --fuzz=0 -d "$staging" -p1 <"$overlay"; then
+    echo "FORGE-OS overlay does not apply cleanly to FORGE $commit: $relative" >&2
+    echo 'The build was stopped before packaging so a stale or fuzzy patch cannot enter the runtime.' >&2
+    exit 1
+  fi
+  echo "Applying FORGE-OS overlay: $relative"
   patch --batch --forward --fuzz=0 -d "$staging" -p1 <"$overlay"
 done
 build_date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
