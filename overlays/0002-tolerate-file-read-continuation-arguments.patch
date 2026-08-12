@@ -1,7 +1,7 @@
 diff --git a/packages/agent-tools/src/index.ts b/packages/agent-tools/src/index.ts
 --- a/packages/agent-tools/src/index.ts
 +++ b/packages/agent-tools/src/index.ts
-@@ -126,7 +126,11 @@ export function createToolRegistry(): ToolRegistry {
+@@ -126,5 +126,9 @@ export function createToolRegistry(): ToolRegistry {
    const base = { outputSchema: textOutput, cancellable: true };
    const taskContext = { taskContext: z.object({ taskId: z.string().uuid(), stepId: z.string().min(1).max(200) }).optional() };
    registry.register(definition({ ...base, name: 'file.list', purpose: 'Discover workspace files from the root first; use a nested path only after it has been observed. Continue with the returned offset when truncated.', inputSchema: z.object({ path: z.string().max(4_096).default('.'), recursive: z.boolean().default(false), maxDepth: z.number().int().min(0).max(20).default(2), maxEntries: z.number().int().min(1).max(MAX_LIST_ENTRIES).default(500), offset: z.number().int().min(0).max(1_000_000).default(0), ...taskContext }), sideEffect: 'read', approval: 'automatic', workspaceBoundary: 'required', timeoutMs: 10_000, audit: { category: 'filesystem', recordsAffectedPaths: false, recordsExitCode: false, externalDataTransfer: false }, networkAccess: false, describeTarget: (input) => input.path ?? '.', describeEffect: () => 'Read a bounded workspace directory listing, beginning at the workspace root by default.' }));
@@ -16,7 +16,7 @@ diff --git a/packages/agent-tools/test/file-read-continuation.test.ts b/packages
 new file mode 100644
 --- /dev/null
 +++ b/packages/agent-tools/test/file-read-continuation.test.ts
-@@ -0,0 +1,25 @@
+@@ -0,0 +1,24 @@
 +import { describe, expect, it } from 'vitest';
 +import { createToolRegistry } from '../src';
 +
