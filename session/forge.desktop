@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=FORGE
 Comment=FORGE OS graphical shell
-Exec=/usr/local/bin/forge-xsession
+Exec=/usr/bin/xinit /usr/local/libexec/forge-session-client
 Type=Application
 DesktopNames=FORGE
