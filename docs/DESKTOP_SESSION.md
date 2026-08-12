@@ -9,7 +9,9 @@ Tuigreet is configured with:
 - Wayland session directory `/usr/share/forge-os/wayland-sessions`;
 - `--no-xsession-wrapper`, preventing the default `startx /usr/bin/env` wrapper.
 
-After PAM authentication, `/usr/local/bin/forge-xsession` runs as the authenticated user. It selects an unused X display and invokes `/usr/bin/xinit` with the repository-owned client `/usr/local/libexec/forge-session-client` and `/usr/lib/Xorg` explicitly.
+After PAM authentication, `/usr/local/bin/forge-xsession` runs as the authenticated user. It selects an unused X display and invokes `/usr/bin/xinit` with the repository-owned client `/usr/local/libexec/forge-session-client` and Arch's public X server entry point `/usr/bin/X`.
+
+The session must not invoke `/usr/lib/Xorg` directly. On Arch, `/usr/bin/X` resolves through the distribution Xorg launcher/wrapper policy and can use the setuid `Xorg.wrap` helper when the active VT/DRM device requires elevated setup rights. Bypassing that launcher was reproduced on the reference AMD laptop as `amdgpu_query_info(ACCEL_WORKING) failed (-13)` followed by `AddScreen/ScreenInit failed for driver 0`, while the standard Arch X startup path worked.
 
 The client validates `DISPLAY`, publishes the XDG/FORGE environment to D-Bus/systemd activation, starts notification and polkit helpers, starts Openbox, and launches `/usr/local/bin/forge-session`. Session stages and failures are written to `~/.local/state/forge/session.log`.
 
