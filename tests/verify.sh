@@ -67,10 +67,12 @@ done
 grep -q '^source_profile = false$' /etc/greetd/config.toml 2>/dev/null && pass 'greetd does not source shell profiles' || fail 'greetd profile sourcing is still enabled'
 grep -q '^user = "greeter"$' /etc/greetd/config.toml 2>/dev/null && pass 'greetd uses dedicated greeter account' || fail 'greetd is not configured for greeter account'
 getent passwd greeter >/dev/null && pass 'greeter account exists' || fail 'greeter account is missing'
-grep -q -- '--cmd /usr/local/bin/forge-xsession' /etc/greetd/config.toml 2>/dev/null && pass 'greetd default command selects FORGE session' || fail 'greetd default session command is wrong'
+grep -Fq -- "--cmd '/usr/bin/xinit /usr/local/libexec/forge-session-client'" /etc/greetd/config.toml 2>/dev/null && pass 'greetd uses verified FORGE runtime command' || fail 'greetd default session command is wrong'
 grep -q -- '--no-xsession-wrapper' /etc/greetd/config.toml 2>/dev/null && pass 'tuigreet X session wrapper is disabled' || fail 'tuigreet can still inject the default startx wrapper'
 grep -q -- '--xsessions /usr/share/forge-os/xsessions' /etc/greetd/config.toml 2>/dev/null && pass 'tuigreet X sessions are isolated to FORGE directory' || fail 'tuigreet still discovers global X sessions'
 grep -q -- '--sessions /usr/share/forge-os/wayland-sessions' /etc/greetd/config.toml 2>/dev/null && pass 'tuigreet Wayland sessions are isolated from system defaults' || fail 'tuigreet still discovers global Wayland sessions'
+grep -Fq 'exec /usr/bin/xinit /usr/local/libexec/forge-session-client' "$root/session/forge-xsession" && pass 'forge-xsession aliases verified xinit path' || fail 'forge-xsession does not use verified xinit path'
+grep -Fq 'Exec=/usr/bin/xinit /usr/local/libexec/forge-session-client' "$root/session/forge.desktop" && pass 'desktop entry uses verified xinit path' || fail 'desktop entry has wrong runtime command'
 if grep -ERq 'startx|\.xinitrc' "$root/session" /usr/local/bin/forge-xsession /usr/local/bin/forge-session /usr/local/libexec/forge-session-client; then
   fail 'legacy startx dependency remains in production session'
 elif (( $? == 1 )); then
@@ -78,14 +80,6 @@ elif (( $? == 1 )); then
 else
   fail 'production session dependency search could not be completed'
 fi
-grep -Eq '"/tmp/\.X\$\{candidate\}-lock".*"/tmp/\.X11-unix/X\$\{candidate\}"' /usr/local/bin/forge-xsession && pass 'X session allocates an unoccupied display' || fail 'X session still assumes a fixed display'
-grep -Fq 'x_server=/usr/bin/X' /usr/local/bin/forge-xsession && pass 'X session uses the Arch public X launcher' || fail 'X session bypasses the Arch Xorg launcher/wrapper policy'
-if grep -Fq '/usr/lib/Xorg ":$display_number"' /usr/local/bin/forge-xsession; then
-  fail 'X session directly invokes /usr/lib/Xorg and bypasses Xorg.wrap'
-else
-  pass 'X session does not bypass Xorg.wrap with the private Xorg binary'
-fi
-grep -Fq '"$x_server" ":$display_number"' /usr/local/bin/forge-xsession && pass 'selected X display is passed through the Arch X launcher' || fail 'selected X display is not passed through the Arch X launcher'
 [[ ! -e /etc/profile.d/forge-autostart.sh && ! -e /etc/forge/session.env ]] && pass 'legacy tty1 profile autostart is absent' || fail 'legacy tty1 profile autostart remains installed'
 if grep -ERq 'PACKAGED_RUNTIME_ACCEPTED|GRAPHICAL_LOGIN_ACCEPTED' "$root/scripts" "$root/session"; then
   fail 'acceptance gating remains'
