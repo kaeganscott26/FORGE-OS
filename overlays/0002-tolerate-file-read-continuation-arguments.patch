@@ -1,0 +1,43 @@
+diff --git a/packages/agent-tools/src/index.ts b/packages/agent-tools/src/index.ts
+--- a/packages/agent-tools/src/index.ts
++++ b/packages/agent-tools/src/index.ts
+@@ -126,7 +126,11 @@ export function createToolRegistry(): ToolRegistry {
+   const base = { outputSchema: textOutput, cancellable: true };
+   const taskContext = { taskContext: z.object({ taskId: z.string().uuid(), stepId: z.string().min(1).max(200) }).optional() };
+   registry.register(definition({ ...base, name: 'file.list', purpose: 'Discover workspace files from the root first; use a nested path only after it has been observed. Continue with the returned offset when truncated.', inputSchema: z.object({ path: z.string().max(4_096).default('.'), recursive: z.boolean().default(false), maxDepth: z.number().int().min(0).max(20).default(2), maxEntries: z.number().int().min(1).max(MAX_LIST_ENTRIES).default(500), offset: z.number().int().min(0).max(1_000_000).default(0), ...taskContext }), sideEffect: 'read', approval: 'automatic', workspaceBoundary: 'required', timeoutMs: 10_000, audit: { category: 'filesystem', recordsAffectedPaths: false, recordsExitCode: false, externalDataTransfer: false }, networkAccess: false, describeTarget: (input) => input.path ?? '.', describeEffect: () => 'Read a bounded workspace directory listing, beginning at the workspace root by default.' }));
+-  registry.register(definition({ ...base, name: 'file.read', purpose: 'Read a bounded range of a supported workspace text file. Use the returned continuation to inspect more without exhausting context.', inputSchema: z.object({ path: relativePath, startLine: z.number().int().min(1).optional(), endLine: z.number().int().min(1).optional(), offset: z.number().int().min(0).max(MAX_RANGED_TEXT_BYTES).optional(), maxCharacters: z.number().int().min(1).max(200_000).default(12_000), ...taskContext }).refine((input) => input.endLine === undefined || input.startLine === undefined || input.endLine >= input.startLine, 'endLine must not precede startLine.').refine((input) => input.offset === undefined || (input.startLine === undefined && input.endLine === undefined), 'offset cannot be combined with line ranges.'), sideEffect: 'read', approval: 'automatic', workspaceBoundary: 'required', timeoutMs: 10_000, audit: { category: 'filesystem', recordsAffectedPaths: false, recordsExitCode: false, externalDataTransfer: false }, networkAccess: false, describeTarget: (input) => input.path, describeEffect: () => 'Read bounded text without changing the workspace.' }));
++  const rangedInteger = (minimum: number, maximum?: number) => z.preprocess((value) => typeof value === 'string' && /^\d+$/.test(value.trim()) ? Number(value) : value, maximum === undefined ? z.number().int().min(minimum) : z.number().int().min(minimum).max(maximum));
++  const fileReadInput = z.object({ path: relativePath, startLine: rangedInteger(1).optional(), endLine: rangedInteger(1).optional(), offset: rangedInteger(0, MAX_RANGED_TEXT_BYTES).optional(), maxCharacters: rangedInteger(1, 200_000).default(12_000), ...taskContext })
++    .refine((input) => input.endLine === undefined || input.startLine === undefined || input.endLine >= input.startLine, 'endLine must not precede startLine.')
++    .transform((input) => input.offset === undefined ? input : { ...input, startLine: undefined, endLine: undefined });
++  registry.register(definition({ ...base, name: 'file.read', purpose: 'Read a bounded range of a supported workspace text file. Use the returned continuation to inspect more without exhausting context. When offset is present it is authoritative and repeated line-range fields are ignored.', inputSchema: fileReadInput, sideEffect: 'read', approval: 'automatic', workspaceBoundary: 'required', timeoutMs: 10_000, audit: { category: 'filesystem', recordsAffectedPaths: false, recordsExitCode: false, externalDataTransfer: false }, networkAccess: false, describeTarget: (input) => input.path, describeEffect: () => 'Read bounded text without changing the workspace.' }));
+   registry.register(definition({ ...base, name: 'file.search', purpose: 'Search supported workspace text files. When truncated, continue using the returned offset.', inputSchema: z.object({ query: z.string().min(1).max(500), path: z.string().max(4_096).default('.'), caseSensitive: z.boolean().default(false), maxResults: z.number().int().min(1).max(MAX_SEARCH_RESULTS).default(50), offset: z.number().int().min(0).max(100_000).default(0), ...taskContext }), sideEffect: 'read', approval: 'automatic', workspaceBoundary: 'required', timeoutMs: 20_000, audit: { category: 'filesystem', recordsAffectedPaths: false, recordsExitCode: false, externalDataTransfer: false }, networkAccess: false, describeTarget: (input) => input.path ?? '.', describeEffect: (input) => `Search workspace text for ${JSON.stringify(input.query)}.` }));
+diff --git a/packages/agent-tools/test/file-read-continuation.test.ts b/packages/agent-tools/test/file-read-continuation.test.ts
+new file mode 100644
+--- /dev/null
++++ b/packages/agent-tools/test/file-read-continuation.test.ts
+@@ -0,0 +1,25 @@
++import { describe, expect, it } from 'vitest';
++import { createToolRegistry } from '../src';
++
++describe('file.read continuation input normalization', () => {
++  it('accepts numeric strings and lets offset override repeated line-range fields', () => {
++    const registry = createToolRegistry();
++    const parsed = registry.parse({
++      id: 'file-read-continuation',
++      name: 'file.read',
++      provider: 'test',
++      arguments: {
++        path: 'README.md',
++        startLine: '2',
++        endLine: '3',
++        offset: '5',
++        maxCharacters: '100'
++      }
++    });
++
++    expect(parsed.input).toMatchObject({ path: 'README.md', offset: 5, maxCharacters: 100 });
++    expect(parsed.input.startLine).toBeUndefined();
++    expect(parsed.input.endLine).toBeUndefined();
++  });
++});
