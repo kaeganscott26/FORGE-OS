@@ -1,28 +1,58 @@
-# Release checklist
+# 📦 FORGE-OS Release Checklist
 
-## Physical-machine candidate
+Use this checklist as the release gate for any ISO described as stable. A successful local build is not enough; the boot/login/session/recovery chain must survive real hardware validation.
 
-1. Confirm both repositories are clean on `main` and current with `origin/main`.
-2. Run `./scripts/install-forge-linux.sh`; do not bypass verifier failures.
-3. Confirm `tests/verify.sh` reports zero failures.
-4. Cold reboot the physical machine.
-5. Confirm the FORGE-branded login appears without an Arch tty1 login or manual `startx`.
-6. Authenticate through PAM and confirm the session remains in FORGE instead of returning to the greeter.
-7. In the FORGE terminal verify `DISPLAY`, `XDG_CURRENT_DESKTOP`, `XDG_SESSION_TYPE`, `FORGE_OS_SESSION`, `FORGE_SHELL_MODE`, and `FORGE_OS_VERSION`.
-8. Launch Chromium and Thunar from FORGE.
-9. Test logout -> greeter -> login again.
-10. Confirm `Ctrl+Alt+F2` still provides an independent recovery console.
-11. Confirm build and installed executable/`app.asar`/payload hashes match the local build record.
+## 🧹 Repository readiness
 
-## ISO release candidate
+- [ ] `FORGE` is clean, on `main`, and current with `origin/main`.
+- [ ] `FORGE-OS` is clean, on `main`, and current with `origin/main`.
+- [ ] Active docs describe only the production path.
+- [ ] Temporary prompts, machine-generated files, credentials, and local runtime state are absent from Git.
+- [ ] `CHANGELOG.md` reflects the release candidate.
+- [ ] [`VERSION`](../VERSION) matches the intended release channel.
 
-1. Run `scripts/build-iso.sh` only after the physical-machine candidate passes.
-2. Verify `build/iso/SHA256SUMS` and retain the checksum with the artifact.
-3. Boot the ISO on the reference machine and at least one separate machine or VM with different graphics/network hardware.
-4. Repeat login, session, terminal-environment, application-launch, logout/relogin, networking, audio, and tty2 recovery checks from the ISO.
-5. Verify the ISO's `/opt/forge/current` runtime identity and `chrome-sandbox` permissions.
-6. Test installation/update behavior separately from live-ISO boot if an installer is added; do not claim installability from a live image alone.
-7. Record known hardware limitations and minimum requirements.
-8. Tag a FORGE-OS prerelease only after the tested ISO checksum is final and both source repositories are pushed.
+## 🖥️ Physical-machine candidate
 
-Never commit `build/latest.env`, local desktop backups, credentials, or machine-specific runtime state. Never enable autologin or permanent `--no-sandbox`.
+- [ ] Run `./scripts/install-forge-linux.sh` without bypassing verifier failures.
+- [ ] Confirm `./tests/verify.sh` reports **zero failures**.
+- [ ] Cold reboot the reference machine.
+- [ ] Confirm the FORGE-branded login appears without an Arch tty1 login or manual `startx`.
+- [ ] Authenticate through PAM.
+- [ ] Confirm the post-auth runtime launches automatically as `/usr/bin/xinit /usr/local/libexec/forge-session-client`.
+- [ ] Confirm FORGE remains visible and does not return immediately to the greeter.
+- [ ] In the FORGE terminal verify `DISPLAY`, `XDG_CURRENT_DESKTOP`, `XDG_SESSION_TYPE`, `FORGE_OS_SESSION`, `FORGE_SHELL_MODE`, and `FORGE_OS_VERSION`.
+- [ ] Launch Chromium and Thunar from FORGE.
+- [ ] Validate networking and audio.
+- [ ] Test logout → greeter → login again.
+- [ ] Confirm `Ctrl+Alt+F2` provides the independent recovery console.
+- [ ] Confirm executable, `app.asar`, payload, and installed runtime hashes match the local build record.
+
+## 💿 ISO release candidate
+
+- [ ] Build the image with `./scripts/build-iso.sh` only after the physical-machine candidate passes.
+- [ ] Confirm `build/iso/SHA256SUMS` exists and matches the final artifact.
+- [ ] Boot the ISO on the reference machine.
+- [ ] Boot the ISO on at least one additional machine or VM with different graphics/network hardware.
+- [ ] Repeat login, session, terminal-environment, application-launch, networking, audio, logout/relogin, and tty2 recovery checks from the ISO.
+- [ ] Verify the ISO runtime identity under `/opt/forge/current`.
+- [ ] Verify `chrome-sandbox` is root-owned mode `4755`.
+- [ ] Record minimum requirements and known hardware limitations.
+- [ ] If a disk installer exists, test installation separately from live-ISO boot.
+
+## 🔐 Security and integrity
+
+- [ ] No permanent autologin is enabled.
+- [ ] No permanent Electron `--no-sandbox` flag is used.
+- [ ] No secrets or credentials are embedded in the image or repository.
+- [ ] tty2 recovery remains enabled.
+- [ ] The release checksum is retained alongside the published ISO.
+
+## 🏷️ Publication
+
+- [ ] Both source repositories are pushed.
+- [ ] The final ISO checksum is frozen.
+- [ ] Release notes summarize user-visible changes, known limitations, and recovery instructions.
+- [ ] The tag/version reflects the actual validation level (`alpha`, `beta`, `rc`, or stable).
+- [ ] Only after every stable gate above passes should the ISO be described as a stable release.
+
+See the [Documentation Hub](README.md), [Recovery Guide](RECOVERY.md), and [Architecture](../ARCHITECTURE.md) for supporting details.
