@@ -21,7 +21,7 @@ overlay_hash() {
 source /etc/os-release 2>/dev/null || true
 [[ "${ID:-}" == arch ]] && pass 'platform is Arch Linux' || fail 'platform is not Arch Linux'
 [[ "$(id -u)" -ne 0 ]] && pass 'verifier runs as a normal user' || fail 'verifier must not run as root'
-for command in node npm git codex Xorg xinit openbox openbox-session greetd tuigreet xdg-open dbus-update-activation-environment; do check command -v "$command"; done
+for command in node npm git codex X Xorg xinit openbox openbox-session greetd tuigreet xdg-open dbus-update-activation-environment; do check command -v "$command"; done
 [[ "$(node --version 2>/dev/null)" == v22.* ]] && pass 'Node major version is 22' || fail "Node 22 is required; found $(node --version 2>/dev/null || echo missing)"
 for package in nodejs-lts-jod xorg-server xorg-xinit openbox greetd greetd-tuigreet networkmanager pipewire wireplumber dbus-broker xdg-desktop-portal-gtk polkit-gnome chromium thunar; do check pacman -Q "$package"; done
 
@@ -79,7 +79,13 @@ else
   fail 'production session dependency search could not be completed'
 fi
 grep -Eq '"/tmp/\.X\$\{candidate\}-lock".*"/tmp/\.X11-unix/X\$\{candidate\}"' /usr/local/bin/forge-xsession && pass 'X session allocates an unoccupied display' || fail 'X session still assumes a fixed display'
-grep -Eq '/usr/lib/Xorg ":\$display_number"' /usr/local/bin/forge-xsession && pass 'selected X display is passed explicitly to Xorg' || fail 'selected X display is not passed to Xorg'
+grep -Fq 'x_server=/usr/bin/X' /usr/local/bin/forge-xsession && pass 'X session uses the Arch public X launcher' || fail 'X session bypasses the Arch Xorg launcher/wrapper policy'
+if grep -Fq '/usr/lib/Xorg ":$display_number"' /usr/local/bin/forge-xsession; then
+  fail 'X session directly invokes /usr/lib/Xorg and bypasses Xorg.wrap'
+else
+  pass 'X session does not bypass Xorg.wrap with the private Xorg binary'
+fi
+grep -Fq '"$x_server" ":$display_number"' /usr/local/bin/forge-xsession && pass 'selected X display is passed through the Arch X launcher' || fail 'selected X display is not passed through the Arch X launcher'
 [[ ! -e /etc/profile.d/forge-autostart.sh && ! -e /etc/forge/session.env ]] && pass 'legacy tty1 profile autostart is absent' || fail 'legacy tty1 profile autostart remains installed'
 if grep -ERq 'PACKAGED_RUNTIME_ACCEPTED|GRAPHICAL_LOGIN_ACCEPTED' "$root/scripts" "$root/session"; then
   fail 'acceptance gating remains'
