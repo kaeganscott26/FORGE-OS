@@ -52,7 +52,7 @@ FORGE is exported from an exact Git commit before packaging. FORGE-OS passes bui
 
 Overlay identity is derived from ordered repository-relative patch names and contents. Patches are dry-run and applied with zero fuzz.
 
-Runtime releases are content-addressed by source and payload identity. Ignored `build/latest.env` records the source commit, build date, lockfile hash, overlay hash, executable hash, `app.asar` hash, payload hash, runtime ID, and relative paths. `/opt/forge/current` is switched only after the installed payload matches the build record.
+Runtime releases are content-addressed by source and payload identity. Ignored `build/latest.env` independently records the FORGE application version, commit, package manifest and lockfile hashes; the FORGE-OS version, commit, and overlay hash; and the executable, `app.asar`, full payload, runtime ID, build date, and relative paths. `/opt/forge/current` is switched only after the build record still matches FORGE-OS and the installed payload matches every recorded runtime hash.
 
 Electron's `chrome-sandbox` remains root-owned mode `4755`; permanent `--no-sandbox` is not part of the production architecture.
 

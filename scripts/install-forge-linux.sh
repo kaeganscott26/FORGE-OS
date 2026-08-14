@@ -49,11 +49,16 @@ else
   [[ -r "$root/build/latest.env" ]] || { echo 'No current local build record exists.' >&2; exit 1; }
   source "$root/build/latest.env"
   [[ "$FORGE_SOURCE_COMMIT" == "$(git -C "$forge_source" rev-parse HEAD)" ]] || { echo 'Current build does not match FORGE HEAD.' >&2; exit 1; }
+  [[ "${FORGE_OS_COMMIT:-}" == "$(git -C "$root" rev-parse HEAD)" && "${FORGE_OS_VERSION:-}" == "$(<"$root/VERSION")" ]] || { echo 'Current build does not match this FORGE-OS revision/version.' >&2; exit 1; }
+  [[ "${FORGE_PACKAGE_SHA256:-}" == "$(sha256sum "$forge_source/package.json" | awk '{print $1}')" ]] || { echo 'Current build does not match the FORGE package manifest.' >&2; exit 1; }
+  [[ "${FORGE_LOCK_SHA256:-}" == "$(sha256sum "$forge_source/package-lock.json" | awk '{print $1}')" ]] || { echo 'Current build does not match the FORGE lockfile.' >&2; exit 1; }
 fi
 
 "$root/scripts/install-runtime.sh"
 source "$root/build/latest.env"
 [[ "$FORGE_SOURCE_COMMIT" == "$(git -C "$forge_source" rev-parse origin/main)" ]] || { echo 'Built runtime does not match current FORGE origin/main.' >&2; exit 1; }
+[[ "$FORGE_PACKAGE_SHA256" == "$(sha256sum "$forge_source/package.json" | awk '{print $1}')" ]] || { echo 'Built runtime does not match the current FORGE package manifest.' >&2; exit 1; }
+[[ "$FORGE_LOCK_SHA256" == "$(sha256sum "$forge_source/package-lock.json" | awk '{print $1}')" ]] || { echo 'Built runtime does not match the current FORGE lockfile.' >&2; exit 1; }
 
 version="$(<"$root/VERSION")"
 issue="$(mktemp)"

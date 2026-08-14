@@ -4,6 +4,13 @@ All notable FORGE-OS changes are recorded here. Active documentation describes o
 
 ## 🚧 Unreleased
 
+### 🧬 Linux build identity and overlay compatibility
+
+- Bumped the development version to `0.1.3-alpha`.
+- Refreshed the Linux-only `file.read` compatibility overlay for the current FORGE source layout while preserving zero-fuzz application.
+- Recorded and verified the independent FORGE application version/manifest and FORGE-OS version/commit alongside lockfile, overlay, executable, `app.asar`, and full-payload hashes.
+- Made `--use-current-build` reject runtimes produced by a different FORGE-OS revision or version.
+
 ### 🪟 Plasma 6 windowing and FORGE program surfaces
 
 - Bumped the development version to `0.1.2-alpha`.

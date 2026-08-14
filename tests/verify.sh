@@ -33,13 +33,17 @@ done
 [[ -r "$root/build/latest.env" ]] || fail 'local build/latest.env is missing'
 if [[ -r "$root/build/latest.env" ]]; then
   source "$root/build/latest.env"
-  for name in FORGE_SOURCE_COMMIT FORGE_BUILD_DATE FORGE_LOCK_SHA256 FORGE_OS_OVERLAY_SHA256 FORGE_RUNTIME_RELATIVE_PATH FORGE_EXECUTABLE_RELATIVE_PATH FORGE_EXECUTABLE_SHA256 FORGE_APP_ASAR_SHA256 FORGE_PAYLOAD_SHA256 FORGE_RUNTIME_ID; do
+  for name in FORGE_SOURCE_COMMIT FORGE_VERSION FORGE_BUILD_DATE FORGE_PACKAGE_SHA256 FORGE_LOCK_SHA256 FORGE_OS_VERSION FORGE_OS_COMMIT FORGE_OS_OVERLAY_SHA256 FORGE_RUNTIME_RELATIVE_PATH FORGE_EXECUTABLE_RELATIVE_PATH FORGE_EXECUTABLE_SHA256 FORGE_APP_ASAR_SHA256 FORGE_PAYLOAD_SHA256 FORGE_RUNTIME_ID; do
     [[ -n "${!name:-}" ]] && pass "$name is recorded" || fail "$name is missing"
   done
   build_runtime="$root/${FORGE_RUNTIME_RELATIVE_PATH:-missing}"
   installed_runtime="$(readlink -f /opt/forge/current 2>/dev/null || true)"
   [[ "$(git -C "$HOME/FORGE" rev-parse HEAD 2>/dev/null)" == "${FORGE_SOURCE_COMMIT:-}" ]] && pass 'build source commit matches FORGE HEAD' || fail 'build source commit does not match FORGE HEAD'
+  [[ "$(node -p "require(process.argv[1]).version" "$HOME/FORGE/package.json" 2>/dev/null)" == "${FORGE_VERSION:-}" ]] && pass 'FORGE application version matches record' || fail 'FORGE application version is stale'
+  [[ "$(sha256sum "$HOME/FORGE/package.json" 2>/dev/null | awk '{print $1}')" == "${FORGE_PACKAGE_SHA256:-}" ]] && pass 'package manifest identity matches' || fail 'package manifest identity is stale'
   [[ "$(sha256sum "$HOME/FORGE/package-lock.json" 2>/dev/null | awk '{print $1}')" == "${FORGE_LOCK_SHA256:-}" ]] && pass 'package-lock identity matches' || fail 'package-lock identity is stale'
+  [[ "$(<"$root/VERSION")" == "${FORGE_OS_VERSION:-}" ]] && pass 'FORGE-OS version matches build record' || fail 'FORGE-OS build version is stale'
+  [[ "$(git -C "$root" rev-parse HEAD 2>/dev/null)" == "${FORGE_OS_COMMIT:-}" ]] && pass 'FORGE-OS commit matches build record' || fail 'FORGE-OS build commit is stale'
   actual_overlay="$(overlay_hash | sha256sum | awk '{print $1}')"
   [[ "$actual_overlay" == "${FORGE_OS_OVERLAY_SHA256:-}" ]] && pass 'path-independent overlay identity matches' || fail 'overlay identity is stale'
   [[ -d "$build_runtime" ]] && pass 'packaged build runtime exists' || fail 'packaged build runtime is missing'

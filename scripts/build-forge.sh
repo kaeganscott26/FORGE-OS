@@ -9,9 +9,15 @@ mapfile -t overlays < <(find "$repository_root/overlays" -maxdepth 1 -type f -na
 [[ "$(node --version)" == v22.* ]] || { echo "FORGE requires Node 22; found $(node --version)." >&2; exit 1; }
 [[ -z "$(git -C "$forge_source" status --porcelain)" ]] || { echo 'FORGE source has uncommitted changes; git archive would omit them.' >&2; exit 1; }
 
+forge_os_version="$(<"$repository_root/VERSION")"
+forge_os_commit="$(git -C "$repository_root" rev-parse HEAD)"
+forge_version="$(node -p "require(process.argv[1]).version" "$forge_source/package.json")"
+[[ -n "$forge_os_version" && -n "$forge_version" ]] || { echo 'FORGE-OS and FORGE versions must not be empty.' >&2; exit 1; }
+
 mkdir -p "$state_dir"
 commit="$(git -C "$forge_source" rev-parse HEAD)"
 lock_sha="$(sha256sum "$forge_source/package-lock.json" | awk '{print $1}')"
+package_sha="$(sha256sum "$forge_source/package.json" | awk '{print $1}')"
 overlay_sha="$(
   for overlay in "${overlays[@]}"; do
     relative="${overlay#"$repository_root/"}"
@@ -59,8 +65,12 @@ payload_sha="$(
 runtime_id="${commit:0:12}-${overlay_sha:0:12}-${payload_sha:0:16}"
 cat >"$state_dir/latest.env.tmp" <<EOF
 FORGE_SOURCE_COMMIT=$commit
+FORGE_VERSION=$forge_version
 FORGE_BUILD_DATE=$build_date
+FORGE_PACKAGE_SHA256=$package_sha
 FORGE_LOCK_SHA256=$lock_sha
+FORGE_OS_VERSION=$forge_os_version
+FORGE_OS_COMMIT=$forge_os_commit
 FORGE_OS_OVERLAY_SHA256=$overlay_sha
 FORGE_RUNTIME_RELATIVE_PATH=build/forge-dist/linux-unpacked
 FORGE_EXECUTABLE_RELATIVE_PATH=$(basename "$binary")

@@ -5,6 +5,21 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 record="$root/build/latest.env"
 [[ -r "$record" ]] || { echo 'Run scripts/build-forge.sh first.' >&2; exit 1; }
 source "$record"
+for name in FORGE_SOURCE_COMMIT FORGE_VERSION FORGE_PACKAGE_SHA256 FORGE_LOCK_SHA256 FORGE_OS_VERSION FORGE_OS_COMMIT FORGE_OS_OVERLAY_SHA256 FORGE_RUNTIME_RELATIVE_PATH FORGE_EXECUTABLE_RELATIVE_PATH FORGE_EXECUTABLE_SHA256 FORGE_APP_ASAR_SHA256 FORGE_PAYLOAD_SHA256 FORGE_RUNTIME_ID; do
+  [[ -n "${!name:-}" ]] || { echo "Missing $name in $record" >&2; exit 1; }
+done
+overlay_hash() {
+  local overlay relative
+  while IFS= read -r overlay; do
+    relative="${overlay#"$root/"}"
+    printf 'FILE %s\n' "$relative"
+    sha256sum "$overlay" | awk '{print $1}'
+  done < <(find "$root/overlays" -maxdepth 1 -type f -name '*.patch' -print | sort)
+}
+payload_hash() { (cd "$1"; { find . -type f ! -name .forge-runtime.env -print0 | sort -z | xargs -0 sha256sum; find . -type l -printf 'LINK %p %l\n' | LC_ALL=C sort; }) | sha256sum | awk '{print $1}'; }
+[[ "$FORGE_OS_VERSION" == "$(<"$root/VERSION")" ]] || { echo 'Build record FORGE-OS version mismatch.' >&2; exit 1; }
+[[ "$FORGE_OS_COMMIT" == "$(git -C "$root" rev-parse HEAD)" ]] || { echo 'Build record FORGE-OS commit mismatch.' >&2; exit 1; }
+[[ "$FORGE_OS_OVERLAY_SHA256" == "$(overlay_hash | sha256sum | awk '{print $1}')" ]] || { echo 'Build record overlay hash mismatch.' >&2; exit 1; }
 runtime="$root/$FORGE_RUNTIME_RELATIVE_PATH"
 runtime_exec="$runtime/$FORGE_EXECUTABLE_RELATIVE_PATH"
 work="$root/build/archiso-work"
@@ -12,6 +27,9 @@ out="$root/build/iso"
 profile="$root/build/archiso-profile"
 command -v mkarchiso >/dev/null || { echo 'Install archiso first.' >&2; exit 1; }
 [[ -x "$runtime_exec" && -r "$runtime/resources/app.asar" ]] || { echo "Incomplete packaged runtime: $runtime" >&2; exit 1; }
+[[ "$(sha256sum "$runtime_exec" | awk '{print $1}')" == "$FORGE_EXECUTABLE_SHA256" ]] || { echo 'Packaged executable hash mismatch.' >&2; exit 1; }
+[[ "$(sha256sum "$runtime/resources/app.asar" | awk '{print $1}')" == "$FORGE_APP_ASAR_SHA256" ]] || { echo 'Packaged app.asar hash mismatch.' >&2; exit 1; }
+[[ "$(payload_hash "$runtime")" == "$FORGE_PAYLOAD_SHA256" ]] || { echo 'Packaged runtime payload hash mismatch.' >&2; exit 1; }
 
 rm -rf -- "$profile" "$work"
 cp -a /usr/share/archiso/configs/releng "$profile"

@@ -5,9 +5,20 @@ repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 build_record="$repository_root/build/latest.env"
 [[ -r "$build_record" ]] || { echo 'Run scripts/build-forge.sh first.' >&2; exit 1; }
 source "$build_record"
-for name in FORGE_SOURCE_COMMIT FORGE_LOCK_SHA256 FORGE_OS_OVERLAY_SHA256 FORGE_RUNTIME_RELATIVE_PATH FORGE_EXECUTABLE_RELATIVE_PATH FORGE_EXECUTABLE_SHA256 FORGE_APP_ASAR_SHA256 FORGE_PAYLOAD_SHA256 FORGE_RUNTIME_ID; do
+for name in FORGE_SOURCE_COMMIT FORGE_VERSION FORGE_PACKAGE_SHA256 FORGE_LOCK_SHA256 FORGE_OS_VERSION FORGE_OS_COMMIT FORGE_OS_OVERLAY_SHA256 FORGE_RUNTIME_RELATIVE_PATH FORGE_EXECUTABLE_RELATIVE_PATH FORGE_EXECUTABLE_SHA256 FORGE_APP_ASAR_SHA256 FORGE_PAYLOAD_SHA256 FORGE_RUNTIME_ID; do
   [[ -n "${!name:-}" ]] || { echo "Missing $name in $build_record" >&2; exit 1; }
 done
+overlay_hash() {
+  local overlay relative
+  while IFS= read -r overlay; do
+    relative="${overlay#"$repository_root/"}"
+    printf 'FILE %s\n' "$relative"
+    sha256sum "$overlay" | awk '{print $1}'
+  done < <(find "$repository_root/overlays" -maxdepth 1 -type f -name '*.patch' -print | sort)
+}
+[[ "$FORGE_OS_VERSION" == "$(<"$repository_root/VERSION")" ]] || { echo 'Build record FORGE-OS version mismatch.' >&2; exit 1; }
+[[ "$FORGE_OS_COMMIT" == "$(git -C "$repository_root" rev-parse HEAD)" ]] || { echo 'Build record FORGE-OS commit mismatch.' >&2; exit 1; }
+[[ "$FORGE_OS_OVERLAY_SHA256" == "$(overlay_hash | sha256sum | awk '{print $1}')" ]] || { echo 'Build record overlay hash mismatch.' >&2; exit 1; }
 runtime="$repository_root/$FORGE_RUNTIME_RELATIVE_PATH"
 binary="$runtime/$FORGE_EXECUTABLE_RELATIVE_PATH"
 [[ -d "$runtime" ]] || { echo 'Recorded runtime is absent.' >&2; exit 1; }
