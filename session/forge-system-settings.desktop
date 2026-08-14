@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=FORGE System Settings
+Comment=Configure windows, appearance, input, and hardware
+Exec=/usr/bin/systemsettings
+Icon=preferences-system
+Type=Application
+Categories=Settings;

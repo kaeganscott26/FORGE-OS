@@ -22,6 +22,10 @@ Use this checklist as the release gate for any ISO described as stable. A succes
 - [ ] Confirm FORGE remains visible and does not return immediately to the greeter.
 - [ ] In the FORGE terminal verify `DISPLAY`, `XDG_CURRENT_DESKTOP`, `XDG_SESSION_TYPE`, `FORGE_OS_SESSION`, `FORGE_SHELL_MODE`, and `FORGE_OS_VERSION`.
 - [ ] Launch Chromium and Thunar from FORGE.
+- [ ] Confirm KWin X11 owns window management and that `FORGE_WINDOW_MANAGER=openbox` still provides the recovery fallback.
+- [ ] Launch FORGE App Launcher and System Settings from the FORGE Applications menu.
+- [ ] Open a document and run a disposable executable with Open or Run Workspace File; confirm an outside-workspace path is rejected.
+- [ ] Confirm Install Arch Program requests PolicyKit authentication and accepts only repository package names.
 - [ ] Validate networking and audio.
 - [ ] Test logout → greeter → login again.
 - [ ] Confirm `Ctrl+Alt+F2` provides the independent recovery console.

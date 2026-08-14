@@ -22,6 +22,8 @@ Tuigreet's implicit X-session wrapper is disabled and session discovery is restr
 
 The installer invokes `sudo` only for package installation, service configuration, and root-owned system/runtime files. FORGE itself is not run as root.
 
+Workspace program launching is limited to canonical paths beneath the active FORGE workspace and never evaluates a shell command string. Non-executable files go through `xdg-open`; executable files must already have their executable bit set. Package installation accepts validated repository package names and uses `pkexec /usr/bin/pacman`, preserving an explicit authentication boundary.
+
 Content-addressed runtime directories under `/opt/forge` are root-owned. Electron's `chrome-sandbox` is root-owned mode `4755`; permanent `--no-sandbox` is prohibited by the release policy.
 
 ## 🧾 Logs and secrets

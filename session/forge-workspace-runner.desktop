@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Open or Run Workspace File
+Comment=Open documents or run executable files from the FORGE workspace
+Exec=/usr/local/bin/forge-workspace-runner
+Icon=system-run
+Type=Application
+Categories=Development;
+Keywords=workspace;open;run;executable;

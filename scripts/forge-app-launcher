@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "${FORGE_OS_SESSION:-0}" == 1 ]] || { echo 'The FORGE launcher is available only inside a FORGE-OS session.' >&2; exit 77; }
+
+if command -v krunner >/dev/null 2>&1; then
+  exec krunner
+fi
+
+echo 'Plasma KRunner is unavailable. Reinstall the declared plasma-workspace package.' >&2
+exit 69

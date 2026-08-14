@@ -60,7 +60,7 @@ issue="$(mktemp)"
 trap 'rm -f -- "$issue"' EXIT
 sed -e "s/@VERSION@/$version/g" -e "s/@SOURCE_COMMIT@/${FORGE_SOURCE_COMMIT:0:12}/g" "$root/config/issue" >"$issue"
 
-for command in greetd tuigreet Xorg xinit openbox openbox-session dbus-update-activation-environment; do
+for command in greetd tuigreet Xorg xinit openbox openbox-session kwin_x11 krunner kdialog systemsettings dbus-update-activation-environment; do
   command -v "$command" >/dev/null || { echo "Required command is missing: $command" >&2; exit 1; }
 done
 tuigreet --help 2>&1 | grep -F -- '--no-xsession-wrapper' >/dev/null || { echo 'Installed tuigreet does not support --no-xsession-wrapper.' >&2; exit 1; }
@@ -69,11 +69,23 @@ for file in session/forge-xsession session/forge-session-client session/forge-se
 sudo install -d -o root -g root -m 0755 \
   /usr/local/libexec \
   /etc/greetd \
+  /etc/xdg \
+  /usr/share/applications \
+  /usr/share/xdg-desktop-portal \
   /usr/share/forge-os/xsessions \
   /usr/share/forge-os/wayland-sessions
 sudo install -o root -g root -m 0755 "$root/session/forge-xsession" /usr/local/bin/forge-xsession
 sudo install -o root -g root -m 0755 "$root/session/forge-session" /usr/local/bin/forge-session
 sudo install -o root -g root -m 0755 "$root/session/forge-session-client" /usr/local/libexec/forge-session-client
+for tool in forge-app-launcher forge-open forge-workspace-runner forge-install-program; do
+  sudo install -o root -g root -m 0755 "$root/scripts/$tool" "/usr/local/bin/$tool"
+done
+sudo install -o root -g root -m 0644 "$root/config/kwinrc" /etc/xdg/kwinrc
+sudo install -o root -g root -m 0644 "$root/config/kdeglobals" /etc/xdg/kdeglobals
+sudo install -o root -g root -m 0644 "$root/config/forge-portals.conf" /usr/share/xdg-desktop-portal/forge-portals.conf
+for desktop in forge-app-launcher.desktop forge-system-settings.desktop forge-workspace-runner.desktop forge-install-program.desktop; do
+  sudo install -o root -g root -m 0644 "$root/session/$desktop" "/usr/share/applications/$desktop"
+done
 sudo install -o root -g root -m 0644 "$root/session/forge.desktop" /usr/share/forge-os/xsessions/forge.desktop
 sudo rm -f /usr/share/xsessions/forge.desktop
 sudo install -o root -g root -m 0644 "$root/config/greetd-config.toml" /etc/greetd/config.toml
@@ -92,6 +104,17 @@ for pair in \
   "$root/session/forge-xsession:/usr/local/bin/forge-xsession" \
   "$root/session/forge-session:/usr/local/bin/forge-session" \
   "$root/session/forge-session-client:/usr/local/libexec/forge-session-client" \
+  "$root/scripts/forge-app-launcher:/usr/local/bin/forge-app-launcher" \
+  "$root/scripts/forge-open:/usr/local/bin/forge-open" \
+  "$root/scripts/forge-workspace-runner:/usr/local/bin/forge-workspace-runner" \
+  "$root/scripts/forge-install-program:/usr/local/bin/forge-install-program" \
+  "$root/config/kwinrc:/etc/xdg/kwinrc" \
+  "$root/config/kdeglobals:/etc/xdg/kdeglobals" \
+  "$root/config/forge-portals.conf:/usr/share/xdg-desktop-portal/forge-portals.conf" \
+  "$root/session/forge-app-launcher.desktop:/usr/share/applications/forge-app-launcher.desktop" \
+  "$root/session/forge-system-settings.desktop:/usr/share/applications/forge-system-settings.desktop" \
+  "$root/session/forge-workspace-runner.desktop:/usr/share/applications/forge-workspace-runner.desktop" \
+  "$root/session/forge-install-program.desktop:/usr/share/applications/forge-install-program.desktop" \
   "$root/session/forge.desktop:/usr/share/forge-os/xsessions/forge.desktop" \
   "$root/config/greetd-config.toml:/etc/greetd/config.toml"; do
   sudo cmp -s "${pair%%:*}" "${pair#*:}" || { echo "Installed file mismatch: ${pair#*:}" >&2; exit 1; }

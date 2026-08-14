@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "${FORGE_OS_SESSION:-0}" == 1 ]] || { echo 'Workspace launching is available only inside a FORGE-OS session.' >&2; exit 77; }
+command -v kdialog >/dev/null || { echo 'kdialog is required for workspace file selection.' >&2; exit 69; }
+workspace="$(realpath -e -- "${FORGE_WORKSPACE:-$HOME}")" || exit 66
+target="$(kdialog --title 'Open or run from FORGE workspace' --getopenfilename "$workspace")" || exit 0
+exec /usr/local/bin/forge-open "$target"

@@ -9,6 +9,17 @@ xorg-server
 xorg-xinit
 openbox
 xterm
+# Plasma 6 windowing and settings integration. Openbox remains the fallback WM.
+kwin-x11
+plasma-workspace
+systemsettings
+kdialog
+breeze
+breeze-gtk
+breeze-icons
+kvantum
+qt6-wayland
+xdg-desktop-portal-kde
 gtk3
 mesa
 vulkan-radeon

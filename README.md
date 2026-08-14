@@ -26,7 +26,7 @@ kernel + systemd
   -> FORGE-branded tuigreet
   -> PAM authentication
   -> /usr/bin/xinit /usr/local/libexec/forge-session-client
-  -> Openbox substrate + desktop helpers
+  -> Plasma 6 KWin X11 + desktop helpers (Openbox fallback)
   -> /usr/local/bin/forge-session
   -> /opt/forge/current/<recorded FORGE executable>
 ```
@@ -65,6 +65,9 @@ Start with the [Documentation Hub](docs/README.md).
 - `./scripts/install-runtime.sh` — install and activate the recorded content-addressed runtime.
 - `./scripts/build-iso.sh` — produce the ArchISO image using the production session/runtime layout.
 - `./tests/verify.sh` — verify boot, session, runtime, sandbox, recovery, and source/runtime identity invariants.
+- `forge-app-launcher` — open Plasma's searchable application launcher inside FORGE-OS.
+- `forge-workspace-runner` — choose and open or run a file constrained to the active FORGE workspace.
+- `forge-install-program PACKAGE` — request PolicyKit authentication and install validated Arch repository package names.
 - `./scripts/disable-graphical-login.sh` — return safely to console-oriented recovery mode.
 
 ## 🛟 Recovery

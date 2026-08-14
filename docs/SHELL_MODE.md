@@ -18,6 +18,9 @@ The initial shell layer includes:
 
 - locale-aware clock;
 - XDG desktop-application discovery and launch;
+- searchable Plasma application launcher and System Settings entries;
+- workspace-constrained document opening and executable launching;
+- authenticated Arch repository package installation;
 - System Overview;
 - fixed session actions.
 
@@ -27,7 +30,9 @@ Application launches resolve a discovered desktop ID in the main process, tokeni
 
 Settings are staged by capability. System Overview is implemented; Network, Audio, Display, Power, Applications, Storage, Appearance, Updates, Security, Recovery, and Advanced remain architecture destinations as FORGE grows into the complete desktop UX.
 
-Theme coordination begins with FORGE Dark, FORGE Light, and System/Custom. GTK, icon, cursor, terminal, login, and wallpaper coordination remain future integration work.
+Theme coordination now begins with system-wide Breeze Dark, Breeze icons, Kvantum, and KWin blur/decoration defaults. FORGE-native theme controls, cursor, terminal, login, and wallpaper coordination remain future integration work.
+
+Executable launch accepts one existing path, resolves it canonically beneath `FORGE_WORKSPACE`, and invokes it without a shell only when its executable bit is already set. Program installation validates Arch package names and delegates `/usr/bin/pacman` privilege elevation to PolicyKit; it does not accept command strings or install arbitrary downloaded files.
 
 ## 📚 Related documentation
 

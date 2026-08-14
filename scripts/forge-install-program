@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "${FORGE_OS_SESSION:-0}" == 1 ]] || { echo 'Program installation is available only inside a FORGE-OS session.' >&2; exit 77; }
+if [[ "${1:-}" == --prompt ]]; then
+  printf 'Arch repository package name: '
+  read -r package
+  set -- "$package"
+fi
+(( $# > 0 )) || { echo 'Usage: forge-install-program PACKAGE [PACKAGE...]' >&2; exit 64; }
+for package in "$@"; do
+  [[ "$package" =~ ^[a-zA-Z0-9@._+-]+$ ]] || { echo "Invalid Arch package name: $package" >&2; exit 64; }
+done
+command -v pkexec >/dev/null || { echo 'pkexec is required for authenticated package installation.' >&2; exit 69; }
+exec pkexec /usr/bin/pacman -S --needed -- "${@}"

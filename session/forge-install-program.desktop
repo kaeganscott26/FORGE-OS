@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Install Arch Program
+Comment=Open a terminal to install trusted repository packages
+Exec=/usr/bin/xterm -e /usr/local/bin/forge-install-program --prompt
+Icon=system-software-install
+Terminal=false
+Type=Application
+Categories=System;

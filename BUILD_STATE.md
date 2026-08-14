@@ -1,6 +1,6 @@
 # ✅ Current Build State
 
-**Updated: 2026-08-12**
+**Updated: 2026-08-14**
 
 FORGE-OS now has a physically demonstrated login path that reaches the FORGE desktop after credential verification. The decisive runtime command is the direct X11 client launch below:
 
@@ -26,14 +26,14 @@ systemd graphical.target
   -> FORGE-branded tuigreet
   -> PAM authentication
   -> /usr/bin/xinit /usr/local/libexec/forge-session-client
-  -> Openbox + desktop helpers
+  -> Plasma 6 KWin X11 + desktop helpers (Openbox fallback)
   -> /usr/local/bin/forge-session
   -> /opt/forge/current/<recorded FORGE executable>
 ```
 
 ## 🧪 Validation still required before a stable ISO tag
 
-The runtime path is stable enough to proceed with release-candidate work, but the repository version remains `0.1.0-alpha` until the complete release gate passes.
+The runtime path is stable enough to proceed with release-candidate work, but the repository version remains an alpha (`0.1.2-alpha`) until the complete release gate passes. Plasma 6/KWin integration is implemented with an Openbox fallback and still requires physical windowing/theme validation.
 
 Before publishing an ISO as stable:
 

@@ -26,6 +26,10 @@ After successful PAM authentication, the production command is:
 
 A FORGE source commit alone cannot identify an overlaid application. Release identity therefore incorporates the source commit, ordered path-independent overlay identity, and full payload identity. The build record also pins the lockfile, executable, and `app.asar` hashes.
 
+## 🪟 Plasma augments FORGE instead of replacing it
+
+Plasma 6 components provide KWin X11 window management, Breeze/Kvantum styling, portals, KRunner, and System Settings. `plasmashell` is not started: FORGE remains the only desktop shell. The verified greetd and `xinit` chain is unchanged, and Openbox remains an automatic fallback if KWin fails during session startup.
+
 ## 🏷️ Exported builds receive explicit source identity
 
 FORGE-OS packages a `git archive` of FORGE rather than the live checkout. `FORGE_BUILD_COMMIT` is passed explicitly during packaging so FORGE cannot accidentally discover the enclosing FORGE-OS Git repository and embed the wrong commit.

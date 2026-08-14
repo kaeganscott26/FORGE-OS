@@ -1,6 +1,6 @@
 # 🖥️ Desktop Session
 
-FORGE-OS uses a deliberately minimal graphical chain: greetd authenticates the user, `xinit` starts the X11 client session, Openbox provides the window-management substrate, and FORGE owns the visible desktop experience.
+FORGE-OS uses a deliberately controlled graphical chain: greetd authenticates the user, `xinit` starts the X11 client session, Plasma 6 KWin provides Hyprland-inspired window effects and decoration, and FORGE owns the visible desktop experience. Openbox remains an automatic fallback if KWin cannot remain active.
 
 ## 🔐 Authentication
 
@@ -33,7 +33,7 @@ After PAM verifies the user's credentials, the production runtime command is:
 4. publishes relevant session variables to D-Bus/systemd activation;
 5. updates XDG user directories;
 6. starts notification and polkit helpers when installed;
-7. starts Openbox;
+7. starts KWin X11, falling back to Openbox if KWin is missing or exits during startup;
 8. launches `/usr/local/bin/forge-session`.
 
 Session-stage output is written under `~/.local/state/forge/session.log`.
@@ -60,6 +60,10 @@ FORGE inherits this environment so its integrated terminal and launched applicat
 `forge-session` resolves the installed content-addressed runtime through `/opt/forge/current`, prefers the executable path recorded in `.forge-runtime.env`, and opens the authenticated user's home directory as the default workspace.
 
 A distributed installation therefore does not require a FORGE-OS development checkout to remain present after installation.
+
+## Plasma integration
+
+Global Breeze Dark/Kvantum and KWin defaults live under `/etc/xdg`. A FORGE-specific portal preference selects the KDE backend with GTK fallback. FORGE discovers installed launcher, settings, workspace-runner, and package-installer desktop entries through its existing allowlisted desktop-application service. Plasma panels and a second desktop shell are not started.
 
 ## 🚪 Logout and recovery
 

@@ -38,18 +38,25 @@ exec-once = /path/to/your/custom/interface-program
 Use code with caution.What language or framework is your custom user-facing environment built with, and would you like example scripts showing how to programmatically change themes or wallpapers directly from your application's code?
 
 
-## FORGE_OS Executable 
+## FORGE_OS Executable (Resolved)
 
-Login screen on FORGE-OS is currently defaulting to incorrect location:  /usr/bin/openbox-session 
+The login screen previously defaulted to the incorrect location `/usr/bin/openbox-session`.
 
-THIS IS WRONG
+This is not a supported direct login command.
 
-FORGE-OS LOGIN default launch command should be changed to the following:
-/usr/bin/xinit /usr/local/libexec/forge-session-client.
+FORGE-OS now uses the required default launch command:
+
+```bash
+/usr/bin/xinit /usr/local/libexec/forge-session-client
+```
+
+The Plasma and Hyprland sections above began as architecture research. X11 + Openbox was the verified baseline beneath FORGE; a native Wayland migration still requires separate design and physical validation.
+
+As of `0.1.2-alpha`, the first migration slice uses Plasma 6 KWin X11 for Hyprland-inspired windowing and Breeze/Kvantum styling while preserving Openbox as an automatic fallback. This deliberately does not change the verified X11 boot/login command or start a second Plasma desktop shell.
 
 ## REPO DOCUMENTATION and Scripts
 
 After every task that changes or adds updates to FORGE or FORGE-OS, all repo documentation must be updated and must be consistent across HEADERS, scripts, documentation, notes, etc. All updates must be comipiled into the next version number..example 2.3.0-beta.1 => 2.3.1-beta.1 => 2.3.2-beta.1 etc. Only change 2.3 => 2.4 if it is a major architectur updgrade, or released as a stable production build, or the last version worked on was 2.3.9-beta.1.
 
-## CHANGELOG 
-ALL CHANGES MUST BE RECORDED INTO THE CHANGELOG. 
+## CHANGELOG
+ALL CHANGES MUST BE RECORDED INTO THE CHANGELOG.

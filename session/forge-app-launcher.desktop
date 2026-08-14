@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=FORGE App Launcher
+Comment=Search and launch installed applications
+Exec=/usr/local/bin/forge-app-launcher
+Icon=system-search
+Type=Application
+Categories=System;
+Keywords=applications;launcher;search;

@@ -4,6 +4,23 @@ All notable FORGE-OS changes are recorded here. Active documentation describes o
 
 ## 🚧 Unreleased
 
+### 🪟 Plasma 6 windowing and FORGE program surfaces
+
+- Bumped the development version to `0.1.2-alpha`.
+- Added Plasma 6 KWin X11, KRunner, System Settings, Breeze Dark, Kvantum, Qt Wayland, and KDE portal dependencies without changing the verified greetd/`xinit` login command.
+- Made KWin the preferred session window manager with startup health detection and an automatic Openbox fallback.
+- Added FORGE-discoverable launcher, System Settings, workspace file runner, and authenticated Arch package installer entries.
+- Constrained file execution to canonical paths beneath the active FORGE workspace, required the executable bit, avoided shell evaluation, and logged detached program output under the user's FORGE state directory.
+- Added PolicyKit-backed package installation with strict Arch package-name validation.
+- Updated physical and ISO installers, verification coverage, architecture, security, shell-mode, user, and release documentation.
+
+### 🔎 Session-default regression protection
+
+- Bumped the development version to `0.1.1-alpha`.
+- Confirmed that the repository contains no greetd default that launches `/usr/bin/openbox-session` directly.
+- Added repository-level verification that greetd launches `/usr/bin/xinit /usr/local/libexec/forge-session-client` and cannot bypass the FORGE session client with a direct Openbox command.
+- Classified the Wayland/Hyprland stack notes as future architecture research; the physically verified X11 path remains the production invariant until a separately validated migration is approved.
+
 ### 🖥️ Stable runtime/session path
 
 - Verified that successful PAM authentication can launch the FORGE desktop with `/usr/bin/xinit /usr/local/libexec/forge-session-client`.

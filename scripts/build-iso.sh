@@ -21,6 +21,9 @@ install -d \
   "$profile/airootfs/opt/forge-os" \
   "$profile/airootfs/usr/local/bin" \
   "$profile/airootfs/usr/local/libexec" \
+  "$profile/airootfs/etc/xdg" \
+  "$profile/airootfs/usr/share/applications" \
+  "$profile/airootfs/usr/share/xdg-desktop-portal" \
   "$profile/airootfs/etc/greetd" \
   "$profile/airootfs/usr/share/forge-os/xsessions" \
   "$profile/airootfs/usr/share/forge-os/wayland-sessions" \
@@ -33,6 +36,15 @@ install -m 4755 "$runtime/chrome-sandbox" "$release/chrome-sandbox"
 install -m 0755 "$root/session/forge-xsession" "$profile/airootfs/usr/local/bin/forge-xsession"
 install -m 0755 "$root/session/forge-session" "$profile/airootfs/usr/local/bin/forge-session"
 install -m 0755 "$root/session/forge-session-client" "$profile/airootfs/usr/local/libexec/forge-session-client"
+for tool in forge-app-launcher forge-open forge-workspace-runner forge-install-program; do
+  install -m 0755 "$root/scripts/$tool" "$profile/airootfs/usr/local/bin/$tool"
+done
+install -m 0644 "$root/config/kwinrc" "$profile/airootfs/etc/xdg/kwinrc"
+install -m 0644 "$root/config/kdeglobals" "$profile/airootfs/etc/xdg/kdeglobals"
+install -m 0644 "$root/config/forge-portals.conf" "$profile/airootfs/usr/share/xdg-desktop-portal/forge-portals.conf"
+for desktop in forge-app-launcher.desktop forge-system-settings.desktop forge-workspace-runner.desktop forge-install-program.desktop; do
+  install -m 0644 "$root/session/$desktop" "$profile/airootfs/usr/share/applications/$desktop"
+done
 install -m 0644 "$root/session/forge.desktop" "$profile/airootfs/usr/share/forge-os/xsessions/forge.desktop"
 install -m 0644 "$root/config/greetd-config.toml" "$profile/airootfs/etc/greetd/config.toml"
 install -m 0644 "$record" "$release/.forge-runtime.env"

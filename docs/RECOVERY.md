@@ -29,6 +29,8 @@ ls -lt ~/.local/share/xorg/
 grep -E '\(EE\)|Fatal|fatal|ERROR|Error|failed|Failed' ~/.local/share/xorg/Xorg.*.log 2>/dev/null
 ```
 
+If KWin is the failing component, confirm the fallback independently from a recovery X session by setting `FORGE_WINDOW_MANAGER=openbox` before launching the documented `xinit` command. The normal login command itself must not be edited to select a window manager.
+
 ## 🧯 Disable graphical login safely
 
 ```bash

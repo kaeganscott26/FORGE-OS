@@ -13,6 +13,9 @@ Contributions must preserve:
 - root-owned Electron sandbox permissions;
 - tty2 recovery access;
 - one authoritative installation path.
+- KWin startup failure falling back to Openbox without changing the greetd/`xinit` contract;
+- workspace executable paths remaining canonical and workspace-contained;
+- package installation remaining authenticated and free of renderer-supplied shell commands.
 
 Do not introduce permanent autologin, profile-driven graphical startup, manual `startx` setup, acceptance-marker gating, permanent `--no-sandbox`, or a second competing installer.
 

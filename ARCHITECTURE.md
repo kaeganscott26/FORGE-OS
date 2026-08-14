@@ -10,7 +10,7 @@ systemd graphical.target
   -> tuigreet
   -> Linux PAM authentication
   -> /usr/bin/xinit /usr/local/libexec/forge-session-client
-  -> Openbox + desktop helpers
+  -> KWin X11 + Plasma helpers (Openbox fallback)
   -> /usr/local/bin/forge-session
   -> /opt/forge/current/<recorded FORGE executable>
 ```
@@ -33,7 +33,7 @@ After authentication, greetd/tuigreet launches:
 /usr/bin/xinit /usr/local/libexec/forge-session-client
 ```
 
-`forge-session-client` validates the live X environment, establishes the FORGE/XDG session contract, publishes relevant variables to D-Bus/systemd activation, starts notification and polkit helpers, starts Openbox as the minimal window-management substrate, and invokes `forge-session`.
+`forge-session-client` validates the live X environment, establishes the FORGE/XDG session contract, publishes relevant variables to D-Bus/systemd activation, starts notification and polkit helpers, starts Plasma 6 KWin X11 with an automatic Openbox fallback, and invokes `forge-session`. Plasma supplies windowing, settings, theming, portals, and launcher services; FORGE remains the desktop shell.
 
 FORGE runs as the authenticated normal user with values including:
 

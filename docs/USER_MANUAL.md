@@ -45,6 +45,8 @@ FORGE owns the visible workspace experience. The Arch substrate remains responsi
 
 The graphical session establishes the XDG/D-Bus/FORGE environment used by the integrated terminal and applications launched from FORGE. The default startup workspace is the authenticated user's home directory.
 
+The FORGE Applications menu includes **FORGE App Launcher**, **FORGE System Settings**, **Open or Run Workspace File**, and **Install Arch Program**. The workspace runner opens documents with their XDG default and runs only executable files inside the current workspace. Package installation prompts for a repository package name and then for PolicyKit authentication.
+
 ## 📦 Updating FORGE
 
 FORGE and FORGE-OS are separate repositories. Update both before reinstalling the OS integration layer:
