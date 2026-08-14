@@ -32,7 +32,7 @@ A healthy installation boots directly to the FORGE-branded login on VT1.
 3. The greeter launches the verified graphical runtime command:
 
 ```bash
-/usr/bin/xinit /usr/local/libexec/forge-session-client
+/usr/local/bin/forge-wayland-session
 ```
 
 4. The FORGE desktop/session becomes the visible environment.
@@ -45,11 +45,13 @@ FORGE owns the visible workspace experience. The Arch substrate remains responsi
 
 The graphical session establishes the XDG/D-Bus/FORGE environment used by the integrated terminal and applications launched from FORGE. The default startup workspace is the authenticated user's home directory.
 
-The FORGE Applications menu includes **FORGE App Launcher**, **FORGE System Settings**, **Open or Run Workspace File**, and **Install Arch Program**. The workspace runner opens documents with their XDG default and runs only executable files inside the current workspace. Package installation prompts for a repository package name and then for PolicyKit authentication.
+The FORGE Applications menu includes **FORGE App Launcher**, **FORGE System Settings**, **FORGE Panel Manager**, **Open or Run Workspace File**, and **Install Arch Program**. The initial layout has no conventional Plasma panel. Panel Manager adds a top, bottom, left, or right Plasma panel; right-click the new panel to enter Plasma edit mode and customize widgets, size, alignment, visibility, and position. Wallpaper, KWin styles, effects, and animations remain provided by Plasma underneath FORGE.
 
 ## 📦 Updating FORGE
 
-FORGE and FORGE-OS are separate repositories. Update both before reinstalling the OS integration layer:
+From FORGE-OS, select **Check for updates**. A Konsole window opens and performs the update visibly. It checks that `~/FORGE` and `~/FORGE-OS` are clean, on `main`, and able to fast-forward to their configured `origin/main`; updates both; rebuilds FORGE; and runs the authoritative installer. Follow any authentication prompts, review the final verification result, and reboot manually when convenient.
+
+The equivalent terminal workflow remains available:
 
 ```bash
 git -C ~/FORGE pull --ff-only
@@ -59,6 +61,8 @@ cd ~/FORGE-OS
 ```
 
 Do not manually replace `/opt/forge/current` or copy session files into `/usr/local` outside the installer unless you are deliberately performing recovery work.
+
+The update helper refuses dirty, divergent, missing, or non-`main` checkouts. It never discards local changes, changes branches, downgrades revisions, or reboots automatically. Outside a FORGE-OS session, FORGE retains its standalone application-release updater.
 
 ## 🛟 Recovery
 

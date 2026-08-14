@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "$EUID" -eq 0 ]]; then
+  echo 'FORGE must run as a normal user.' >&2
+  exit 77
+fi
+
+export XDG_CURRENT_DESKTOP=FORGE
+export XDG_SESSION_DESKTOP=FORGE
+export DESKTOP_SESSION=forge
+export XDG_SESSION_TYPE=wayland
+export FORGE_OS_SESSION=1
+export FORGE_SHELL_MODE=1
+export FORGE_OS_VERSION="$(cat /etc/forge-os-version 2>/dev/null || printf unknown)"
+export QT_QPA_PLATFORM='wayland;xcb'
+export KDE_FULL_SESSION=true
+export KDE_SESSION_VERSION=6
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/forge"
+mkdir -p "$state_dir"
+exec >>"$state_dir/session.log" 2>&1
+printf '\n[%s] authenticated session entered; launching KWin Wayland FORGE session\n' "$(date --iso-8601=seconds)"
+
+[[ -n "${XDG_RUNTIME_DIR:-}" && -d "$XDG_RUNTIME_DIR" ]] || { echo 'XDG_RUNTIME_DIR is unavailable.' >&2; exit 71; }
+command -v kwin_wayland >/dev/null || { echo 'KWin Wayland is unavailable.' >&2; exit 72; }
+
+if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
+  exec dbus-run-session -- /usr/bin/kwin_wayland --xwayland --exit-with-session /usr/local/libexec/forge-wayland-client
+fi
+exec /usr/bin/kwin_wayland --xwayland --exit-with-session /usr/local/libexec/forge-wayland-client

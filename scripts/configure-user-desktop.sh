@@ -4,7 +4,7 @@ set -euo pipefail
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/forge-os/desktop-backup"
 mimeapps="${XDG_CONFIG_HOME:-$HOME/.config}/mimeapps.list"
 browser_desktop="${FORGE_BROWSER_DESKTOP:-chromium.desktop}"
-file_manager_desktop="${FORGE_FILE_MANAGER_DESKTOP:-thunar.desktop}"
+file_manager_desktop="${FORGE_FILE_MANAGER_DESKTOP:-org.kde.dolphin.desktop}"
 
 [[ "$(id -u)" -ne 0 ]] || { echo 'Run this as the FORGE session user, not root.' >&2; exit 1; }
 command -v xdg-mime >/dev/null

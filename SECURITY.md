@@ -1,6 +1,7 @@
 # Security
 
-FORGE-OS is experimental and should currently be used only on test hardware or
-systems with verified backups. Do not include credentials or private machine
-artifacts in reports. For a suspected vulnerability, open a private GitHub
-security advisory in the repository rather than a public issue.
+FORGE-OS `0.2.1-alpha` is experimental and should currently be used only on test hardware or systems with verified backups. The production graphical path is the rootless FORGE-owned KWin Wayland session; XWayland is retained only for legacy applications.
+
+Updates launched through FORGE are visible, pin the official FORGE and FORGE-OS origins, reject dirty or divergent checkouts, use fast-forward-only pulls, and retain authentication at the authoritative installer boundary. They never discard local work or reboot automatically.
+
+Do not include credentials, tokens, logs containing private data, or machine-specific artifacts in reports. For a suspected vulnerability, open a private GitHub security advisory in the repository rather than a public issue. See the detailed [Security Model](docs/SECURITY_MODEL.md).

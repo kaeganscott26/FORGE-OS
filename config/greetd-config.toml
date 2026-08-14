@@ -5,5 +5,5 @@ vt = 1
 source_profile = false
 
 [default_session]
-command = "tuigreet --issue --time --remember --asterisks --width 72 --theme border=green;text=white;prompt=green;time=cyan;action=green;button=green;container=black;input=white --power-shutdown 'systemctl poweroff' --power-reboot 'systemctl reboot' --sessions /usr/share/forge-os/wayland-sessions --xsessions /usr/share/forge-os/xsessions --no-xsession-wrapper --cmd '/usr/bin/xinit /usr/local/libexec/forge-session-client'"
+command = "tuigreet --issue --time --remember --asterisks --width 72 --theme border=green;text=white;prompt=green;time=cyan;action=green;button=green;container=black;input=white --power-shutdown 'systemctl poweroff' --power-reboot 'systemctl reboot' --sessions /usr/share/forge-os/wayland-sessions --xsessions /usr/share/forge-os/disabled-xsessions --no-xsession-wrapper --cmd '/usr/local/bin/forge-wayland-session'"
 user = "greeter"

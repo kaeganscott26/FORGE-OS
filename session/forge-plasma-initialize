@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/forge"
+marker="$state_dir/plasma-layout-v1"
+[[ ! -e "$marker" ]] || exit 0
+mkdir -p "$state_dir"
+
+for _ in {1..50}; do
+  if qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript \
+    'panels().forEach(function(panel) { panel.remove(); });' >/dev/null 2>&1; then
+    : >"$marker"
+    exit 0
+  fi
+  sleep 0.1
+done
+echo 'Plasma shell did not become ready for initial FORGE layout.' >&2
+exit 1

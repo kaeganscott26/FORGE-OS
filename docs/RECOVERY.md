@@ -1,6 +1,6 @@
 # 🛟 Recovery Guide
 
-FORGE-OS keeps a recovery console independent from the graphical stack so a broken greetd/X11/FORGE session does not lock you out of the machine.
+FORGE-OS keeps a recovery console independent from the graphical stack so a broken greetd/Wayland/FORGE session does not lock you out of the machine.
 
 ## ⌨️ Open the recovery console
 
@@ -10,7 +10,7 @@ Press:
 Ctrl + Alt + F2
 ```
 
-Authenticate normally on tty2. This path does not depend on greetd, X11, Openbox, or FORGE.
+Authenticate normally on tty2. This path does not depend on greetd, KWin, Wayland, Plasma, or FORGE.
 
 ## 🔎 Inspect the graphical chain
 
@@ -22,14 +22,14 @@ cd ~/FORGE-OS
 ./tests/verify.sh
 ```
 
-For X11-specific failures:
+For compositor-specific failures:
 
 ```bash
-ls -lt ~/.local/share/xorg/
-grep -E '\(EE\)|Fatal|fatal|ERROR|Error|failed|Failed' ~/.local/share/xorg/Xorg.*.log 2>/dev/null
+journalctl --user -b --no-pager -n 200
+grep -E 'ERROR|Error|failed|Failed' ~/.local/state/forge/session.log
 ```
 
-If KWin is the failing component, confirm the fallback independently from a recovery X session by setting `FORGE_WINDOW_MANAGER=openbox` before launching the documented `xinit` command. The normal login command itself must not be edited to select a window manager.
+If KWin fails before creating `WAYLAND_DISPLAY`, remain on tty2, update/reinstall the tracked session, and inspect the current-boot journal. There is deliberately no Openbox/X11 production fallback; tty2 is the recovery boundary.
 
 ## 🧯 Disable graphical login safely
 
@@ -55,14 +55,16 @@ sudo reboot
 The expected post-authentication runtime command is:
 
 ```bash
-/usr/bin/xinit /usr/local/libexec/forge-session-client
+/usr/local/bin/forge-wayland-session
 ```
+
+If **Check for updates** fails, its Konsole window remains open with the exact error. Resolve dirty, non-`main`, missing, divergent, or untrusted-origin source checkouts from tty2 before retrying. The updater deliberately does not reset, discard, or overwrite local work.
 
 ## ⚠️ Recovery invariants
 
 - Keep `getty@tty2.service` enabled.
 - Do not introduce permanent autologin.
-- Do not reintroduce `.xinitrc` or profile-based graphical autostart into the production path.
+- Do not reintroduce Xorg, `.xinitrc`, or profile-based graphical autostart into the production path.
 - Do not use permanent Electron `--no-sandbox` as a recovery shortcut.
 - Run `./tests/verify.sh` after repairing system/session files.
 

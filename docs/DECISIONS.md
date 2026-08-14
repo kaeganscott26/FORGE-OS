@@ -12,15 +12,15 @@ This file records durable production decisions. Temporary debugging approaches b
 
 ## 🚀 The post-auth runtime path is explicit
 
-Tuigreet is restricted to FORGE-owned session directories and uses `--no-xsession-wrapper`; it must not inject its default `startx /usr/bin/env` wrapper.
+Tuigreet is restricted to the FORGE-owned Wayland directory; its X-session discovery path is intentionally absent.
 
 After successful PAM authentication, the production command is:
 
 ```bash
-/usr/bin/xinit /usr/local/libexec/forge-session-client
+/usr/local/bin/forge-wayland-session
 ```
 
-`session/forge-xsession` is retained as a compatibility/recovery alias and resolves to the same verified path.
+The legacy X11 launcher and desktop entry are removed. XWayland remains only for application compatibility.
 
 ## 📦 Runtime releases are content-addressed
 
@@ -28,7 +28,7 @@ A FORGE source commit alone cannot identify an overlaid application. Release ide
 
 ## 🪟 Plasma augments FORGE instead of replacing it
 
-Plasma 6 components provide KWin X11 window management, Breeze/Kvantum styling, portals, KRunner, and System Settings. `plasmashell` is not started: FORGE remains the only desktop shell. The verified greetd and `xinit` chain is unchanged, and Openbox remains an automatic fallback if KWin fails during session startup.
+KWin Wayland provides composition, effects, and decorations. `plasmashell` runs underneath FORGE for wallpaper and optional panels, but first-session initialization removes its stock panel. The session deliberately avoids `startplasma-wayland`, preventing a conventional Plasma desktop from becoming the primary environment. FORGE remains the foreground shell and users opt into panels with `forge-panel-manager`.
 
 ## 🏷️ Exported builds receive explicit source identity
 
@@ -41,6 +41,10 @@ Desktop/MIME rollback data and other machine-specific state belong under the use
 ## 🛟 Recovery remains independent
 
 `getty@tty2.service` remains enabled and outside the graphical session. The graphical-disable script switches back to `multi-user.target` and restores tty1/tty2 console login.
+
+## 🔄 FORGE-OS updates use the authoritative installer
+
+Inside `FORGE_OS_SESSION=1`, FORGE's update action launches the installed `forge-os-update` helper in a visible terminal. The helper accepts no renderer-supplied repository or command, permits only clean `main` checkouts that can fast-forward to their configured `origin/main`, and delegates installation to `scripts/install-forge-linux.sh`. Standalone FORGE installations retain their existing Electron updater.
 
 ## 🔀 FORGE and FORGE-OS remain separate repositories
 

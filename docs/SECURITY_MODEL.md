@@ -13,16 +13,18 @@ FORGE-OS keeps Linux as the authority for users, PAM authentication, permissions
 The verified post-authentication command is:
 
 ```bash
-/usr/bin/xinit /usr/local/libexec/forge-session-client
+/usr/local/bin/forge-wayland-session
 ```
 
-Tuigreet's implicit X-session wrapper is disabled and session discovery is restricted to FORGE-owned directories.
+Tuigreet discovers only the FORGE-owned Wayland entry. KWin runs rootlessly as the authenticated user; XWayland is a compatibility service, not a login/session backend.
 
 ## 🧱 Privilege boundary
 
 The installer invokes `sudo` only for package installation, service configuration, and root-owned system/runtime files. FORGE itself is not run as root.
 
 Workspace program launching is limited to canonical paths beneath the active FORGE workspace and never evaluates a shell command string. Non-executable files go through `xdg-open`; executable files must already have their executable bit set. Package installation accepts validated repository package names and uses `pkexec /usr/bin/pacman`, preserving an explicit authentication boundary.
+
+The renderer cannot supply an update command, repository, branch, or install path. In a FORGE-OS session the update action can only launch the fixed `/usr/local/bin/forge-os-update` helper. That helper runs visibly as the authenticated user, pins the official GitHub origins, rejects dirty/non-`main`/divergent/untrusted checkouts, uses fast-forward-only pulls, and invokes the single authoritative installer. Privileged package and system-file changes remain behind the installer's authentication prompts; updates never reboot automatically.
 
 Content-addressed runtime directories under `/opt/forge` are root-owned. Electron's `chrome-sandbox` is root-owned mode `4755`; permanent `--no-sandbox` is prohibited by the release policy.
 

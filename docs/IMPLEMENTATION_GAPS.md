@@ -25,14 +25,16 @@ The current repository can build an ArchISO-style image using the same runtime/s
 - hardware compatibility documentation;
 - signed release artifacts and/or a signed update channel;
 - automated release provenance;
-- documented upgrade/rollback policy;
+- a signed binary/OS update channel that does not require local source checkouts;
 - broader multi-hardware validation.
 
 These are distribution-quality improvements, not blockers for continued runtime/session testing.
 
+The current development/reference updater is implemented and intentionally source-based: it updates clean trusted checkouts with fast-forward-only Git operations and runs the verified installer. A future signed artifact channel should preserve the same provenance, authentication, recovery, and no-downgrade guarantees.
+
 ## 🧪 Stable ISO validation
 
-The post-authentication runtime command has now been physically demonstrated to reach FORGE. The remaining stable-release work is full cold-boot and ISO validation using the [Release Checklist](RELEASE_CHECKLIST.md), including a boot where no F2 runtime override is required.
+The earlier X11 runtime was physically demonstrated. The new KWin Wayland path requires full cold-boot, native Electron, XWayland compatibility, KDE portal/PipeWire, wallpaper/panel persistence, compositor-failure, logout/relogin, and ISO validation using the [Release Checklist](RELEASE_CHECKLIST.md).
 
 ## 📚 Maintenance rule
 

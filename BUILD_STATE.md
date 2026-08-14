@@ -2,20 +2,22 @@
 
 **Updated: 2026-08-14**
 
-FORGE-OS now has a physically demonstrated login path that reaches the FORGE desktop after credential verification. The decisive runtime command is the direct X11 client launch below:
+FORGE-OS now implements a native KWin Wayland login path. The runtime command is:
 
 ```bash
-/usr/bin/xinit /usr/local/libexec/forge-session-client
+/usr/local/bin/forge-wayland-session
 ```
 
 ## 🟢 Confirmed working
 
 - System boots into the FORGE-branded greetd/tuigreet login flow.
 - PAM authentication succeeds.
-- The direct `xinit` + `forge-session-client` command reaches the FORGE graphical environment.
-- The repository default session command has been changed to match that verified runtime path.
-- `session/forge-xsession` now resolves to the same verified command instead of maintaining a separate custom display/Xorg-launch policy.
+- The repository and desktop-entry defaults select the FORGE Wayland launcher.
+- Xorg, xinit, Openbox, KWin X11, and the FORGE X-session entry are removed.
+- KWin Wayland starts Plasma visual/panel services beneath native-Wayland FORGE.
+- The stock Plasma panel is removed once; user-created panels remain persistent and customizable.
 - The desktop entry and verifier are aligned with the same runtime command.
+- FORGE's **Check for updates** action hands FORGE-OS sessions to the authenticated, fast-forward-only OS update workflow.
 - tty2 remains the independent recovery console.
 
 ## 🧱 Production chain
@@ -25,15 +27,15 @@ systemd graphical.target
   -> greetd on VT1
   -> FORGE-branded tuigreet
   -> PAM authentication
-  -> /usr/bin/xinit /usr/local/libexec/forge-session-client
-  -> Plasma 6 KWin X11 + desktop helpers (Openbox fallback)
+  -> /usr/local/bin/forge-wayland-session
+  -> KWin Wayland + Plasma visual/panel services
   -> /usr/local/bin/forge-session
   -> /opt/forge/current/<recorded FORGE executable>
 ```
 
 ## 🧪 Validation still required before a stable ISO tag
 
-The runtime path is stable enough to proceed with release-candidate work, but the repository version remains an alpha (`0.1.2-alpha`) until the complete release gate passes. Plasma 6/KWin integration is implemented with an Openbox fallback and still requires physical windowing/theme validation.
+The repository version is `0.2.1-alpha`. The architecture and integrated updater are implemented and repository-testable, but physical KWin Wayland, GPU, wallpaper, panel, portal, Electron, update, logout, and recovery acceptance is still required before a stable release.
 
 Before publishing an ISO as stable:
 
@@ -41,10 +43,11 @@ Before publishing an ISO as stable:
 - confirm login requires no F2 command override;
 - confirm FORGE remains active after login;
 - verify integrated-terminal XDG/D-Bus/FORGE environment variables;
-- launch Chromium and Thunar;
+- launch Chromium and Dolphin, plus an XWayland-only application;
 - validate networking and audio;
 - test logout → greeter → login;
 - confirm tty2 recovery;
+- invoke **Check for updates**, confirm the authenticated updater refuses dirty/divergent checkouts, and validate a clean fast-forward installation;
 - run `tests/verify.sh` with zero failures;
 - build the ISO and verify its checksum;
 - boot the ISO on the reference machine and at least one additional hardware/VM target.

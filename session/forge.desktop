@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=FORGE
-Comment=FORGE OS graphical shell
-Exec=/usr/bin/xinit /usr/local/libexec/forge-session-client
+Comment=FORGE OS Wayland shell with Plasma visual services
+Exec=/usr/local/bin/forge-wayland-session
 Type=Application
 DesktopNames=FORGE

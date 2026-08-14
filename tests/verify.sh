@@ -21,9 +21,12 @@ overlay_hash() {
 source /etc/os-release 2>/dev/null || true
 [[ "${ID:-}" == arch ]] && pass 'platform is Arch Linux' || fail 'platform is not Arch Linux'
 [[ "$(id -u)" -ne 0 ]] && pass 'verifier runs as a normal user' || fail 'verifier must not run as root'
-for command in node npm git codex X Xorg xinit openbox openbox-session kwin_x11 krunner kdialog systemsettings greetd tuigreet xdg-open dbus-update-activation-environment; do check command -v "$command"; done
+for command in node npm git codex kwin_wayland plasmashell qdbus6 krunner kdialog konsole systemsettings greetd tuigreet xdg-open dbus-update-activation-environment; do check command -v "$command"; done
 [[ "$(node --version 2>/dev/null)" == v22.* ]] && pass 'Node major version is 22' || fail "Node 22 is required; found $(node --version 2>/dev/null || echo missing)"
-for package in nodejs-lts-jod xorg-server xorg-xinit openbox kwin-x11 plasma-workspace systemsettings kdialog breeze kvantum xdg-desktop-portal-kde greetd greetd-tuigreet networkmanager pipewire wireplumber dbus-broker xdg-desktop-portal-gtk polkit-gnome chromium thunar; do check pacman -Q "$package"; done
+for package in nodejs-lts-jod wayland xorg-xwayland kwin plasma-desktop plasma-workspace systemsettings kdialog konsole breeze kvantum qt6-wayland qt6-tools xdg-desktop-portal-kde kde-gtk-config polkit-kde-agent greetd greetd-tuigreet networkmanager pipewire wireplumber dbus-broker xdg-desktop-portal-gtk chromium dolphin; do check pacman -Q "$package"; done
+for package in xorg-server xorg-xinit openbox kwin-x11 thunar thunar-volman dunst xclip polkit-gnome; do
+  pacman -Q "$package" >/dev/null 2>&1 && fail "retired X11/XFCE shell package remains installed: $package" || pass "retired X11/XFCE shell package is absent: $package"
+done
 
 for repository in "$HOME/FORGE" "$root"; do
   [[ -d "$repository/.git" ]] && pass "$repository is a Git repository" || fail "$repository is not a Git repository"
@@ -57,13 +60,16 @@ if [[ -r "$root/build/latest.env" ]]; then
 fi
 
 for pair in \
-  "$root/session/forge-xsession:/usr/local/bin/forge-xsession" \
+  "$root/session/forge-wayland-session:/usr/local/bin/forge-wayland-session" \
   "$root/session/forge-session:/usr/local/bin/forge-session" \
-  "$root/session/forge-session-client:/usr/local/libexec/forge-session-client" \
+  "$root/session/forge-wayland-client:/usr/local/libexec/forge-wayland-client" \
+  "$root/session/forge-plasma-initialize:/usr/local/libexec/forge-plasma-initialize" \
   "$root/scripts/forge-app-launcher:/usr/local/bin/forge-app-launcher" \
   "$root/scripts/forge-open:/usr/local/bin/forge-open" \
   "$root/scripts/forge-workspace-runner:/usr/local/bin/forge-workspace-runner" \
   "$root/scripts/forge-install-program:/usr/local/bin/forge-install-program" \
+  "$root/scripts/forge-panel-manager:/usr/local/bin/forge-panel-manager" \
+  "$root/scripts/forge-os-update:/usr/local/bin/forge-os-update" \
   "$root/config/kwinrc:/etc/xdg/kwinrc" \
   "$root/config/kdeglobals:/etc/xdg/kdeglobals" \
   "$root/config/forge-portals.conf:/usr/share/xdg-desktop-portal/forge-portals.conf" \
@@ -71,35 +77,32 @@ for pair in \
   "$root/session/forge-system-settings.desktop:/usr/share/applications/forge-system-settings.desktop" \
   "$root/session/forge-workspace-runner.desktop:/usr/share/applications/forge-workspace-runner.desktop" \
   "$root/session/forge-install-program.desktop:/usr/share/applications/forge-install-program.desktop" \
-  "$root/session/forge.desktop:/usr/share/forge-os/xsessions/forge.desktop" \
+  "$root/session/forge-panel-manager.desktop:/usr/share/applications/forge-panel-manager.desktop" \
+  "$root/session/forge.desktop:/usr/share/forge-os/wayland-sessions/forge.desktop" \
   "$root/config/greetd-config.toml:/etc/greetd/config.toml"; do
   installed="${pair#*:}"
   [[ -e "$installed" ]] || { fail "mandatory installed component is missing: $installed"; continue; }
   cmp -s "${pair%%:*}" "$installed" && pass "$installed matches repository" || fail "$installed is stale"
 done
 
-[[ ! -e /usr/share/xsessions/forge.desktop ]] && pass 'legacy global FORGE X session entry is absent' || fail 'legacy global FORGE X session entry remains installed'
+[[ ! -e /usr/share/xsessions/forge.desktop && ! -e /usr/share/forge-os/xsessions/forge.desktop ]] && pass 'legacy FORGE X session entries are absent' || fail 'legacy FORGE X session entry remains installed'
 grep -q '^source_profile = false$' /etc/greetd/config.toml 2>/dev/null && pass 'greetd does not source shell profiles' || fail 'greetd profile sourcing is still enabled'
 grep -q '^user = "greeter"$' /etc/greetd/config.toml 2>/dev/null && pass 'greetd uses dedicated greeter account' || fail 'greetd is not configured for greeter account'
 getent passwd greeter >/dev/null && pass 'greeter account exists' || fail 'greeter account is missing'
-grep -Fq -- "--cmd '/usr/bin/xinit /usr/local/libexec/forge-session-client'" /etc/greetd/config.toml 2>/dev/null && pass 'greetd uses verified FORGE runtime command' || fail 'greetd default session command is wrong'
-grep -Fq -- "--cmd '/usr/bin/xinit /usr/local/libexec/forge-session-client'" "$root/config/greetd-config.toml" && pass 'repository greetd default uses verified FORGE runtime command' || fail 'repository greetd default session command is wrong'
-if grep -Fq -- "--cmd '/usr/bin/openbox-session'" "$root/config/greetd-config.toml"; then
-  fail 'repository greetd default points directly to openbox-session'
-else
-  pass 'repository greetd default does not bypass forge-session-client'
-fi
-grep -q -- '--no-xsession-wrapper' /etc/greetd/config.toml 2>/dev/null && pass 'tuigreet X session wrapper is disabled' || fail 'tuigreet can still inject the default startx wrapper'
-grep -q -- '--xsessions /usr/share/forge-os/xsessions' /etc/greetd/config.toml 2>/dev/null && pass 'tuigreet X sessions are isolated to FORGE directory' || fail 'tuigreet still discovers global X sessions'
+grep -Fq -- "--cmd '/usr/local/bin/forge-wayland-session'" /etc/greetd/config.toml 2>/dev/null && pass 'greetd defaults to FORGE Wayland' || fail 'greetd default session command is wrong'
+grep -Fq -- "--cmd '/usr/local/bin/forge-wayland-session'" "$root/config/greetd-config.toml" && pass 'repository greetd defaults to FORGE Wayland' || fail 'repository greetd default session command is wrong'
+grep -q -- '--xsessions /usr/share/forge-os/disabled-xsessions' /etc/greetd/config.toml 2>/dev/null && pass 'tuigreet does not expose X11 sessions' || fail 'tuigreet still exposes an X11 session directory'
 grep -q -- '--sessions /usr/share/forge-os/wayland-sessions' /etc/greetd/config.toml 2>/dev/null && pass 'tuigreet Wayland sessions are isolated from system defaults' || fail 'tuigreet still discovers global Wayland sessions'
-grep -Fq 'exec /usr/bin/xinit /usr/local/libexec/forge-session-client' "$root/session/forge-xsession" && pass 'forge-xsession aliases verified xinit path' || fail 'forge-xsession does not use verified xinit path'
-grep -Fq 'Exec=/usr/bin/xinit /usr/local/libexec/forge-session-client' "$root/session/forge.desktop" && pass 'desktop entry uses verified xinit path' || fail 'desktop entry has wrong runtime command'
-grep -Fq 'kwin_x11 --replace' "$root/session/forge-session-client" && pass 'session attempts Plasma 6 KWin window management' || fail 'KWin integration is missing'
-grep -Fq 'openbox-session &' "$root/session/forge-session-client" && pass 'session retains Openbox fallback' || fail 'Openbox fallback is missing'
-if grep -ERq 'startx|\.xinitrc' "$root/session" /usr/local/bin/forge-xsession /usr/local/bin/forge-session /usr/local/libexec/forge-session-client; then
-  fail 'legacy startx dependency remains in production session'
+grep -Fq 'Exec=/usr/local/bin/forge-wayland-session' "$root/session/forge.desktop" && pass 'desktop entry uses FORGE Wayland' || fail 'desktop entry has wrong runtime command'
+grep -Fq 'kwin_wayland --xwayland --exit-with-session' "$root/session/forge-wayland-session" && pass 'session starts KWin Wayland with XWayland compatibility' || fail 'KWin Wayland integration is missing'
+grep -Fq 'plasmashell --no-respawn' "$root/session/forge-wayland-client" && pass 'Plasma visual and panel services start beneath FORGE' || fail 'Plasma shell services are missing'
+grep -Fq -- '--ozone-platform=wayland' "$root/session/forge-session" && pass 'FORGE defaults to native Wayland rendering' || fail 'FORGE native Wayland flags are missing'
+grep -Fq "spawn('/usr/bin/konsole', ['--hold', '-e', '/usr/local/bin/forge-os-update']" "$root/overlays/0003-integrate-FORGE-OS-updater.patch" && pass 'FORGE update action delegates to the fixed OS updater' || fail 'FORGE-OS updater UI integration is missing'
+grep -Fq 'https://github.com/kaeganscott26/FORGE-OS' "$root/scripts/forge-os-update" && pass 'FORGE-OS updater pins the trusted repositories' || fail 'FORGE-OS updater origin policy is missing'
+if grep -ERq 'xinit|kwin_x11|openbox|XDG_SESSION_TYPE=x11' "$root/session" "$root/config/greetd-config.toml"; then
+  fail 'legacy X11 session stack remains in production configuration'
 elif (( $? == 1 )); then
-  pass 'production session has no startx or .xinitrc dependency'
+  pass 'production configuration has no legacy X11 session stack'
 else
   fail 'production session dependency search could not be completed'
 fi

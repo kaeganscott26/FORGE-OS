@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=FORGE Panel Manager
+Comment=Add a customizable Plasma panel beneath the FORGE shell
+Exec=forge-panel-manager
+Icon=preferences-desktop-plasma
+Terminal=false
+Type=Application
+Categories=Settings;DesktopSettings;

@@ -18,11 +18,12 @@ Use this checklist as the release gate for any ISO described as stable. A succes
 - [ ] Cold reboot the reference machine.
 - [ ] Confirm the FORGE-branded login appears without an Arch tty1 login or manual `startx`.
 - [ ] Authenticate through PAM.
-- [ ] Confirm the post-auth runtime launches automatically as `/usr/bin/xinit /usr/local/libexec/forge-session-client`.
+- [ ] Confirm the post-auth runtime launches automatically as `/usr/local/bin/forge-wayland-session`.
 - [ ] Confirm FORGE remains visible and does not return immediately to the greeter.
-- [ ] In the FORGE terminal verify `DISPLAY`, `XDG_CURRENT_DESKTOP`, `XDG_SESSION_TYPE`, `FORGE_OS_SESSION`, `FORGE_SHELL_MODE`, and `FORGE_OS_VERSION`.
-- [ ] Launch Chromium and Thunar from FORGE.
-- [ ] Confirm KWin X11 owns window management and that `FORGE_WINDOW_MANAGER=openbox` still provides the recovery fallback.
+- [ ] In the FORGE terminal verify `WAYLAND_DISPLAY`, `XDG_CURRENT_DESKTOP=FORGE`, `XDG_SESSION_TYPE=wayland`, `FORGE_OS_SESSION`, `FORGE_SHELL_MODE`, and `FORGE_OS_VERSION`.
+- [ ] Launch Chromium and Dolphin from FORGE; confirm a legacy X11 application works through XWayland.
+- [ ] Confirm KWin Wayland owns composition, FORGE remains foreground, Plasma supplies wallpaper/effects, and no stock Plasma panel appears.
+- [ ] Add a panel with FORGE Panel Manager, customize it, relogin, and confirm the layout persists.
 - [ ] Launch FORGE App Launcher and System Settings from the FORGE Applications menu.
 - [ ] Open a document and run a disposable executable with Open or Run Workspace File; confirm an outside-workspace path is rejected.
 - [ ] Confirm Install Arch Program requests PolicyKit authentication and accepts only repository package names.
@@ -30,6 +31,9 @@ Use this checklist as the release gate for any ISO described as stable. A succes
 - [ ] Test logout → greeter → login again.
 - [ ] Confirm `Ctrl+Alt+F2` provides the independent recovery console.
 - [ ] Confirm executable, `app.asar`, payload, and installed runtime hashes match the local build record.
+- [ ] Select **Check for updates** in FORGE and confirm it opens the visible FORGE-OS updater rather than the standalone Electron updater.
+- [ ] Confirm the updater refuses a dirty or divergent checkout, then validate a clean fast-forward-only update and successful installer verification.
+- [ ] Confirm the update does not reboot automatically and the updated Wayland session becomes active after a manual reboot.
 
 ## 💿 ISO release candidate
 

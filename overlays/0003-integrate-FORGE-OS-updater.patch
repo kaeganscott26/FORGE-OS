@@ -1,0 +1,29 @@
+diff --git a/apps/desktop/src/main/updater.ts b/apps/desktop/src/main/updater.ts
+index f00e134..a1b2c3d 100644
+--- a/apps/desktop/src/main/updater.ts
++++ b/apps/desktop/src/main/updater.ts
+@@ -1,3 +1,4 @@
++import { spawn } from 'node:child_process';
+ import { app, shell } from 'electron';
+ import electronUpdater from 'electron-updater';
+ import { buildUpdatePolicy, isUpdateVersionEligible, type AppUpdateStatus } from '@forge/ipc';
+@@ -39,6 +40,19 @@ export class UpdaterService {
+   }
+ 
+   async check(): Promise<AppUpdateStatus> {
++    if (process.platform === 'linux' && process.env.FORGE_OS_SESSION === '1') {
++      try {
++        const child = spawn('/usr/bin/konsole', ['--hold', '-e', '/usr/local/bin/forge-os-update'], {
++          detached: true,
++          stdio: 'ignore'
++        });
++        child.unref();
++        this.setStatus('available', 'The authenticated FORGE-OS updater is open. Follow its progress, then reboot when convenient.');
++      } catch (error) {
++        this.setStatus('error', `Could not open the FORGE-OS updater: ${error instanceof Error ? error.message : 'Unknown error.'}`);
++      }
++      return this.status();
++    }
+     if (!app.isPackaged) {
+       this.setStatus('development', 'Update checks run only in the packaged app. Use npm run install:mac for local builds.');
+       return this.status();

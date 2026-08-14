@@ -43,7 +43,6 @@ install -d \
   "$profile/airootfs/usr/share/applications" \
   "$profile/airootfs/usr/share/xdg-desktop-portal" \
   "$profile/airootfs/etc/greetd" \
-  "$profile/airootfs/usr/share/forge-os/xsessions" \
   "$profile/airootfs/usr/share/forge-os/wayland-sessions" \
   "$profile/airootfs/etc/systemd/system/graphical.target.wants" \
   "$profile/airootfs/etc/systemd/system/getty.target.wants" \
@@ -51,19 +50,20 @@ install -d \
 cp -a "$runtime/." "$release/"
 ln -s "releases/$FORGE_RUNTIME_ID" "$profile/airootfs/opt/forge/current"
 install -m 4755 "$runtime/chrome-sandbox" "$release/chrome-sandbox"
-install -m 0755 "$root/session/forge-xsession" "$profile/airootfs/usr/local/bin/forge-xsession"
+install -m 0755 "$root/session/forge-wayland-session" "$profile/airootfs/usr/local/bin/forge-wayland-session"
 install -m 0755 "$root/session/forge-session" "$profile/airootfs/usr/local/bin/forge-session"
-install -m 0755 "$root/session/forge-session-client" "$profile/airootfs/usr/local/libexec/forge-session-client"
-for tool in forge-app-launcher forge-open forge-workspace-runner forge-install-program; do
+install -m 0755 "$root/session/forge-wayland-client" "$profile/airootfs/usr/local/libexec/forge-wayland-client"
+install -m 0755 "$root/session/forge-plasma-initialize" "$profile/airootfs/usr/local/libexec/forge-plasma-initialize"
+for tool in forge-app-launcher forge-open forge-workspace-runner forge-install-program forge-panel-manager forge-os-update; do
   install -m 0755 "$root/scripts/$tool" "$profile/airootfs/usr/local/bin/$tool"
 done
 install -m 0644 "$root/config/kwinrc" "$profile/airootfs/etc/xdg/kwinrc"
 install -m 0644 "$root/config/kdeglobals" "$profile/airootfs/etc/xdg/kdeglobals"
 install -m 0644 "$root/config/forge-portals.conf" "$profile/airootfs/usr/share/xdg-desktop-portal/forge-portals.conf"
-for desktop in forge-app-launcher.desktop forge-system-settings.desktop forge-workspace-runner.desktop forge-install-program.desktop; do
+for desktop in forge-app-launcher.desktop forge-system-settings.desktop forge-workspace-runner.desktop forge-install-program.desktop forge-panel-manager.desktop; do
   install -m 0644 "$root/session/$desktop" "$profile/airootfs/usr/share/applications/$desktop"
 done
-install -m 0644 "$root/session/forge.desktop" "$profile/airootfs/usr/share/forge-os/xsessions/forge.desktop"
+install -m 0644 "$root/session/forge.desktop" "$profile/airootfs/usr/share/forge-os/wayland-sessions/forge.desktop"
 install -m 0644 "$root/config/greetd-config.toml" "$profile/airootfs/etc/greetd/config.toml"
 install -m 0644 "$record" "$release/.forge-runtime.env"
 install -m 0644 "$root/VERSION" "$profile/airootfs/etc/forge-os-version"

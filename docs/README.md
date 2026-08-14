@@ -2,11 +2,13 @@
 
 Welcome to the FORGE-OS documentation. This directory is organized around three audiences: users running FORGE-OS, developers maintaining the platform, and release maintainers producing distributable images.
 
+These guides describe the current `0.2.1-alpha` FORGE-owned Wayland session and integrated source-based updater.
+
 ## 🚀 Start here
 
 | Goal | Guide |
 | --- | --- |
-| Install or update a development/reference machine | [User Manual](USER_MANUAL.md) |
+| Install or use **Check for updates** on a development/reference machine | [User Manual](USER_MANUAL.md) |
 | Understand boot, login, and the desktop session | [Desktop Session](DESKTOP_SESSION.md) |
 | Understand the OS/application boundary | [Architecture](../ARCHITECTURE.md) |
 | Recover from a broken graphical session | [Recovery](RECOVERY.md) |
@@ -21,7 +23,7 @@ Welcome to the FORGE-OS documentation. This directory is organized around three 
 - [`config/`](../config/) — greetd, issue branding, and system configuration templates.
 - [`manifests/`](../manifests/) — declared Arch package dependencies.
 - [`overlays/`](../overlays/) — temporary FORGE patches required by the OS integration layer.
-- [`scripts/`](../scripts/) — bootstrap, build, install, ISO, recovery, and desktop helpers.
+- [`scripts/`](../scripts/) — bootstrap, build, authenticated update, install, ISO, recovery, and desktop helpers.
 - [`session/`](../session/) — FORGE graphical-session entry points.
 - [`tests/`](../tests/) — production invariant verification.
 - [`BUILD_STATE.md`](../BUILD_STATE.md) — current physical/runtime validation status.

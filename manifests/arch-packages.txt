@@ -5,21 +5,26 @@ git
 npm
 python
 nodejs-lts-jod
-xorg-server
-xorg-xinit
-openbox
-xterm
-# Plasma 6 windowing and settings integration. Openbox remains the fallback WM.
-kwin-x11
+# Native Wayland compositor, Plasma visual services, and X11-app compatibility.
+wayland
+xorg-xwayland
+kwin
+plasma-desktop
 plasma-workspace
 systemsettings
 kdialog
+konsole
 breeze
 breeze-gtk
 breeze-icons
 kvantum
 qt6-wayland
+qt6-tools
+qt5-wayland
 xdg-desktop-portal-kde
+kde-gtk-config
+polkit-kde-agent
+dolphin
 gtk3
 mesa
 vulkan-radeon
@@ -36,11 +41,6 @@ xdg-utils
 xdg-user-dirs
 xdg-desktop-portal
 xdg-desktop-portal-gtk
-polkit-gnome
-dunst
-xclip
-thunar
-thunar-volman
 gvfs
 chromium
 networkmanager

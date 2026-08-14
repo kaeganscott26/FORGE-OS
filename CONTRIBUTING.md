@@ -8,16 +8,17 @@ Contributions must preserve:
 
 - PAM authentication;
 - normal-user FORGE execution;
-- the verified post-auth command `/usr/bin/xinit /usr/local/libexec/forge-session-client`;
+- the post-auth command `/usr/local/bin/forge-wayland-session`;
 - content-addressed runtime verification;
 - root-owned Electron sandbox permissions;
 - tty2 recovery access;
 - one authoritative installation path.
-- KWin startup failure falling back to Openbox without changing the greetd/`xinit` contract;
+- FORGE remaining the foreground shell over KWin Wayland and Plasma visual services;
 - workspace executable paths remaining canonical and workspace-contained;
 - package installation remaining authenticated and free of renderer-supplied shell commands.
+- FORGE-OS updates remaining visible, fast-forward-only, and routed through the authoritative installer.
 
-Do not introduce permanent autologin, profile-driven graphical startup, manual `startx` setup, acceptance-marker gating, permanent `--no-sandbox`, or a second competing installer.
+Do not introduce permanent autologin, profile-driven graphical startup, an X11 production session, a conventional `startplasma-wayland` desktop, acceptance-marker gating, permanent `--no-sandbox`, arbitrary renderer-controlled update commands, or a second competing installer.
 
 ## ✅ Validate changes
 

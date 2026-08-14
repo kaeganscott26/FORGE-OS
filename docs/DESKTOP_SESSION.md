@@ -1,6 +1,6 @@
 # 🖥️ Desktop Session
 
-FORGE-OS uses a deliberately controlled graphical chain: greetd authenticates the user, `xinit` starts the X11 client session, Plasma 6 KWin provides Hyprland-inspired window effects and decoration, and FORGE owns the visible desktop experience. Openbox remains an automatic fallback if KWin cannot remain active.
+FORGE-OS uses a controlled native-Wayland chain: greetd authenticates the user, the FORGE launcher starts KWin Wayland directly, Plasma supplies visual services underneath, and FORGE owns the visible desktop experience.
 
 ## 🔐 Authentication
 
@@ -8,8 +8,8 @@ FORGE-OS uses a deliberately controlled graphical chain: greetd authenticates th
 
 Tuigreet is configured with:
 
-- the verified default command `/usr/bin/xinit /usr/local/libexec/forge-session-client`;
-- X sessions restricted to `/usr/share/forge-os/xsessions`;
+- the default command `/usr/local/bin/forge-wayland-session`;
+- X sessions disabled with an intentionally absent discovery directory;
 - Wayland sessions restricted to `/usr/share/forge-os/wayland-sessions`;
 - `--no-xsession-wrapper`, preventing tuigreet from injecting its own `startx` wrapper.
 
@@ -18,23 +18,22 @@ Tuigreet is configured with:
 After PAM verifies the user's credentials, the production runtime command is:
 
 ```bash
-/usr/bin/xinit /usr/local/libexec/forge-session-client
+/usr/local/bin/forge-wayland-session
 ```
 
-`session/forge-xsession` is retained as a repository-owned compatibility/recovery launcher and resolves to the same direct command.
+The repository also installs a FORGE-owned Wayland desktop entry. There is no FORGE X11 entry.
 
 ## 🧩 Session client responsibilities
 
-`forge-session-client`:
+`forge-wayland-session` and `forge-wayland-client`:
 
-1. sources standard `/etc/X11/xinit/xinitrc.d` hooks when available;
-2. establishes the FORGE/XDG environment contract;
-3. validates that a live `DISPLAY` exists;
-4. publishes relevant session variables to D-Bus/systemd activation;
-5. updates XDG user directories;
-6. starts notification and polkit helpers when installed;
-7. starts KWin X11, falling back to Openbox if KWin is missing or exits during startup;
-8. launches `/usr/local/bin/forge-session`.
+1. establish the FORGE/XDG Wayland environment contract;
+2. start a D-Bus session when greetd has not supplied one;
+3. start KWin Wayland with XWayland compatibility and session lifecycle control;
+4. validate and publish `WAYLAND_DISPLAY` to D-Bus and systemd activation;
+5. start KDE services and `plasmashell` as a background visual/panel layer;
+6. remove only Plasma's initial stock panel, preserving user-created layouts afterward;
+7. launch `/usr/local/bin/forge-session` with native Electron Wayland flags.
 
 Session-stage output is written under `~/.local/state/forge/session.log`.
 
@@ -42,13 +41,14 @@ Session-stage output is written under `~/.local/state/forge/session.log`.
 
 The graphical session exposes values including:
 
-- `DISPLAY`
+- `WAYLAND_DISPLAY`
+- `DISPLAY` for XWayland compatibility when available
 - `XAUTHORITY` when applicable
 - `XDG_RUNTIME_DIR`
 - `DBUS_SESSION_BUS_ADDRESS`
 - `XDG_CURRENT_DESKTOP=FORGE`
 - `XDG_SESSION_DESKTOP=FORGE`
-- `XDG_SESSION_TYPE=x11`
+- `XDG_SESSION_TYPE=wayland`
 - `FORGE_OS_SESSION=1`
 - `FORGE_SHELL_MODE=1`
 - `FORGE_OS_VERSION`
@@ -63,7 +63,13 @@ A distributed installation therefore does not require a FORGE-OS development che
 
 ## Plasma integration
 
-Global Breeze Dark/Kvantum and KWin defaults live under `/etc/xdg`. A FORGE-specific portal preference selects the KDE backend with GTK fallback. FORGE discovers installed launcher, settings, workspace-runner, and package-installer desktop entries through its existing allowlisted desktop-application service. Plasma panels and a second desktop shell are not started.
+Global Breeze Dark/Kvantum and KWin defaults live under `/etc/xdg`. Plasma renders wallpaper and manages optional panels, but the stock panel is removed during first-session initialization so no conventional desktop layout is imposed. `forge-panel-manager` adds an edge panel with standard Plasma widgets; users then customize that panel through Plasma normally. FORGE remains the primary interface.
+
+## 🔄 Update integration
+
+Because the session exports `FORGE_OS_SESSION=1`, FORGE's **Check for updates** action selects the OS-aware path and opens `/usr/local/bin/forge-os-update` in Konsole. The helper validates the official source origins and clean fast-forward-only `main` histories before invoking the authoritative installer. It does not accept renderer-provided commands, replace the session files directly, discard local changes, or reboot automatically.
+
+Outside the FORGE-OS session contract, FORGE retains its standalone Electron application updater.
 
 ## 🚪 Logout and recovery
 

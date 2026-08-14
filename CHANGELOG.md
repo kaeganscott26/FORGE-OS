@@ -4,6 +4,25 @@ All notable FORGE-OS changes are recorded here. Active documentation describes o
 
 ## 🚧 Unreleased
 
+### 🔄 Integrated FORGE-OS updates
+
+- Bumped the development version to `0.2.1-alpha`.
+- Added `/usr/local/bin/forge-os-update`, a visible normal-user update workflow that verifies clean `main` checkouts, rejects divergence, fast-forwards the trusted FORGE and FORGE-OS origins, and invokes the authoritative installer.
+- Added a zero-fuzz FORGE overlay so **Check for updates** launches the authenticated OS updater inside `FORGE_OS_SESSION=1`; standalone FORGE builds retain Electron Updater behavior.
+- Added Konsole as the fixed update-terminal host and included the updater in physical and ISO installations and verification.
+- Updated architecture, build-state, contribution, decision, user, recovery, security, shell-mode, release, implementation-gap, and Dev Notes documentation for the new update contract.
+
+### 🌐 Native Wayland session architecture
+
+- Bumped the development version to `0.2.0-alpha` for the session-stack architecture change.
+- Replaced the Xorg/xinit/KWin X11/Openbox production stack with a FORGE-owned KWin Wayland session.
+- Changed greetd and the session desktop entry to default to `/usr/local/bin/forge-wayland-session`.
+- Kept XWayland solely for compatibility with legacy applications and made Electron use native Wayland by default.
+- Started Plasma wallpaper, decoration, animation, portal, and panel services underneath FORGE without invoking the conventional `startplasma-wayland` desktop.
+- Added one-time removal of Plasma's stock panel plus `forge-panel-manager` for opt-in, persistent, customizable panels.
+- Removed the remaining XFCE-era Thunar, notification, clipboard, and PolicyKit shell packages; Dolphin and the KDE PolicyKit agent now own those desktop roles.
+- Updated package manifests, installers, ISO construction, verification, recovery, architecture, user, security, and release documentation.
+
 ### 🧬 Linux build identity and overlay compatibility
 
 - Bumped the development version to `0.1.3-alpha`.

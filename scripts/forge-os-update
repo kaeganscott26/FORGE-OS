@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "$EUID" -ne 0 ]] || { echo 'Run the FORGE-OS updater as the signed-in user, not root.' >&2; exit 77; }
+
+forge_repository="${FORGE_SOURCE_DIR:-$HOME/FORGE}"
+os_repository="${FORGE_OS_SOURCE_DIR:-$HOME/FORGE-OS}"
+
+repositories=("$forge_repository" "$os_repository")
+expected_origins=(
+  'https://github.com/kaeganscott26/FORGE'
+  'https://github.com/kaeganscott26/FORGE-OS'
+)
+
+for index in "${!repositories[@]}"; do
+  repository="${repositories[$index]}"
+  [[ -d "$repository/.git" ]] || { echo "Required Git checkout is missing: $repository" >&2; exit 66; }
+  [[ "$(git -C "$repository" branch --show-current)" == main ]] || { echo "Update checkout must be on main: $repository" >&2; exit 65; }
+  [[ -z "$(git -C "$repository" status --porcelain)" ]] || { echo "Update checkout has uncommitted changes: $repository" >&2; exit 65; }
+  origin="$(git -C "$repository" remote get-url origin)"
+  [[ "${origin%.git}" == "${expected_origins[$index]}" ]] || {
+    echo "Update checkout has an untrusted origin: $repository ($origin)" >&2
+    exit 65
+  }
+done
+
+echo 'Checking the trusted FORGE and FORGE-OS origins...'
+git -C "$forge_repository" fetch --prune origin main
+git -C "$os_repository" fetch --prune origin main
+
+for repository in "${repositories[@]}"; do
+  git -C "$repository" merge-base --is-ancestor HEAD origin/main || {
+    echo "Local history has diverged from origin/main: $repository" >&2
+    exit 65
+  }
+done
+
+git -C "$forge_repository" pull --ff-only origin main
+git -C "$os_repository" pull --ff-only origin main
+
+echo 'Installing the verified FORGE-OS update...'
+"$os_repository/scripts/install-forge-linux.sh"
+
+echo
+echo 'FORGE-OS is updated. Reboot when convenient to enter the newly installed session stack.'
