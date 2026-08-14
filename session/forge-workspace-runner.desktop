@@ -1,3 +1,4 @@
+#!/usr/bin/env xdg-open
 [Desktop Entry]
 Name=Open or Run Workspace File
 Comment=Open documents or run executable files from the FORGE workspace

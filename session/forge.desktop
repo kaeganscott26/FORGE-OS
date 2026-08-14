@@ -1,3 +1,4 @@
+#!/usr/bin/env xdg-open
 [Desktop Entry]
 Name=FORGE
 Comment=FORGE OS Wayland shell with Plasma visual services
