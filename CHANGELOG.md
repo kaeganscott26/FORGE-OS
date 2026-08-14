@@ -4,6 +4,8 @@ All notable FORGE-OS changes are recorded here. Active documentation describes o
 
 ## 🚧 Unreleased
 
+- Prevented unavailable `power-profiles-daemon` hardware support or a transient `powerprofilesctl` DBus failure from aborting an otherwise valid FORGE-OS update.
+
 ### 🔄 Integrated FORGE-OS updates
 
 - Bumped the development version to `0.2.1-alpha`.

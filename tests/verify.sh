@@ -99,6 +99,8 @@ grep -Fq 'plasmashell --no-respawn' "$root/session/forge-wayland-client" && pass
 grep -Fq -- '--ozone-platform=wayland' "$root/session/forge-session" && pass 'FORGE defaults to native Wayland rendering' || fail 'FORGE native Wayland flags are missing'
 grep -Fq "spawn('/usr/bin/konsole', ['--hold', '-e', '/usr/local/bin/forge-os-update']" "$root/overlays/0003-integrate-FORGE-OS-updater.patch" && pass 'FORGE update action delegates to the fixed OS updater' || fail 'FORGE-OS updater UI integration is missing'
 grep -Fq 'https://github.com/kaeganscott26/FORGE-OS' "$root/scripts/forge-os-update" && pass 'FORGE-OS updater pins the trusted repositories' || fail 'FORGE-OS updater origin policy is missing'
+grep -Fq "Warning: power-profiles-daemon could not be started; continuing the update." "$root/scripts/configure-hardware.sh" && pass 'optional power profile daemon failure does not abort updates' || fail 'power profile daemon failure can abort updates'
+grep -Fq "Warning: unable to select the performance power profile; continuing the update." "$root/scripts/configure-hardware.sh" && pass 'power profile DBus failure does not abort updates' || fail 'power profile DBus failure can abort updates'
 if grep -ERq 'xinit|kwin_x11|openbox|XDG_SESSION_TYPE=x11' "$root/session" "$root/config/greetd-config.toml"; then
   fail 'legacy X11 session stack remains in production configuration'
 elif (( $? == 1 )); then
