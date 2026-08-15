@@ -1,3 +1,4 @@
+#!/usr/bin/env xdg-open
 [Desktop Entry]
 Name=Install Arch Program
 Comment=Open a terminal to install trusted repository packages
