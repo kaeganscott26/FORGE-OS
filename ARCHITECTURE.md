@@ -10,9 +10,7 @@ systemd graphical.target
   -> tuigreet
   -> Linux PAM authentication
   -> /usr/local/bin/forge-wayland-session
-  -> KWin Wayland + Plasma visual/panel services
-  -> /usr/local/bin/forge-session
-  -> /opt/forge/current/<recorded FORGE executable>
+
 ```
 
 The FORGE-owned launcher starts KWin Wayland directly. It does not call `startplasma-wayland`, so the conventional Plasma desktop layout does not replace FORGE.
