@@ -2,9 +2,15 @@
 
 ## Login
 
-Authenticate at the FORGE login. The default authenticated command is `startplasma-wayland forge-wayland-session forge-wayland-client`. F2 edits a full command for one login, F3 shows sessions, F4 changes the supported background animation, and F5 shows power actions. Matrix is the persistent default background in the production profile.
+Authenticate at the normal FORGE login. The production greetd profile uses the restored pre-Matrix behavior and hands directly to:
 
-The login command is validated against the `greetd-tuigreet` package installed by the Arch manifest. FORGE-OS does not add undocumented greeter options to the boot path.
+```text
+/usr/local/bin/forge-wayland-session
+```
+
+The installer copies that command from the repository session implementation. Persistent Matrix/background configuration is not part of the normal boot path. The FORGE desktop entry remains available as a compatibility/session-selector profile and reaches the same Wayland session.
+
+The login command is validated against the actual `greetd-tuigreet` package installed by the Arch manifest. FORGE-OS does not add undocumented greeter options to the boot path.
 
 ## Desktop
 
@@ -28,7 +34,7 @@ cd ~/FORGE-OS
 ./update.sh
 ```
 
-for a trusted fast-forward update of both FORGE and FORGE-OS followed by installation. Do not manually source `build/latest.env` or run bootstrap/build/runtime helper scripts during a normal update.
+for a trusted fast-forward update of both FORGE and FORGE-OS followed by installation. The bootstrap/build/runtime scripts remain part of the repository because `install-forge-linux.sh` executes them as internal stages; they are not separate commands you need to run during a normal install or update.
 
 ## Packages
 
@@ -57,6 +63,16 @@ Refresh Arch mirrors explicitly with `forge-refresh-mirrors --country 'United St
 
 The native Updates control opens the installed `forge-os-update` command. It refuses dirty, divergent, non-main, or untrusted source trees; otherwise it fast-forwards and invokes the installer. It does not reboot. Standalone FORGE packages use their normal Electron update channel.
 
-## Recovery
+## Installed-system recovery
 
 Ctrl+Alt+F2 requests native FORGE Recovery on demand. If that graphical path is itself unhealthy, use another text TTY such as Ctrl+Alt+F3 and run `~/FORGE-OS/scripts/disable-graphical-login.sh` to restore console-first boot without deleting runtimes or user data.
+
+## Live ISO recovery
+
+The FORGE-OS ISO automatically enters **FORGE Live Recovery** through the same Wayland runtime with live-only recovery flags. The recovery screen provides:
+
+- **Open sudo root shell** — opens Konsole as an explicitly privileged shell for the ephemeral live environment.
+- **Load / install ISO or ZIP** — selects a local `.iso` or `.zip`, validates/stages it, and runs only a recognized installer entry point after a second `INSTALL` confirmation.
+- **Restart** and **Shut down** actions.
+
+Passwordless sudo is granted only to the ephemeral `forge` live account. If `forge-live-setup` runs on an installed system, it exits without creating that account, sudo rule, or live greeter profile.
