@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "${FORGE_OS_SESSION:-0}" == 1 || "${FORGE_LIVE_RECOVERY:-0}" == 1 ]] || { echo 'FORGE Service Manager is available only inside FORGE-OS.' >&2; exit 77; }
+command -v kdialog >/dev/null || { echo 'kdialog is required.' >&2; exit 69; }
+command -v pkexec >/dev/null || { echo 'PolicyKit is required.' >&2; exit 69; }
+manifest=/usr/share/forge-os/system-services.tsv
+[[ -r "$manifest" ]] || { kdialog --error 'FORGE service manifest is missing.'; exit 69; }
+control=/usr/local/libexec/forge-service-control
+[[ -x "$control" ]] || { kdialog --error 'FORGE service-control helper is missing.'; exit 69; }
+
+declare -A scope_by_unit=()
+declare -A policy_by_unit=()
+declare -A risk_by_unit=()
+declare -A label_by_unit=()
+declare -A description_by_unit=()
+declare -A was_enabled=()
+units=()
+
+is_enabled() {
+  local scope="$1" unit="$2"
+  if [[ "$scope" == global ]]; then
+    systemctl --global is-enabled "$unit" >/dev/null 2>&1
+  else
+    systemctl is-enabled "$unit" >/dev/null 2>&1
+  fi
+}
+
+active_state() {
+  local scope="$1" unit="$2"
+  if [[ "$scope" == global ]]; then
+    if systemctl --user is-active "$unit" >/dev/null 2>&1; then printf active; else printf inactive; fi
+  else
+    if systemctl is-active "$unit" >/dev/null 2>&1; then printf active; else printf inactive; fi
+  fi
+}
+
+args=()
+while IFS='|' read -r scope unit policy risk label description; do
+  [[ -n "$scope" && "$scope" != \#* ]] || continue
+  [[ "$scope" == system || "$scope" == global ]] || continue
+  units+=("$unit")
+  scope_by_unit["$unit"]="$scope"
+  policy_by_unit["$unit"]="$policy"
+  risk_by_unit["$unit"]="$risk"
+  label_by_unit["$unit"]="$label"
+  description_by_unit["$unit"]="$description"
+  state=off
+  enabled_text=disabled
+  if is_enabled "$scope" "$unit"; then
+    state=on
+    enabled_text=enabled
+    was_enabled["$unit"]=1
+  else
+    was_enabled["$unit"]=0
+  fi
+  running="$(active_state "$scope" "$unit")"
+  requirement='Optional'
+  [[ "$policy" == required ]] && requirement='Required'
+  args+=("$unit" "$label — $enabled_text / $running — $requirement — $description" "$state")
+done <"$manifest"
+
+selection="$(kdialog --title 'FORGE Advanced · Services' --checklist \
+  'Checked services are enabled. Uncheck to disable; check to enable. Required/critical services are visible instead of hidden so you can control the machine without using systemctl. Changes are applied after confirmation.' \
+  "${args[@]}" 2>/dev/null || true)"
+[[ -n "$selection" ]] || {
+  # Empty output is valid when the user intentionally unchecked everything.
+  if ! kdialog --title 'FORGE Services' --warningyesno 'No services are selected. Apply this configuration?'; then exit 0; fi
+}
+
+mapfile -t selected_units < <(python - "$selection" <<'PY'
+import shlex, sys
+for value in shlex.split(sys.argv[1]):
+    print(value)
+PY
+)
+declare -A selected=()
+for unit in "${selected_units[@]}"; do selected["$unit"]=1; done
+
+changes=()
+critical_disables=()
+for unit in "${units[@]}"; do
+  desired=0
+  [[ -n "${selected[$unit]:-}" ]] && desired=1
+  if [[ "${was_enabled[$unit]}" == "$desired" ]]; then continue; fi
+  if (( desired )); then
+    changes+=("enable|${scope_by_unit[$unit]}|$unit|${label_by_unit[$unit]}")
+  else
+    changes+=("disable|${scope_by_unit[$unit]}|$unit|${label_by_unit[$unit]}")
+    [[ "${risk_by_unit[$unit]}" == critical ]] && critical_disables+=("${label_by_unit[$unit]} ($unit)")
+  fi
+done
+
+if (( ${#changes[@]} == 0 )); then
+  kdialog --title 'FORGE Services' --msgbox 'No service enablement changes were requested.'
+  exit 0
+fi
+
+if (( ${#critical_disables[@]} > 0 )); then
+  warning='You are disabling critical FORGE-OS services:\n\n'
+  for item in "${critical_disables[@]}"; do warning+="• $item\\n"; done
+  warning+='\nThis can remove login, networking, or audio on the next boot/session. Continue?'
+  kdialog --title 'Critical service change' --warningyesno "$warning" || exit 0
+fi
+
+summary='Apply these FORGE-OS service changes?\n\n'
+for change in "${changes[@]}"; do
+  IFS='|' read -r action scope unit label <<<"$change"
+  summary+="• ${action^^}: $label ($unit)\\n"
+done
+kdialog --title 'Apply service configuration' --yesno "$summary" || exit 0
+
+failures=()
+for change in "${changes[@]}"; do
+  IFS='|' read -r action scope unit label <<<"$change"
+  if ! pkexec "$control" "$scope" "$action" "$unit"; then
+    failures+=("$label ($unit)")
+    continue
+  fi
+  if [[ "$scope" == global ]] && systemctl --user show-environment >/dev/null 2>&1; then
+    if [[ "$action" == enable ]]; then
+      systemctl --user start "$unit" >/dev/null 2>&1 || true
+    else
+      systemctl --user stop "$unit" >/dev/null 2>&1 || true
+    fi
+  fi
+done
+
+if (( ${#failures[@]} > 0 )); then
+  message='Some service changes failed:\n\n'
+  for item in "${failures[@]}"; do message+="• $item\\n"; done
+  kdialog --title 'FORGE Services' --error "$message"
+  exit 1
+fi
+
+kdialog --title 'FORGE Services' --msgbox 'Service configuration applied. Enabled services persist across reboot; supported services were started/stopped immediately.'
