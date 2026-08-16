@@ -4,121 +4,92 @@ All notable FORGE-OS changes are recorded here. Active documentation describes t
 
 ## 🚧 Unreleased
 
-- Prevented unavailable `power-profiles-daemon` hardware support or a transient `powerprofilesctl` DBus failure from aborting an otherwise valid FORGE-OS update.
+### 🔴 Package bootstrap manifest blocker
+
+- Repository audit found that [`scripts/bootstrap-arch.sh`](scripts/bootstrap-arch.sh) expects `manifests/arch-packages.txt`, but that file is absent from the current tree.
+- The existing `manifests/arch-packages.sh` is not consumed by the bootstrap path and is not currently a valid substitute for the missing line-oriented manifest.
+- Documented the impact in `README.md`, `BUILD_STATE.md`, `docs/USER_MANUAL.md`, `docs/IMPLEMENTATION_GAPS.md`, and `docs/RELEASE_CHECKLIST.md`.
+- Marked clean fresh installation/package bootstrap as a release blocker until the package source of truth is restored or the bootstrap/ISO/test contract is intentionally changed together.
+- Clarified that `--skip-packages` is only appropriate when all required dependencies are already installed.
 
 ### 🧱 Runtime/session architecture normalization and documentation audit
 
-- Added [`session/README.md`](session/README.md) as the authoritative runtime/session architecture guide with formatted session families, ownership rules, login commands, compatibility behavior, UI expectations, diagnostics, and links to all related documentation.
+- Added [`session/README.md`](session/README.md) as the authoritative runtime/session architecture guide with session families, ownership rules, login commands, compatibility behavior, UI expectations, diagnostics, and links to related documentation.
 - Formalized the invariant that **exactly one top-level component owns the graphical session/compositor**.
-- Classified the canonical direct `forge-wayland-session` path as **FORGE-owned** and the conventional desktop profiles as **host-owned**.
-- Documented the current reference-machine Plasma wrapper as a development override rather than an equivalent production path because `startplasma-wayland` and `forge-wayland-session` can both attempt KWin/session ownership.
+- Classified the canonical direct `/usr/local/bin/forge-wayland-session` path as **FORGE-owned** and conventional desktop profiles as **host-owned**.
+- Documented the current reference-machine Plasma wrapper as a development override because `startplasma-wayland` and `forge-wayland-session` can both attempt KWin/session ownership.
 - Defined the target for a future first-class Plasma-hosted profile: launch FORGE inside an already-owned Plasma session without creating a second compositor/session owner.
 - Clarified that `FORGE_USE_XWAYLAND=1` changes Electron rendering only while KWin/session ownership remains native Wayland.
 - Added explicit runtime-profile UI expectations for standalone FORGE, Plasma-hosted FORGE, and native FORGE-OS shell mode.
-- Added runtime-profile capability modeling as an active architecture direction so shell-only UI is not inferred solely from generic Linux/KDE/Wayland state.
-- Refreshed `README.md`, `ARCHITECTURE.md`, `BUILD_STATE.md`, `docs/README.md`, `docs/DESKTOP_SESSION.md`, `docs/DECISIONS.md`, `docs/USER_MANUAL.md`, `docs/SHELL_MODE.md`, `docs/IMPLEMENTATION_GAPS.md`, `docs/RELEASE_CHECKLIST.md`, `Dev_Notes/Forge_updates.md`, `Dev_Notes/Wayland_Stack.md`, and `Dev_Notes/knownUxBugs.md` to the current `0.2.1-alpha` architecture.
+- Added runtime-profile capability modeling as an architecture direction so shell-only UI is not inferred solely from generic Linux/KDE/Wayland state.
+- Refreshed `README.md`, `ARCHITECTURE.md`, `BUILD_STATE.md`, `CONTRIBUTING.md`, `docs/README.md`, `docs/DESKTOP_SESSION.md`, `docs/DECISIONS.md`, `docs/USER_MANUAL.md`, `docs/SHELL_MODE.md`, `docs/SECURITY_MODEL.md`, `docs/RECOVERY.md`, `docs/IMPLEMENTATION_GAPS.md`, `docs/RELEASE_CHECKLIST.md`, `Dev_Notes/Forge_updates.md`, `Dev_Notes/Wayland_Stack.md`, and `Dev_Notes/knownUxBugs.md` to the current `0.2.1-alpha` state.
 - Recorded current UX gaps: external-window package installation, delayed FORGE application discovery after installs, runtime-profile UI ownership, Wayland/KDE theming/panel/settings polish, and external-window behavior.
-- Added stable-release gates for package-install/application-discovery refresh, portal/notification behavior, single-compositor ownership, and canonical login without F2.
-- Removed the superseded `Dev_Notes/install_wayland_stacks.sh`, stale crash-era `Dev_Notes/repo_status_update`, and empty `docs/md` placeholder so old runtime guidance cannot be mistaken for current instructions.
+- Added release gates for package bootstrap, application discovery refresh, portal/notification behavior, single-compositor ownership, and canonical login without F2.
+- Removed superseded `Dev_Notes/install_wayland_stacks.sh`, stale crash-era `Dev_Notes/repo_status_update`, and empty `docs/md` placeholder.
 
 ### ⌨️ Login-screen runtime selection
 
 - Documented the FORGE-branded greetd/tuigreet **F2** workflow for manually selecting a graphical session command before authentication.
-- Added the historical X11 session selector: `/usr/bin/xinit /usr/local/libexec/forge-session-client`.
-- Added the current repository-owned native Wayland selector: `/usr/local/bin/forge-wayland-session`.
-- Added the current reference-machine Plasma Wayland wrapper configuration: `/usr/lib/plasma-dbus-run session-if-needed /usr/bin/startplasma-wayland /usr/local/bin/forge-wayland-session`.
-- Clarified that these commands select the Linux graphical/session host for the same installed FORGE runtime rather than representing separate FORGE application builds.
-- Added recovery guidance noting that an invalid/unavailable manual session command may return to the greeter and that `Ctrl+Alt+F2` remains the independent recovery console.
-
-### 🧭 Runtime/session configuration map
-
-- Added a front-page runtime matrix to `README.md` so the supported FORGE presentation modes and their FORGE-OS session generations are visible without digging through historical notes.
-- Documented the standalone FORGE application runtime as distinct from FORGE-OS shell mode: macOS, Windows, and ordinary Linux desktop sessions do not expose `FORGE_OS_SESSION` / `FORGE_SHELL_MODE` OS surfaces.
-- Recorded the `0.1.1-alpha` X11/Openbox session line as historical: greetd authenticated into `/usr/bin/xinit /usr/local/libexec/forge-session-client` with Openbox as the lightweight window-management substrate.
-- Recorded the `0.1.2-alpha`–`0.1.3-alpha` Plasma 6 / KWin X11 bridge as historical: Plasma/KWin supplied richer desktop services while the verified X11/xinit chain and Openbox fallback remained in place.
-- Recorded `0.2.0-alpha` onward as the native KWin Wayland FORGE shell generation; current `0.2.1-alpha` uses greetd → `forge-wayland-session` → KWin Wayland → Plasma services → `forge-session` → the content-addressed FORGE runtime.
-- Documented `FORGE_USE_XWAYLAND=1` as the current `0.2.x` compatibility option for launching the packaged Electron FORGE window through XWayland while retaining the native KWin Wayland FORGE-OS session.
-- Clarified that `forge-panel-manager [edge]` changes the visible Plasma panel configuration without creating a different session generation; the initial `0.2.x` shell remains panel-free unless the user opts into a Plasma panel.
+- Current canonical selector: `/usr/local/bin/forge-wayland-session`.
+- Current reference-machine Plasma development override: `/usr/lib/plasma-dbus-run session-if-needed /usr/bin/startplasma-wayland /usr/local/bin/forge-wayland-session`.
+- Historical X11 selector: `/usr/bin/xinit /usr/local/libexec/forge-session-client`.
+- Clarified that session commands change how the same installed FORGE runtime is hosted; they are not separate FORGE application builds.
+- Preserved `Ctrl+Alt+F2` as the independent recovery path.
 
 ### 🔄 Integrated FORGE-OS updates
 
-- Bumped the development version to `0.2.1-alpha`.
-- Added `/usr/local/bin/forge-os-update`, a visible normal-user update workflow that verifies clean `main` checkouts, rejects divergence, fast-forwards the trusted FORGE and FORGE-OS origins, and invokes the authoritative installer.
-- Added a zero-fuzz FORGE overlay so **Check for updates** launches the authenticated OS updater inside `FORGE_OS_SESSION=1`; standalone FORGE builds retain Electron Updater behavior.
-- Added Konsole as the fixed update-terminal host and included the updater in physical and ISO installations and verification.
-- Updated architecture, build-state, contribution, decision, user, recovery, security, shell-mode, release, implementation-gap, and Dev Notes documentation for the new update contract.
+- Prevented unavailable `power-profiles-daemon` hardware support or transient `powerprofilesctl` D-Bus failure from aborting an otherwise valid update.
+- `forge-os-update` remains the visible normal-user update workflow for FORGE-OS shell mode.
+- Update flow verifies trusted clean `main` repositories, rejects divergence, uses fast-forward-only pulls, invokes the authoritative installer, and never reboots automatically.
 
-### 🌐 Native Wayland session architecture
+## `0.2.1-alpha` — Integrated updater and current shell iteration
 
-- Bumped the development version to `0.2.0-alpha` for the session-stack architecture change.
+- Added `/usr/local/bin/forge-os-update` and routed FORGE's **Check for updates** action to it inside `FORGE_OS_SESSION=1`.
+- Added Konsole as the visible update-terminal host.
+- Preserved standalone Electron updater behavior outside FORGE-OS shell mode.
+- Continued native KWin Wayland shell development and repository/runtime identity verification.
+
+## `0.2.0-alpha` — Native Wayland architecture
+
 - Replaced the Xorg/xinit/KWin X11/Openbox production stack with a FORGE-owned KWin Wayland session.
 - Changed greetd and the session desktop entry to default to `/usr/local/bin/forge-wayland-session`.
-- Kept XWayland solely for compatibility with legacy applications and made Electron use native Wayland by default.
-- Started Plasma wallpaper, decoration, animation, portal, and panel services underneath FORGE without invoking the conventional `startplasma-wayland` desktop in the canonical path.
-- Added one-time removal of Plasma's stock panel plus `forge-panel-manager` for opt-in, persistent, customizable panels.
-- Removed the remaining XFCE-era Thunar, notification, clipboard, and PolicyKit shell packages; Dolphin and the KDE PolicyKit agent now own those desktop roles.
-- Updated package manifests, installers, ISO construction, verification, recovery, architecture, user, security, and release documentation.
+- Kept XWayland for legacy application compatibility and made Electron native Wayland the default.
+- Started Plasma wallpaper, decoration, animation, portal, and panel services beneath FORGE without invoking conventional `startplasma-wayland` in the canonical path.
+- Added one-time removal of Plasma's stock panel plus `forge-panel-manager` for opt-in persistent panels.
+- Removed remaining XFCE-era shell dependencies from the current production model.
 
-### 🧬 Linux build identity and overlay compatibility
+## `0.1.3-alpha` — Build identity hardening
 
-- Bumped the development version to `0.1.3-alpha`.
-- Refreshed the Linux-only `file.read` compatibility overlay for the current FORGE source layout while preserving zero-fuzz application.
-- Recorded and verified the independent FORGE application version/manifest and FORGE-OS version/commit alongside lockfile, overlay, executable, `app.asar`, and full-payload hashes.
-- Made `--use-current-build` reject runtimes produced by a different FORGE-OS revision or version.
+- Refreshed the Linux-only `file.read` compatibility overlay.
+- Recorded independent FORGE application/version/commit and FORGE-OS version/commit identities.
+- Added lockfile, overlay, executable, `app.asar`, full-payload, and runtime hashes.
+- Made `--use-current-build` reject runtimes produced by a different FORGE-OS revision/version.
 
-### 🪟 Plasma 6 windowing and FORGE program surfaces
+## `0.1.2-alpha` — Plasma 6 / KWin X11 bridge
 
-- Bumped the development version to `0.1.2-alpha`.
-- Added Plasma 6 KWin X11, KRunner, System Settings, Breeze Dark, Kvantum, Qt Wayland, and KDE portal dependencies without changing the verified greetd/`xinit` login command.
-- Made KWin the preferred session window manager with startup health detection and an automatic Openbox fallback.
-- Added FORGE-discoverable launcher, System Settings, workspace file runner, and authenticated Arch package installer entries.
-- Constrained file execution to canonical paths beneath the active FORGE workspace, required the executable bit, avoided shell evaluation, and logged detached program output under the user's FORGE state directory.
-- Added PolicyKit-backed package installation with strict Arch package-name validation.
-- Updated physical and ISO installers, verification coverage, architecture, security, shell-mode, user, and release documentation.
+- Added Plasma 6/KWin X11, KRunner, System Settings, Breeze/Kvantum, Qt Wayland libraries, and KDE portal dependencies while the login chain remained X11/xinit.
+- Used KWin X11 with an Openbox fallback.
+- Added launcher, System Settings, workspace file runner, and PolicyKit-backed package installer surfaces.
+- Added workspace-contained executable launch rules and strict package-name validation.
 
-### 🔎 Session-default regression protection
+## `0.1.1-alpha` — X11 session regression protection
 
-- Bumped the development version to `0.1.1-alpha`.
-- Confirmed that the repository contains no greetd default that launches `/usr/bin/openbox-session` directly.
-- Added repository-level verification that greetd launches `/usr/bin/xinit /usr/local/libexec/forge-session-client` and cannot bypass the FORGE session client with a direct Openbox command.
-- Classified the Wayland/Hyprland stack notes as future architecture research; the physically verified X11 path remained the production invariant until the later native Wayland migration.
+- Verified the historical `/usr/bin/xinit /usr/local/libexec/forge-session-client` post-authentication chain.
+- Prevented greetd from bypassing the FORGE session client with a direct Openbox command.
+- Preserved the X11/Openbox session as the then-production invariant before the later Wayland migration.
 
-### 🖥️ Stable runtime/session path
+## 🧱 Existing hardening retained
 
-- Verified that successful PAM authentication could launch the earlier FORGE desktop with `/usr/bin/xinit /usr/local/libexec/forge-session-client`.
-- Changed greetd/tuigreet's then-default command to use that verified runtime path directly.
-- Aligned the historical X11 session entry with the same command.
-- Later `0.2.x` work superseded this as the production default with `/usr/local/bin/forge-wayland-session`.
-
-### 📚 Repository polish
-
-- Added a central documentation hub and repository map.
-- Reworked README navigation for users, developers, recovery, architecture, and release workflows.
-- Updated architecture, desktop-session, user, recovery, security, decisions, current-state, and release documentation to match the production runtime.
-- Converted the ISO release guide into an explicit stable-release gate.
-- Removed stale debug-era architecture language from active docs and clarified that historical experiments belong in Git history.
-- Kept unresolved work isolated in `docs/IMPLEMENTATION_GAPS.md` instead of mixing it into user-facing guides.
-
-### 🧱 Existing production hardening
-
-- Disabled greetd shell-profile sourcing so graphical startup no longer depends on `/etc/profile` or user profile files.
-- Isolated tuigreet to FORGE-owned session directories and disabled its default X11 `startx` wrapper.
-- Standardized the authoritative physical-machine installer as `scripts/install-forge-linux.sh`.
-- Made FORGE overlay identity independent of checkout paths and changed overlay application to zero-fuzz dry-run + apply.
-- Explicitly inject FORGE source identity during exported-source packaging.
-- Made runtime/session launch honor recorded executable identity and removed dependency on a `~/FORGE-OS` checkout for normal graphical startup.
-- Moved user MIME backup state out of Git and into the user's XDG state directory.
-- Preserved tty2 as an independent recovery path.
-- Aligned ISO layout with the same runtime/session/recovery model as the physical install.
-
-## 🗓️ 2026-08-11 — Graphical boot/runtime consolidation
-
-- Replaced acceptance-gated and tty1/profile startup with greetd graphical login enabled by default.
-- Added content-addressed runtime identity and byte-for-byte payload verification, including `app.asar`.
-- Removed manual `startx`/`.xinitrc` production setup and split session installers.
-- Corrected Electron sandbox installation, Xorg handoff, session logging, tty2 recovery, and strict production verification.
-- Added FORGE-OS shell surfaces, application discovery/launch, system overview, desktop defaults, and ArchISO packaging work.
+- PAM-authenticated graphical login through greetd/tuigreet.
+- `source_profile = false` for graphical startup.
+- Normal-user FORGE execution; no root FORGE process.
+- Content-addressed runtime installation under `/opt/forge`.
+- Root-owned Electron `chrome-sandbox` mode `4755`.
+- Zero-fuzz overlay application and explicit packaged source identity.
+- Machine-generated user state kept outside Git.
+- tty2 recovery preserved.
+- Physical and ISO layouts intended to share the same runtime/session/recovery model.
 
 ## 🗄️ Retired experimental approaches
 
-Earlier development temporarily used acceptance-marker gating, tty1 shell/profile autostart, manual `startx`, `.xinitrc`, and multiple experimental Xorg-launch paths. Those approaches are historical only and are not supported as current `0.2.x` production defaults.
+Acceptance-marker gating, tty1 profile autostart, manual `startx`, `.xinitrc`, direct Openbox production startup, and other experimental Xorg launch paths are historical only. Current `0.2.x` production documentation centers on the FORGE-owned KWin Wayland session and clearly labels alternate development profiles.
