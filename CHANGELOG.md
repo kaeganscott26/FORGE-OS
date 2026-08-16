@@ -6,6 +6,15 @@ All notable FORGE-OS changes are recorded here. Active documentation describes o
 
 - Prevented unavailable `power-profiles-daemon` hardware support or a transient `powerprofilesctl` DBus failure from aborting an otherwise valid FORGE-OS update.
 
+### ⌨️ Login-screen runtime selection
+
+- Documented the FORGE-branded greetd/tuigreet **F2** workflow for manually selecting a graphical session command before authentication.
+- Added the historical X11 session selector: `/usr/bin/xinit /usr/local/libexec/forge-session-client`.
+- Added the current repository-owned native Wayland selector: `/usr/local/bin/forge-wayland-session`.
+- Added the current reference-machine Plasma Wayland wrapper configuration: `/usr/lib/plasma-dbus-run session-if-needed /usr/bin/startplasma-wayland /usr/local/bin/forge-wayland-session`.
+- Clarified that these commands select the Linux graphical/session host for the same installed FORGE runtime rather than representing separate FORGE application builds.
+- Added recovery guidance noting that an invalid/unavailable manual session command may return to the greeter and that `Ctrl+Alt+F2` remains the independent recovery console.
+
 ### 🧭 Runtime/session configuration map
 
 - Added a front-page runtime matrix to `README.md` so the supported FORGE presentation modes and their FORGE-OS session generations are visible without digging through historical notes.
