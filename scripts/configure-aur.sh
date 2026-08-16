@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source /etc/os-release
 [[ "${ID:-}" == arch ]] || { echo 'Arch Linux is required.' >&2; exit 1; }
 [[ "$EUID" -ne 0 ]] || { echo 'Run configure-aur.sh as the desktop user; sudo is used only for system changes.' >&2; exit 77; }
@@ -9,11 +8,9 @@ source /etc/os-release
 install_aur_package() {
   local package="$1" temporary
   temporary="$(mktemp -d)"
-  trap 'rm -rf -- "$temporary"' RETURN
   git clone --depth 1 "https://aur.archlinux.org/${package}.git" "$temporary/$package"
   (cd "$temporary/$package" && makepkg -si --needed --noconfirm)
   rm -rf -- "$temporary"
-  trap - RETURN
 }
 
 enable_chaotic_aur() {
@@ -52,21 +49,35 @@ if ! command -v yay >/dev/null 2>&1; then
   install_aur_package yay-bin
 fi
 
+# Matrix/DOOM backgrounds currently live on the maintained fork's rolling
+# master (0.11.x development). The tagged 0.10.2 -bin package predates those
+# flags, so FORGE-OS deliberately installs the -git package until a tagged
+# release containing the background API is published.
 fork_ready=false
-if command -v tuigreet >/dev/null 2>&1; then
-  help_text="$(tuigreet --help 2>&1 || true)"
+if command -v /usr/bin/tuigreet >/dev/null 2>&1; then
+  help_text="$(/usr/bin/tuigreet --help 2>&1 || true)"
   if grep -Fq -- '--background' <<<"$help_text" && grep -Fq -- '--kb-background' <<<"$help_text" && grep -Fq -- '--doom-height' <<<"$help_text" && grep -Fq -- '--matrix-length' <<<"$help_text"; then
     fork_ready=true
   fi
 fi
+
 if [[ "$fork_ready" != true ]]; then
-  echo 'Installing maintained greetd-tuigreet-fork-bin from the AUR.'
-  install_aur_package greetd-tuigreet-fork-bin
+  # Remove stale tagged fork packages first so the rolling package can own the
+  # same binary without an interactive conflict prompt.
+  stale=()
+  for package in greetd-tuigreet-fork-bin greetd-tuigreet-fork-bin-debug greetd-tuigreet; do
+    /usr/bin/pacman -Q "$package" >/dev/null 2>&1 && stale+=("$package")
+  done
+  if (( ${#stale[@]} > 0 )); then
+    sudo /usr/bin/pacman -Rns --noconfirm "${stale[@]}"
+  fi
+  echo 'Installing rolling greetd-tuigreet-fork-git for Matrix/F4/DOOM support.'
+  install_aur_package greetd-tuigreet-fork-git
 fi
 
 help_text="$(/usr/bin/tuigreet --help 2>&1 || true)"
 for option in --background --background-fps --kb-background --doom-height --doom-spread --doom-colors --matrix-length --matrix-speed --matrix-colors; do
-  grep -Fq -- "$option" <<<"$help_text" || { echo "Installed tuigreet is missing required fork option: $option" >&2; exit 1; }
+  grep -Fq -- "$option" <<<"$help_text" || { echo "Installed tuigreet is missing required rolling-fork option: $option" >&2; exit 1; }
 done
 sudo ln -sfn /usr/bin/tuigreet /usr/local/bin/tuigreet
 getent passwd greeter >/dev/null || { echo 'The greetd greeter account is missing.' >&2; exit 1; }
