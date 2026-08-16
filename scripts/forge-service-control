@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "$EUID" -eq 0 ]] || { echo 'forge-service-control must be invoked through PolicyKit/root.' >&2; exit 77; }
+manifest=/usr/share/forge-os/system-services.tsv
+[[ -r "$manifest" ]] || { echo 'FORGE service manifest is missing.' >&2; exit 69; }
+
+scope="${1:-}"
+action="${2:-}"
+unit="${3:-}"
+[[ "$scope" == system || "$scope" == global ]] || { echo 'Invalid service scope.' >&2; exit 64; }
+[[ "$action" == enable || "$action" == disable ]] || { echo 'Invalid service action.' >&2; exit 64; }
+[[ "$unit" =~ ^[A-Za-z0-9_.@:-]+\.(service|socket|timer)$ ]] || { echo 'Invalid unit name.' >&2; exit 64; }
+
+allowed=false
+risk=standard
+while IFS='|' read -r entry_scope entry_unit default_policy entry_risk label description; do
+  [[ -n "$entry_scope" && "$entry_scope" != \#* ]] || continue
+  if [[ "$entry_scope" == "$scope" && "$entry_unit" == "$unit" ]]; then
+    allowed=true
+    risk="$entry_risk"
+    break
+  fi
+done <"$manifest"
+[[ "$allowed" == true ]] || { echo "Unit is not in the FORGE-OS service allowlist: $scope $unit" >&2; exit 77; }
+
+if [[ "$scope" == global ]]; then
+  if [[ "$action" == enable ]]; then
+    exec systemctl --global enable "$unit"
+  else
+    exec systemctl --global disable "$unit"
+  fi
+fi
+
+if [[ "$action" == enable ]]; then
+  exec systemctl enable --now "$unit"
+fi
+
+# Disabling a critical graphical/network service is allowed because the user
+# explicitly requested it in Advanced, but it is persistence-only for greetd
+# and NetworkManager so the current desktop/network session is not destroyed
+# underneath the settings UI. Everything else is stopped immediately.
+case "$unit" in
+  greetd.service|NetworkManager.service)
+    exec systemctl disable "$unit"
+    ;;
+  *)
+    exec systemctl disable --now "$unit"
+    ;;
+esac
