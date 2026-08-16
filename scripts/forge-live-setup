@@ -39,8 +39,6 @@ if [[ -r /opt/forge/current/resources/ollama/skills.json ]]; then
   [[ ! -r /opt/forge/current/resources/ollama/skills/local-model-tooling/agents/openai.yaml ]] || install -o "$live_user" -g "$live_user" -m 0644 /opt/forge/current/resources/ollama/skills/local-model-tooling/agents/openai.yaml "$live_home/.config/ollama/skills/local-model-tooling/agents/openai.yaml"
 fi
 
-# Passwordless sudo exists only in the disposable live account. The installed
-# system uses the normal wheel/PolicyKit authentication boundary.
 install -d -o root -g root -m 0750 /etc/sudoers.d
 printf '%s ALL=(ALL:ALL) NOPASSWD: ALL\n' "$live_user" >/etc/sudoers.d/10-forge-live
 chmod 0440 /etc/sudoers.d/10-forge-live
@@ -53,6 +51,10 @@ for required in \
   "$repo/scripts/forge-clean-install" \
   "$repo/scripts/forge-live-guided-install" \
   "$repo/scripts/forge-live-setup-ui" \
+  "$repo/scripts/forge-service-manager" \
+  "$repo/scripts/forge-service-control" \
+  "$repo/scripts/forge-maintenance-center" \
+  "$repo/manifests/system-services.tsv" \
   "$repo/session/forge-live-root-shell.desktop" \
   "$repo/session/forge-live-installer.desktop" \
   "$repo/session/forge-live-clean-install.desktop" \
@@ -66,6 +68,10 @@ install -o root -g root -m 0755 "$repo/scripts/forge-live-select-installer" /usr
 install -o root -g root -m 0755 "$repo/scripts/forge-clean-install" /usr/local/bin/forge-clean-install
 install -o root -g root -m 0755 "$repo/scripts/forge-live-guided-install" /usr/local/bin/forge-live-guided-install
 install -o root -g root -m 0755 "$repo/scripts/forge-live-setup-ui" /usr/local/bin/forge-live-setup-ui
+install -o root -g root -m 0755 "$repo/scripts/forge-service-manager" /usr/local/bin/forge-service-manager
+install -o root -g root -m 0755 "$repo/scripts/forge-maintenance-center" /usr/local/bin/forge-maintenance-center
+install -o root -g root -m 0755 "$repo/scripts/forge-service-control" /usr/local/libexec/forge-service-control
+install -o root -g root -m 0644 "$repo/manifests/system-services.tsv" /usr/share/forge-os/system-services.tsv
 install -o root -g root -m 0644 "$repo/session/forge-live-root-shell.desktop" /usr/share/applications/forge-live-root-shell.desktop
 install -o root -g root -m 0644 "$repo/session/forge-live-installer.desktop" /usr/share/applications/forge-live-installer.desktop
 install -o root -g root -m 0644 "$repo/session/forge-live-clean-install.desktop" /usr/share/applications/forge-live-clean-install.desktop
@@ -73,14 +79,17 @@ install -o root -g root -m 0644 "$repo/session/forge-live-setup.desktop" /usr/sh
 
 for script in \
   /usr/local/libexec/forge-live-install \
+  /usr/local/libexec/forge-service-control \
   /usr/local/bin/forge-live-select-installer \
   /usr/local/bin/forge-clean-install \
   /usr/local/bin/forge-live-guided-install \
-  /usr/local/bin/forge-live-setup-ui; do
+  /usr/local/bin/forge-live-setup-ui \
+  /usr/local/bin/forge-service-manager \
+  /usr/local/bin/forge-maintenance-center; do
   bash -n "$script"
 done
 
 grep -Fq 'FORGE_LIVE_RECOVERY=1' /etc/greetd/config.toml || { echo 'Live recovery environment flag is missing from greetd.' >&2; exit 1; }
 grep -Fq '/usr/local/bin/forge-wayland-session' /etc/greetd/config.toml || { echo 'Live recovery greetd does not use the installed FORGE Wayland session.' >&2; exit 1; }
 
-echo 'FORGE live setup, guided clean installer, root recovery shell, bundle installer, and GUI session are ready.'
+echo 'FORGE live setup, guided clean installer, root recovery shell, Advanced maintenance, bundle installer, and GUI session are ready.'
