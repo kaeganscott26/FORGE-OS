@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "$EUID" -eq 0 ]] || { echo 'forge-clean-install must run as root from FORGE live media.' >&2; exit 77; }
+core=/usr/local/libexec/forge-clean-install-core
+repo=/opt/forge-os
+[[ -x "$core" ]] || { echo 'FORGE clean-install core is missing.' >&2; exit 69; }
+[[ -d "$repo" ]] || { echo 'FORGE-OS live source snapshot is missing.' >&2; exit 69; }
+
+target=/mnt
+args=("$@")
+for ((index=0; index<${#args[@]}; index++)); do
+  if [[ "${args[$index]}" == --target ]]; then
+    (( index + 1 < ${#args[@]} )) || { echo 'Missing --target value.' >&2; exit 64; }
+    target="${args[$((index + 1))]}"
+  fi
+done
+
+target="$(readlink -m -- "$target")"
+"$core" "$@"
+mountpoint -q "$target" || { echo "Installed target is no longer mounted: $target" >&2; exit 66; }
+
+install -d -m 0755 \
+  "$target/usr/local/bin" "$target/usr/local/libexec" "$target/usr/share/forge-os" \
+  "$target/etc/systemd/system" "$target/etc/forge-os" "$target/var/lib/forge-os"
+install -m 0755 "$repo/scripts/forge-service-manager" "$target/usr/local/bin/forge-service-manager"
+install -m 0755 "$repo/scripts/forge-maintenance-center" "$target/usr/local/bin/forge-maintenance-center"
+install -m 0755 "$repo/scripts/forge-service-control" "$target/usr/local/libexec/forge-service-control"
+install -m 0755 "$repo/scripts/forge-first-boot" "$target/usr/local/libexec/forge-first-boot"
+install -m 0644 "$repo/manifests/system-services.tsv" "$target/usr/share/forge-os/system-services.tsv"
+install -m 0644 "$repo/config/forge-first-boot.service" "$target/etc/systemd/system/forge-first-boot.service"
+
+if [[ ! -r "$target/etc/forge-os/features.conf" ]]; then
+  printf 'FORGE_FEATURES=%q\n' 'bluetooth,printing,local-ai,power-profiles,firmware' >"$target/etc/forge-os/features.conf"
+fi
+systemctl --root="$target" enable forge-first-boot.service >/dev/null
+
+# The normal user remains authenticated wheel/PolicyKit. No passwordless live
+# sudo rule is copied into the installed target.
+rm -f -- "$target/etc/sudoers.d/10-forge-live" "$target/etc/sudoers.d/20-forge-install-temp"
+
+echo 'FORGE-OS clean-install finalization complete: Advanced maintenance, service manifest, and first-boot verification are installed.'
