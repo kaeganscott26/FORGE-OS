@@ -5,8 +5,8 @@ Conflicts=getty@tty2.service
 
 [Service]
 ExecStart=/usr/bin/greetd --socket-path /run/forge-recovery-greetd.sock --config /etc/greetd/forge-recovery.toml
-Restart=always
+Restart=on-failure
 RestartSec=2
 
 [Install]
-WantedBy=graphical.target
+Alias=autovt@tty2.service
