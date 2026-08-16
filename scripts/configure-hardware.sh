@@ -7,12 +7,17 @@ source /etc/os-release
 manifest="$root/manifests/system-services.tsv"
 [[ -r "$manifest" ]] || { echo 'FORGE-OS service manifest is missing.' >&2; exit 1; }
 
-# Install the same manifest and allowlisted controllers used by the Advanced UI.
+# Install the same manifest and controllers used by the Advanced UI. Privileged
+# mutation helpers live in libexec; the user-facing entry points remain normal
+# unprivileged commands that cross PolicyKit only for the actual system change.
 sudo install -d -o root -g root -m 0755 /usr/share/forge-os /usr/local/bin /usr/local/libexec /etc/xdg/reflector
 sudo install -o root -g root -m 0644 "$manifest" /usr/share/forge-os/system-services.tsv
 sudo install -o root -g root -m 0755 "$root/scripts/forge-service-manager" /usr/local/bin/forge-service-manager
 sudo install -o root -g root -m 0755 "$root/scripts/forge-maintenance-center" /usr/local/bin/forge-maintenance-center
+sudo install -o root -g root -m 0755 "$root/scripts/forge-system-rollback" /usr/local/bin/forge-system-rollback
 sudo install -o root -g root -m 0755 "$root/scripts/forge-service-control" /usr/local/libexec/forge-service-control
+sudo install -o root -g root -m 0755 "$root/scripts/forge-system-checkpoint" /usr/local/libexec/forge-system-checkpoint
+sudo install -o root -g root -m 0755 "$root/scripts/forge-system-rollback-apply" /usr/local/libexec/forge-system-rollback-apply
 sudo install -o root -g root -m 0644 "$root/config/reflector.conf" /etc/xdg/reflector/reflector.conf
 
 # The normal installer configures greetd only after the canonical login files
@@ -65,4 +70,4 @@ if command -v powerprofilesctl >/dev/null 2>&1 && systemctl is-active --quiet po
   powerprofilesctl set performance || echo 'Warning: unable to select performance power profile.' >&2
 fi
 
-echo 'FORGE-OS services are enabled from the authoritative manifest; Advanced exposes services, root maintenance, verification, repair, update, and reversible rollback.'
+echo 'FORGE-OS services and full pre-update checkpoint recovery controls are installed from the authoritative policy.'
