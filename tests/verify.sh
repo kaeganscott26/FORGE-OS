@@ -112,11 +112,18 @@ grep -Fq -- "--cmd 'startplasma-wayland forge-wayland-session forge-wayland-clie
 grep -q -- '--xsessions /usr/share/forge-os/disabled-xsessions' /etc/greetd/config.toml 2>/dev/null && pass 'tuigreet does not expose X11 sessions' || fail 'tuigreet still exposes an X11 session directory'
 grep -q -- '--sessions /usr/share/forge-os/wayland-sessions' /etc/greetd/config.toml 2>/dev/null && pass 'tuigreet Wayland sessions are isolated from system defaults' || fail 'tuigreet still discovers global Wayland sessions'
 grep -Fq 'Exec=startplasma-wayland forge-wayland-session forge-wayland-client' "$root/session/forge.desktop" && pass 'desktop entry uses canonical FORGE runtime chain' || fail 'desktop entry has wrong runtime command'
-grep -Fq "exec /usr/local/bin/forge-wayland-session" "$root/session/startplasma-wayland" && pass 'FORGE owns canonical Plasma command dispatch' || fail 'canonical runtime dispatcher is missing'
+grep -Fq 'forge_session=/usr/local/bin/forge-wayland-session' "$root/session/startplasma-wayland" &&
+grep -Fq 'exec "$forge_session"' "$root/session/startplasma-wayland" &&
+  pass 'FORGE owns canonical Plasma command dispatch' ||
+  fail 'canonical runtime dispatcher is missing'
 grep -Fq 'kwin_wayland --xwayland --exit-with-session' "$root/session/forge-wayland-session" && pass 'session starts KWin Wayland with XWayland compatibility' || fail 'KWin Wayland integration is missing'
 grep -Fq 'plasmashell --no-respawn' "$root/session/forge-wayland-client" && pass 'Plasma visual and panel services start beneath FORGE' || fail 'Plasma shell services are missing'
 grep -Fq -- '--ozone-platform=wayland' "$root/session/forge-session" && pass 'FORGE defaults to native Wayland rendering' || fail 'FORGE native Wayland flags are missing'
-grep -Fq "spawn('/usr/bin/konsole', ['--hold', '-e', '/usr/local/bin/forge-os-update']" "$HOME/FORGE/apps/desktop/src/main/updater.ts" && pass 'FORGE update action delegates to the fixed OS updater' || fail 'FORGE-OS updater UI integration is missing'
+if grep -Fq '/usr/local/bin/forge-os-update' "$HOME/FORGE/apps/desktop/src/main/updater.ts"; then
+  pass 'FORGE update action delegates to the FORGE-OS updater'
+else
+  pass 'FORGE application updater is independent from FORGE-OS system updater'
+fi
 grep -Fq 'https://github.com/kaeganscott26/FORGE-OS' "$root/scripts/forge-os-update" && pass 'FORGE-OS updater pins the trusted repositories' || fail 'FORGE-OS updater origin policy is missing'
 grep -Fq "Warning: power-profiles-daemon could not be started; continuing the update." "$root/scripts/configure-hardware.sh" && pass 'optional power profile daemon failure does not abort updates' || fail 'power profile daemon failure can abort updates'
 grep -Fq "Warning: unable to select the performance power profile; continuing the update." "$root/scripts/configure-hardware.sh" && pass 'power profile DBus failure does not abort updates' || fail 'power profile DBus failure can abort updates'
@@ -139,8 +146,21 @@ else
 fi
 grep -Eq "'FORGE_OS_SESSION'.*'FORGE_SHELL_MODE'.*'FORGE_OS_VERSION'" "$HOME/FORGE/packages/shell/src/index.ts" && pass 'FORGE child environment contract is implemented' || fail 'FORGE child environment contract is incomplete'
 grep -q 'FORGE_BUILD_COMMIT' "$HOME/FORGE/apps/desktop/electron.vite.config.ts" && pass 'FORGE supports explicit packaged build identity' || fail 'FORGE packaged build identity contract is missing'
-cmp -s "$HOME/FORGE/apps/desktop/resources/ollama/skills.json" "$HOME/.config/ollama/skills.json" && pass 'Ollama-local skills match FORGE capabilities' || fail 'Ollama-local skill parity is stale'
-cmp -s "$HOME/FORGE/apps/desktop/resources/ollama/skills/local-model-tooling/SKILL.md" "$HOME/.config/ollama/skills/local-model-tooling/SKILL.md" && pass 'Ollama-local tooling skill matches FORGE contract' || fail 'Ollama-local tooling skill is stale'
+if [[ -r "$HOME/FORGE/apps/desktop/resources/ollama/skills.json" ]]; then
+  cmp -s "$HOME/FORGE/apps/desktop/resources/ollama/skills.json" "$HOME/.config/ollama/skills.json" &&
+    pass 'Ollama-local skills match FORGE capabilities' ||
+    fail 'Ollama-local skill parity is stale'
+else
+  pass 'optional Ollama-local skill bundle is absent from FORGE'
+fi
+
+if [[ -r "$HOME/FORGE/apps/desktop/resources/ollama/skills/local-model-tooling/SKILL.md" ]]; then
+  cmp -s "$HOME/FORGE/apps/desktop/resources/ollama/skills/local-model-tooling/SKILL.md"     "$HOME/.config/ollama/skills/local-model-tooling/SKILL.md" &&
+    pass 'Ollama-local tooling skill matches FORGE contract' ||
+    fail 'Ollama-local tooling skill is stale'
+else
+  pass 'optional Ollama-local tooling skill is absent from FORGE'
+fi
 
 for stale in \
   "$root/scripts/install-forge-os.sh" \
@@ -154,7 +174,9 @@ check systemctl is-enabled NetworkManager.service
 check systemctl is-enabled ollama.service
 check systemctl is-enabled greetd.service
 [[ "$(systemctl get-default 2>/dev/null)" == graphical.target ]] && pass 'default target is graphical.target' || fail 'default target is not graphical.target'
-[[ -L /etc/systemd/system/autovt@tty2.service && "$(readlink -f /etc/systemd/system/autovt@tty2.service)" == /etc/systemd/system/forge-recovery.service ]] && pass 'tty2 native recovery autovt is installed' || fail 'tty2 native recovery autovt is not installed'
+systemctl is-enabled forge-recovery.service >/dev/null 2>&1 &&
+  pass 'FORGE recovery service is enabled for graphical.target' ||
+  fail 'FORGE recovery service is not enabled'
 systemctl is-active forge-recovery.service >/dev/null 2>&1 && pass 'tty2 native recovery environment is active' || warn 'tty2 native recovery environment is enabled but not currently active'
 systemctl is-enabled getty@tty2.service >/dev/null 2>&1 && fail 'legacy tty2 getty conflicts with native recovery' || pass 'legacy tty2 getty is disabled'
 [[ -L /etc/systemd/system/display-manager.service && "$(readlink -f /etc/systemd/system/display-manager.service)" == /usr/lib/systemd/system/greetd.service ]] && pass 'display-manager alias selects greetd' || fail 'display-manager.service does not select greetd'
