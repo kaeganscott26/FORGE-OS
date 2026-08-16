@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "$EUID" -ne 0 ]] || { echo 'Run as the signed-in user; PolicyKit handles the privileged restore.' >&2; exit 77; }
+checkpoint=/var/lib/forge-os/checkpoints/previous
+[[ -r "$checkpoint/metadata.env" && -r "$checkpoint/SHA256SUMS" ]] || { echo 'No FORGE-OS pre-update system checkpoint is available.' >&2; exit 69; }
+
+created="$(sed -n 's/^FORGE_CHECKPOINT_CREATED=//p' "$checkpoint/metadata.env" | head -n1)"
+os_commit="$(sed -n 's/^FORGE_CHECKPOINT_OS_COMMIT=//p' "$checkpoint/metadata.env" | head -n1)"
+runtime="$(sed -n 's/^FORGE_CHECKPOINT_RUNTIME=//p' "$checkpoint/metadata.env" | head -n1)"
+printf 'FORGE-OS checkpoint: %s\nOS commit: %s\nRuntime: %s\n' "${created:-unknown}" "${os_commit:-unknown}" "${runtime:-unknown}"
+
+command -v pkexec >/dev/null 2>&1 || { echo 'PolicyKit is required for system rollback.' >&2; exit 77; }
+pkexec /usr/local/libexec/forge-system-rollback-apply
