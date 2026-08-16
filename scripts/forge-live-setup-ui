@@ -130,8 +130,8 @@ while true; do
     bundle)
       if [[ -x /usr/local/bin/forge-live-select-installer ]]; then /usr/local/bin/forge-live-select-installer >/dev/null 2>&1 & else kdialog --error 'Bundle installer is unavailable.'; fi
       ;;
-    restart) kdialog --warningyesno 'Restart this machine now?' && systemctl reboot ;;
-    shutdown) kdialog --warningyesno 'Shut down this machine now?' && systemctl poweroff ;;
+    restart) kdialog --warningyesno 'Restart this machine now?' && sudo /usr/bin/systemctl reboot --no-block ;;
+    shutdown) kdialog --warningyesno 'Shut down this machine now?' && sudo /usr/bin/systemctl poweroff --no-block ;;
     desktop|'') exit 0 ;;
     *) exit 0 ;;
   esac
