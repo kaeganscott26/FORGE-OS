@@ -12,7 +12,7 @@ case "$action" in
     ;;
   logout)
     if [[ -n "$session_id" ]]; then exec loginctl terminate-session "$session_id"; fi
-    exec systemctl --user exit
+    exec loginctl terminate-user "${USER:?USER is not set}"
     ;;
   restart|shutdown)
     system_action=reboot
