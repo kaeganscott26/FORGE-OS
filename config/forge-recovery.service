@@ -9,4 +9,4 @@ Restart=always
 RestartSec=2
 
 [Install]
-Alias=autovt@tty2.service
+WantedBy=graphical.target

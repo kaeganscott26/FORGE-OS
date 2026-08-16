@@ -192,7 +192,14 @@ sudo ln -sfn /usr/lib/systemd/system/greetd.service /etc/systemd/system/display-
 sudo systemctl daemon-reload
 sudo systemctl set-default graphical.target
 "$root/scripts/configure-user-desktop.sh"
-cmp -s "$forge_source/apps/desktop/resources/ollama/skills.json" "$target_home/.config/ollama/skills.json" || { echo 'Ollama-local skill parity installation failed.' >&2; exit 1; }
-cmp -s "$forge_source/apps/desktop/resources/ollama/skills/local-model-tooling/SKILL.md" "$target_home/.config/ollama/skills/local-model-tooling/SKILL.md" || { echo 'Ollama-local tooling skill installation failed.' >&2; exit 1; }
+if [[ -r "$forge_source/apps/desktop/resources/ollama/skills.json" ]]; then
+  cmp -s "$forge_source/apps/desktop/resources/ollama/skills.json" "$target_home/.config/ollama/skills.json" ||
+    { echo 'Ollama-local skill parity installation failed.' >&2; exit 1; }
+
+  if [[ -r "$forge_source/apps/desktop/resources/ollama/skills/local-model-tooling/SKILL.md" ]]; then
+    cmp -s "$forge_source/apps/desktop/resources/ollama/skills/local-model-tooling/SKILL.md"       "$target_home/.config/ollama/skills/local-model-tooling/SKILL.md" ||
+      { echo 'Ollama-local tooling skill installation failed.' >&2; exit 1; }
+  fi
+fi
 "$root/tests/verify.sh"
 echo 'FORGE-OS installation verified. Reboot manually when ready.'
