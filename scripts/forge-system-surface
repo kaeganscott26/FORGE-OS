@@ -39,6 +39,6 @@ case "$surface" in
     command -v konsole >/dev/null 2>&1 || { echo 'Konsole is unavailable.' >&2; exit 69; }
     exec konsole --hold -e bash -lc 'printf "FORGE Recovery\n\nCtrl+Alt+F2 opens the dedicated graphical recovery profile.\nRollback command: forge-runtime-rollback\nDisable graphical login: ~/FORGE-OS/scripts/disable-graphical-login.sh\n\n"; exec fish'
     ;;
-  advanced) exec systemsettings ;;
+  advanced) exec /usr/local/bin/forge-service-manager ;;
   *) echo 'Usage: forge-system-surface network|audio|display|power|applications|storage|appearance|updates|security|recovery|advanced' >&2; exit 64 ;;
 esac
