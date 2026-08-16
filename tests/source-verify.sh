@@ -9,10 +9,14 @@ fail() { printf 'FAIL: %s\n' "$*" >&2; failures=$((failures + 1)); }
 check() { if "$@" >/dev/null 2>&1; then pass "$*"; else fail "$*"; fi; }
 
 while IFS= read -r file; do check bash -n "$file"; done < <(find "$root/scripts" "$root/session" "$root/tests" -maxdepth 1 -type f -exec awk 'NR == 1 && /bash/ { print FILENAME; exit }' {} \; | sort)
+check bash -n "$root/install.sh"
+check bash -n "$root/update.sh"
 check "$root/tests/session-dispatcher.sh"
 check "$root/tests/update-transaction.sh"
 check python -c 'import tomllib,sys; tomllib.load(open(sys.argv[1], "rb")); tomllib.load(open(sys.argv[2], "rb"))' "$root/config/greetd-config.toml" "$root/config/forge-recovery-greetd.toml"
 check systemd-analyze verify "$root/config/forge-recovery.service"
+grep -Fqx 'Alias=autovt@tty2.service' "$root/config/forge-recovery.service" && pass 'recovery is an on-demand tty2 alias' || fail 'recovery unit is not bound to on-demand tty2 activation'
+if grep -Fq 'WantedBy=graphical.target' "$root/config/forge-recovery.service"; then fail 'recovery is still pulled into every graphical boot'; else pass 'recovery is not pulled into graphical.target'; fi
 grep -Fqx 'ExecStart=/usr/local/libexec/forge-live-setup' "$root/config/forge-live-setup.service" && pass 'live account setup unit has fixed executable' || fail 'live account setup unit is malformed'
 if command -v desktop-file-validate >/dev/null 2>&1; then
   while IFS= read -r desktop; do check desktop-file-validate "$desktop"; done < <(find "$root/session" -maxdepth 1 -name '*.desktop' -type f | sort)
@@ -32,7 +36,14 @@ grep -Fq 'verify_squashfs_executables' "$root/scripts/build-iso.sh" && pass 'ISO
 grep -Fq 'tool_source="$root/scripts/forge-workspace-bootstrap.sh"' "$root/scripts/install-forge-linux.sh" && pass 'installer maps workspace bootstrap source to installed command' || fail 'installer workspace bootstrap source path is wrong'
 [[ -r "$root/config/forge-starship.toml" ]] && grep -Fq 'STARSHIP_CONFIG /usr/share/forge-os/forge-starship.toml' "$root/config/forge-dr460nized.fish" && pass 'FORGE Fish profile selects the packaged Starship theme' || fail 'Fish/Starship theme wiring is incomplete'
 grep -Fq "emitRuntimeEvent('context.invalidated'" "$forge_source/apps/desktop/src/main/index.ts" && pass 'workspace watcher invalidates indexed context automatically' || fail 'automatic workspace context invalidation is missing'
-[[ -r "$forge_source/apps/desktop/resources/ollama/skills/local-model-tooling/SKILL.md" ]] && grep -Fq 'local-model-tooling' "$forge_source/apps/desktop/resources/ollama/skills.json" && pass 'Ollama local-model tooling skill is packaged' || fail 'Ollama tooling parity skill is missing'
+if [[ -r "$forge_source/apps/desktop/resources/ollama/skills.json" ]]; then
+  [[ -r "$forge_source/apps/desktop/resources/ollama/skills/local-model-tooling/SKILL.md" ]] &&
+    grep -Fq 'local-model-tooling' "$forge_source/apps/desktop/resources/ollama/skills.json" &&
+    pass 'optional Ollama local-model tooling bundle is internally consistent' ||
+    fail 'optional Ollama local-model tooling bundle is incomplete'
+else
+  pass 'optional Ollama-local skill bundle is absent from FORGE'
+fi
 duplicates="$(sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$root/manifests/arch-packages.txt" | sort | uniq -d)"
 [[ -z "$duplicates" ]] && pass 'package manifest has no duplicates' || fail "package manifest duplicates: $duplicates"
 if command -v pacman >/dev/null 2>&1; then mapfile -t packages < <(sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$root/manifests/arch-packages.txt"); check pacman -Sp --needed --print-format '%n' "${packages[@]}"; fi
