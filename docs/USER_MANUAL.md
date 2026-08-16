@@ -2,41 +2,55 @@
 
 ## Login
 
-Authenticate at the normal FORGE login. The production greetd profile uses the restored pre-Matrix behavior and hands directly to:
+The normal FORGE login uses the maintained rolling tuigreet fork. **Matrix is the default background** and **F4** opens the live background selector, including the DOOM fire effect.
+
+The authenticated command is:
 
 ```text
 /usr/local/bin/forge-wayland-session
 ```
 
-The installer copies that command from the repository session implementation. Persistent Matrix/background configuration is not part of the normal boot path. The FORGE desktop entry remains available as a compatibility/session-selector profile and reaches the same Wayland session.
+F2 starts with that path automatically, and the visible F3 FORGE session entry points to the same path. Session remembering is intentionally disabled so an old experimental command cannot replace it on a later boot.
 
-The login command is validated against the actual `greetd-tuigreet` package installed by the Arch manifest. FORGE-OS does not add undocumented greeter options to the boot path.
+## Desktop top bar
 
-## Desktop
+FORGE-OS reserves a separate strip above the ordinary FORGE application header. Releases, GitHub, Settings, workspace controls, and other normal FORGE controls remain visible underneath instead of being covered.
 
-Use the top bar for Applications, System, Workspace Intelligence, clock, and Session. System contains Network, Audio, Display, Power, Applications, Updates, Security, Recovery, and Advanced. The right rail remains AI chat. Applications installed with a desktop entry appear automatically after discovery refresh.
+Applications and System remain on the left. The quick system strip contains launchable controls for:
 
-FORGE Explorer is the file manager. Open a folder/workspace, then use the tree/context menu or Ctrl/Cmd+C, Ctrl/Cmd+V, Ctrl/Cmd+N, Ctrl/Cmd+Shift+N, F2, and Delete. Text and metadata open in the editor; binaries/packages/executables show inspection details. Run and Run as administrator are separate confirmed actions.
+**Network · Audio · Display · Power · Applications · Storage · Appearance · Updates · Security · Recovery · Advanced**
+
+The strip scales button text and scrolls horizontally on narrower displays instead of overlapping labels or modules. Time and Session remain on the right.
+
+The Session menu uses detached operating-system helpers for Lock, Log out, Restart, and Shut down. That means the requested action can terminate FORGE or the login session without breaking its own Electron IPC response first.
+
+## Explorer and applications
+
+FORGE Explorer is the default file workflow. Applications installed with desktop entries are discovered automatically. The Applications control launches normal installed applications; the top-bar system controls use fixed internal launchers for KDE/FORGE settings surfaces.
 
 ## Install and update
 
-Normal repository maintenance uses two commands only:
+Normal maintenance uses:
 
 ```bash
 cd ~/FORGE-OS
 ./install.sh
 ```
 
-for an install/repair of the current checkout, and:
+or:
 
 ```bash
 cd ~/FORGE-OS
 ./update.sh
 ```
 
-for a trusted fast-forward update of both FORGE and FORGE-OS followed by installation. The bootstrap/build/runtime scripts remain part of the repository because `install-forge-linux.sh` executes them as internal stages; they are not separate commands you need to run during a normal install or update.
+The bootstrap/build/runtime scripts remain in the repository because the installer executes them as internal stages. A normal install provisions packages, repositories, mirrors, services, FORGE runtime files, Wayland/greetd integration, recovery, and verification.
 
-## Packages
+Required system services are enabled persistently. PipeWire, PipeWire Pulse, and WirePlumber are enabled globally for user sessions; network, Bluetooth, printing, time, Ollama, trim, and mirror-refresh services/timers are enabled at the system level as appropriate.
+
+## Packages and repositories
+
+Inside FORGE's Fish shell, interactive `pacman` commands route through `forge-install-pkg`. GUI program installation routes through `forge-install-program`, then `forge-app-install`, then `forge-install-pkg`.
 
 ```bash
 forge-app-install -S steam
@@ -47,7 +61,11 @@ forge-install-pkg -Si package
 forge-install-pkg -Rns package
 ```
 
-Initialize compatibility backends once:
+The bootstrap enables Arch `multilib`, Chaotic-AUR, and `yay`. The rolling `greetd-tuigreet-fork-git` package is used while Matrix/F4/DOOM support is ahead of the latest tagged binary release.
+
+Official Arch mirrors start from the tracked HTTPS baseline and are then ranked by Reflector. `reflector.timer` keeps the Arch mirror list refreshed after reboot.
+
+Compatibility package backends remain isolated:
 
 ```bash
 forge-workspace-bootstrap apt
@@ -57,22 +75,29 @@ forge-install-pkg --backend kali -S tool-name
 forge-install-pkg --backend nix -S package-name
 ```
 
-Refresh Arch mirrors explicitly with `forge-refresh-mirrors --country 'United States'` or install the tracked list with `forge-refresh-mirrors --tracked`.
-
 ## Updates
 
-The native Updates control opens the installed `forge-os-update` command. It refuses dirty, divergent, non-main, or untrusted source trees; otherwise it fast-forwards and invokes the installer. It does not reboot. Standalone FORGE packages use their normal Electron update channel.
+The top-bar Updates control opens the installed `forge-os-update` workflow in Konsole. It refuses unsafe source state and never reboots automatically.
 
 ## Installed-system recovery
 
-Ctrl+Alt+F2 requests native FORGE Recovery on demand. If that graphical path is itself unhealthy, use another text TTY such as Ctrl+Alt+F3 and run `~/FORGE-OS/scripts/disable-graphical-login.sh` to restore console-first boot without deleting runtimes or user data.
+Ctrl+Alt+F2 requests FORGE Recovery on demand. If the graphical stack itself is unhealthy, use another text TTY such as Ctrl+Alt+F3 and run:
+
+```bash
+~/FORGE-OS/scripts/disable-graphical-login.sh
+```
+
+This restores console-first boot without deleting runtimes or user data.
 
 ## Live ISO recovery
 
-The FORGE-OS ISO automatically enters **FORGE Live Recovery** through the same Wayland runtime with live-only recovery flags. The recovery screen provides:
+The FORGE-OS ISO enters **FORGE Live Recovery** using the same Wayland runtime with live-only recovery flags. The live account password is locked; greetd starts its initial session directly, and passwordless sudo exists only inside that ephemeral live environment.
 
-- **Open sudo root shell** — opens Konsole as an explicitly privileged shell for the ephemeral live environment.
-- **Load / install ISO or ZIP** — selects a local `.iso` or `.zip`, validates/stages it, and runs only a recognized installer entry point after a second `INSTALL` confirmation.
-- **Restart** and **Shut down** actions.
+The recovery screen provides:
 
-Passwordless sudo is granted only to the ephemeral `forge` live account. If `forge-live-setup` runs on an installed system, it exits without creating that account, sudo rule, or live greeter profile.
+- **Open sudo root shell**
+- **Load / install ISO or ZIP**
+- **Restart**
+- **Shut down**
+
+ISO files are mounted read-only. ZIP paths are validated before extraction. Automatic bundle execution is limited to recognized installer entry points and requires typing `INSTALL` first.
