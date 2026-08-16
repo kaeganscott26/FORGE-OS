@@ -18,12 +18,12 @@ for config in "$root/config/greetd-config.toml" "$root/config/forge-recovery-gre
   fi
 done
 
-grep -Fq "--cmd 'startplasma-wayland forge-wayland-session forge-wayland-client'" "$root/config/greetd-config.toml" || {
+grep -Fq -- "--cmd 'startplasma-wayland forge-wayland-session forge-wayland-client'" "$root/config/greetd-config.toml" || {
   echo 'FAIL: production greeter lost the canonical FORGE Wayland chain.' >&2
   exit 1
 }
 
-grep -Fq "--cmd '/usr/local/bin/forge-recovery-session'" "$root/config/forge-recovery-greetd.toml" || {
+grep -Fq -- "--cmd '/usr/local/bin/forge-recovery-session'" "$root/config/forge-recovery-greetd.toml" || {
   echo 'FAIL: recovery greeter lost the recovery session command.' >&2
   exit 1
 }
