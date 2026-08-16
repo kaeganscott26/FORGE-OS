@@ -17,18 +17,18 @@ jobs:
     steps:
       - name: Install validation dependencies
         run: |
-          pacman -Syu --noconfirm git nodejs-lts-jod npm python systemd desktop-file-utils pacman-contrib greetd sudo
+          pacman -Syu --noconfirm git nodejs-lts-jod npm python rust systemd desktop-file-utils pacman-contrib greetd sudo
           sed -i '/^#\[multilib\]$/,/^#Include = \/etc\/pacman.d\/mirrorlist$/ { s/^#\[multilib\]$/[multilib]/; s|^#Include = /etc/pacman.d/mirrorlist$|Include = /etc/pacman.d/mirrorlist|; }' /etc/pacman.conf
           pacman -Sy --noconfirm
-          useradd -m -s /bin/bash aurbuilder
-          printf 'aurbuilder ALL=(ALL:ALL) NOPASSWD: ALL\n' >/etc/sudoers.d/aurbuilder
-          chmod 0440 /etc/sudoers.d/aurbuilder
-      - name: Install maintained tuigreet fork
+      - name: Build rolling maintained tuigreet fork
         run: |
-          runuser -u aurbuilder -- bash -lc 'git clone --depth 1 https://aur.archlinux.org/greetd-tuigreet-fork-bin.git /tmp/greetd-tuigreet-fork-bin && cd /tmp/greetd-tuigreet-fork-bin && makepkg -si --needed --noconfirm'
-          ln -sfn /usr/bin/tuigreet /usr/local/bin/tuigreet
-          /usr/local/bin/tuigreet --help | grep -F -- '--background'
-          /usr/local/bin/tuigreet --help | grep -F -- '--kb-background'
+          git clone --depth 1 https://github.com/NotAShelf/tuigreet.git /tmp/tuigreet
+          cargo build --locked --release --manifest-path /tmp/tuigreet/Cargo.toml -p tuigreet
+          install -Dm755 /tmp/tuigreet/target/release/tuigreet /usr/local/bin/tuigreet
+          /usr/local/bin/tuigreet --help 2>&1 | grep -F -- '--background'
+          /usr/local/bin/tuigreet --help 2>&1 | grep -F -- '--kb-background'
+          /usr/local/bin/tuigreet --help 2>&1 | grep -F -- '--doom-height'
+          /usr/local/bin/tuigreet --help 2>&1 | grep -F -- '--matrix-length'
       - uses: actions/checkout@v7
         with:
           path: FORGE-OS
@@ -39,6 +39,6 @@ jobs:
       - name: Install locked FORGE dependencies
         run: npm --prefix FORGE ci
       - name: Verify greeter package contract
-        run: bash ./FORGE-OS/tests/greeter-contract.sh
+        run: TUIGREET_BIN=/usr/local/bin/tuigreet bash ./FORGE-OS/tests/greeter-contract.sh
       - name: Verify complete source contract
-        run: FORGE_SOURCE="$GITHUB_WORKSPACE/FORGE" ./FORGE-OS/tests/source-verify.sh
+        run: FORGE_SOURCE="$GITHUB_WORKSPACE/FORGE" TUIGREET_BIN=/usr/local/bin/tuigreet ./FORGE-OS/tests/source-verify.sh
