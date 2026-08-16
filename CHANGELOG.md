@@ -4,11 +4,12 @@
 
 ### Login and maintenance hardening
 
-- Fixed the greetd boot loop caused by configuring Matrix/background, battery, custom-title, and background-key options from an enhanced tuigreet fork while the authoritative Arch manifest installs stock `greetd-tuigreet`.
-- Quoted the semicolon-delimited tuigreet theme as one command argument in normal and recovery greeter configuration.
-- Added `tests/greeter-contract.sh` and CI coverage so fork-only greeter options cannot silently re-enter boot-critical configuration while the stock Arch package remains authoritative.
-- Changed graphical recovery from an always-enabled `graphical.target` service to the intended on-demand `autovt@tty2.service` alias, aligning physical installs with the ISO/session documentation.
-- Added executable top-level `./install.sh` and `./update.sh` entry points. Normal users no longer need to choose among bootstrap/build/runtime helper scripts.
+- Fixed the greetd/tuigreet restart loop caused by an invalid boot-critical command line: removed unsupported `--battery` and `--custom-title` options, removed the mutually-exclusive `--greeting` from the production profile that already uses `--issue`, and quoted the semicolon-delimited theme as one argument.
+- Preserved the persistent Matrix background and F4 background selector supported by the current Arch `greetd-tuigreet` package instead of treating the visual effect itself as the failure.
+- Fixed the recovery greeter's own mutually-exclusive `--issue` + `--greeting` combination and quoted its theme argument.
+- Added `tests/greeter-contract.sh` and CI coverage that install Arch `greetd-tuigreet`, parse both configured command lines, reject mutually-exclusive issue/greeting usage, and verify every configured long option against the packaged binary's `--help` contract.
+- Changed graphical recovery from an always-enabled `graphical.target` service to the intended on-demand `autovt@tty2.service` alias, aligning physical installs with the ISO/session architecture and avoiding a second recovery greetd during every normal graphical boot.
+- Added executable top-level `./install.sh` and `./update.sh` entry points. Normal users no longer need to choose among bootstrap/build/runtime helper scripts; the wrappers also remove the obsolete always-on recovery target link left by affected installs.
 
 ## 0.2.2 — 2026-08-16
 
@@ -17,7 +18,7 @@
 - Made `startplasma-wayland forge-wayland-session forge-wayland-client` the exact canonical greetd/F2/desktop command without changing the three installed command paths.
 - Added the narrow FORGE `startplasma-wayland` dispatcher and isolated tests; non-FORGE calls retain vendor Plasma behavior.
 - Enforced a one-KWin FORGE-owned Wayland process tree, imported D-Bus/systemd session state, and started KRunner/KDE/PolicyKit/Plasma services beneath FORGE.
-- Added the experimental enhanced-tuigreet Matrix login design, F2 command, F3 sessions, F4 animation choices, F5 power, a code-native FORGE splash, and KWin focus/placement/blur/translucency/animation polish. The animation flags were later removed from the boot-critical stock-tuigreet configuration until that fork is deliberately packaged.
+- Added persistent Matrix login animation, F2 command, F3 sessions, F4 animation choices, F5 power, a code-native FORGE splash, and KWin focus/placement/blur/translucency/animation polish. The initial greeter command later required parser/CLI hardening recorded above.
 - Made Fish the configured shell and added a Dr460nized-inspired Fish/Starship palette.
 
 ### Runtime identity, update, and recovery
