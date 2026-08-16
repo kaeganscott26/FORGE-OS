@@ -30,7 +30,14 @@ command -v mkarchiso >/dev/null || { echo 'Install archiso first.' >&2; exit 1; 
 [[ "$(sha256sum "$runtime/resources/app.asar" | awk '{print $1}')" == "$FORGE_APP_ASAR_SHA256" ]] || { echo 'Packaged app.asar hash mismatch.' >&2; exit 1; }
 [[ "$(payload_hash "$runtime")" == "$FORGE_PAYLOAD_SHA256" ]] || { echo 'Packaged runtime payload hash mismatch.' >&2; exit 1; }
 
-rm -rf -- "$profile" "$work"
+[[ "$profile" == "$root/build/archiso-profile" && "$work" == "$root/build/archiso-work" ]] || {
+  echo 'Refusing to clean unexpected archiso build paths.' >&2
+  exit 1
+}
+# mkarchiso deliberately creates root-owned profile/work content. Constrain the
+# privileged cleanup to the two resolved repository build directories so an
+# interrupted or repeated build remains safe and reproducible.
+sudo rm -rf -- "$profile" "$work"
 cp -a /usr/share/archiso/configs/releng "$profile"
 sed -i '/^#\[multilib\]$/,/^#Include = \/etc\/pacman.d\/mirrorlist$/ {
   s/^#\[multilib\]$/[multilib]/
