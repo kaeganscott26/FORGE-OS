@@ -7,24 +7,23 @@ complete="$state_dir/first-boot-complete"
 install -d -m 0755 "$state_dir"
 [[ ! -e "$complete" ]] || exit 0
 
+features='bluetooth,printing,local-ai,power-profiles,firmware'
+if [[ -r /etc/forge-os/features.conf ]]; then
+  # shellcheck disable=SC1091
+  source /etc/forge-os/features.conf
+  features="${FORGE_FEATURES:-$features}"
+fi
+feature_enabled() { [[ ",${features}," == *",$1,"* ]]; }
+
 required_units=(
   NetworkManager.service
   firewalld.service
   irqbalance.service
   systemd-timesyncd.service
 )
-optional_units=(
-  bluetooth.service
-  cups.service
-  ollama.service
-  power-profiles-daemon.service
-)
 required_timers=(
   fstrim.timer
   reflector.timer
-)
-optional_timers=(
-  fwupd-refresh.timer
 )
 user_units=(
   pipewire.socket
@@ -38,39 +37,47 @@ for unit in "${required_units[@]}"; do
   systemctl start "$unit"
 done
 
-for unit in "${optional_units[@]}"; do
-  if systemctl cat "$unit" >/dev/null 2>&1; then
-    systemctl enable "$unit" >/dev/null
-    systemctl start "$unit" || echo "Optional service did not start during first boot: $unit" >&2
-  fi
-done
-
 for timer in "${required_timers[@]}"; do
   systemctl cat "$timer" >/dev/null
   systemctl enable "$timer" >/dev/null
   systemctl start "$timer"
 done
 
-for timer in "${optional_timers[@]}"; do
-  if systemctl cat "$timer" >/dev/null 2>&1; then
-    systemctl enable "$timer" >/dev/null
-    systemctl start "$timer" || echo "Optional timer did not start during first boot: $timer" >&2
+optional_pairs=(
+  'bluetooth|bluetooth.service|system'
+  'printing|cups.service|system'
+  'local-ai|ollama.service|system'
+  'power-profiles|power-profiles-daemon.service|system'
+  'firmware|fwupd-refresh.timer|timer'
+)
+for pair in "${optional_pairs[@]}"; do
+  IFS='|' read -r feature unit kind <<<"$pair"
+  if ! systemctl cat "$unit" >/dev/null 2>&1; then
+    echo "Optional FORGE-OS component is not installed: $unit" >&2
+    continue
+  fi
+  if feature_enabled "$feature"; then
+    systemctl enable "$unit" >/dev/null
+    systemctl start "$unit" || echo "Optional component did not start during first boot: $unit" >&2
+  else
+    systemctl disable "$unit" >/dev/null 2>&1 || true
+    systemctl stop "$unit" >/dev/null 2>&1 || true
   fi
 done
 
 for unit in "${user_units[@]}"; do
   systemctl --global enable "$unit" >/dev/null
- done
+done
 
-# greetd is the canonical installed-system entry point. The setup service runs
-# before it, so a successful first boot cannot race a partially configured UI.
+# greetd is the canonical installed-system entry point. This oneshot executes
+# before greetd and is considered complete only after every required service,
+# timer, and global user-audio unit has been configured successfully.
 systemctl enable greetd.service >/dev/null
 ln -sfn /usr/lib/systemd/system/greetd.service /etc/systemd/system/display-manager.service
 ln -sfn /usr/lib/systemd/system/graphical.target /etc/systemd/system/default.target
 
-# Mark completion only after every required service/timer has started.
 touch "$complete"
 systemctl disable forge-first-boot.service >/dev/null 2>&1 || true
 systemctl daemon-reload
 
-echo 'FORGE-OS first-boot service activation completed.'
+echo "FORGE-OS first-boot service activation completed. Features: ${features:-required-services-only}"
