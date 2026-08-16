@@ -16,7 +16,19 @@ jobs:
       image: archlinux:base-devel
     steps:
       - name: Install validation dependencies
-        run: pacman -Syu --noconfirm git nodejs-lts-jod npm python systemd desktop-file-utils pacman-contrib greetd-tuigreet
+        run: |
+          pacman -Syu --noconfirm git nodejs-lts-jod npm python systemd desktop-file-utils pacman-contrib greetd sudo
+          sed -i '/^#\[multilib\]$/,/^#Include = \/etc\/pacman.d\/mirrorlist$/ { s/^#\[multilib\]$/[multilib]/; s|^#Include = /etc/pacman.d/mirrorlist$|Include = /etc/pacman.d/mirrorlist|; }' /etc/pacman.conf
+          pacman -Sy --noconfirm
+          useradd -m -s /bin/bash aurbuilder
+          printf 'aurbuilder ALL=(ALL:ALL) NOPASSWD: ALL\n' >/etc/sudoers.d/aurbuilder
+          chmod 0440 /etc/sudoers.d/aurbuilder
+      - name: Install maintained tuigreet fork
+        run: |
+          runuser -u aurbuilder -- bash -lc 'git clone --depth 1 https://aur.archlinux.org/greetd-tuigreet-fork-bin.git /tmp/greetd-tuigreet-fork-bin && cd /tmp/greetd-tuigreet-fork-bin && makepkg -si --needed --noconfirm'
+          ln -sfn /usr/bin/tuigreet /usr/local/bin/tuigreet
+          /usr/local/bin/tuigreet --help | grep -F -- '--background'
+          /usr/local/bin/tuigreet --help | grep -F -- '--kb-background'
       - uses: actions/checkout@v7
         with:
           path: FORGE-OS
