@@ -7,7 +7,7 @@ archiso
 git
 npm
 python
-nodejs
+nodejs-lts-jod
 fish
 starship
 reflector
