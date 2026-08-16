@@ -13,5 +13,5 @@ asar="$target/resources/app.asar"
 [[ "$(sha256sum "$asar" | awk '{print $1}')" == "${FORGE_APP_ASAR_SHA256:-}" ]] || { echo 'Rollback app.asar integrity check failed.' >&2; exit 74; }
 pkexec /usr/local/libexec/forge-runtime-rollback-activate "$target" "$current"
 echo "Activated last-known-good runtime: $(basename "$target")"
-echo "Removed superseded runtime: $(basename "$current")"
-echo 'Log out and sign in again to enter it.'
+echo "Retained previous current runtime as alternate rollback target: $(basename "$current")"
+echo 'Log out and sign in again to enter it. Running rollback again switches back after integrity verification.'
