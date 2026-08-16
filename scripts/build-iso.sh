@@ -68,18 +68,21 @@ command -v mkarchiso >/dev/null || { echo 'Install archiso first.' >&2; exit 1; 
 [[ "$(payload_hash "$runtime")" == "$FORGE_PAYLOAD_SHA256" ]] || { echo 'Packaged runtime payload hash mismatch.' >&2; exit 1; }
 
 tuigreet_source="$(readlink -f /usr/local/bin/tuigreet 2>/dev/null || true)"
-[[ -x "$tuigreet_source" ]] || { echo 'Run scripts/bootstrap-forgeos.sh first so the maintained tuigreet fork is installed.' >&2; exit 1; }
+[[ -x "$tuigreet_source" ]] || { echo 'Run scripts/bootstrap-forgeos.sh first so canonical tuigreet 0.11.0 is installed.' >&2; exit 1; }
+[[ -r /usr/share/forge-os/tuigreet-source.env ]] || { echo 'Canonical tuigreet source provenance is missing.' >&2; exit 1; }
+grep -Fqx 'repository=https://github.com/tuigreet/tuigreet.git' /usr/share/forge-os/tuigreet-source.env || { echo 'Unexpected tuigreet repository provenance.' >&2; exit 1; }
+grep -Fqx 'version=0.11.0' /usr/share/forge-os/tuigreet-source.env || { echo 'Unexpected tuigreet version provenance.' >&2; exit 1; }
+grep -Fqx 'commit=6fb15fffb794c6bd357164347d8b6d9e0aa92bbc' /usr/share/forge-os/tuigreet-source.env || { echo 'Unexpected tuigreet commit provenance.' >&2; exit 1; }
+/usr/local/bin/tuigreet --version 2>&1 | grep -Fq '0.11.0' || { echo 'ISO source tuigreet is not version 0.11.0.' >&2; exit 1; }
 help_text="$("$tuigreet_source" --help 2>&1 || true)"
 for option in --background --kb-background --doom-height --matrix-length; do
-  grep -Fq -- "$option" <<<"$help_text" || { echo "ISO source tuigreet lacks required fork option: $option" >&2; exit 1; }
+  grep -Fq -- "$option" <<<"$help_text" || { echo "ISO source tuigreet lacks required option: $option" >&2; exit 1; }
 done
 
 [[ "$profile" == "$root/build/archiso-profile" && "$work" == "$root/build/archiso-work" ]] || { echo 'Refusing unexpected archiso build paths.' >&2; exit 1; }
 sudo rm -rf -- "$profile" "$work"
 cp -a /usr/share/archiso/configs/releng "$profile"
 
-# Enable official multilib and inject the tracked HTTPS mirror baseline directly
-# into the ISO build configuration so the build never depends on host mirrors.
 sed -i '/^#\[multilib\]$/,/^#Include = \/etc\/pacman.d\/mirrorlist$/ { s/^#\[multilib\]$/[multilib]/; s|^#Include = /etc/pacman.d/mirrorlist$|Include = /etc/pacman.d/mirrorlist|; }' "$profile/pacman.conf"
 pacman_config_staged="$profile/pacman.conf.staged"
 awk -v mirror_file="$root/config/mirrorlist" '
@@ -110,6 +113,7 @@ cp -a "$runtime/." "$release/"
 ln -s "releases/$FORGE_RUNTIME_ID" "$profile/airootfs/opt/forge/current"
 install -m 4755 "$runtime/chrome-sandbox" "$release/chrome-sandbox"
 install -m 0755 "$tuigreet_source" "$profile/airootfs/usr/local/bin/tuigreet"
+install -m 0644 /usr/share/forge-os/tuigreet-source.env "$profile/airootfs/usr/share/forge-os/tuigreet-source.env"
 
 install -m 0755 "$root/session/forge-wayland-session" "$profile/airootfs/usr/local/bin/forge-wayland-session"
 install -m 0755 "$root/session/startplasma-wayland" "$profile/airootfs/usr/local/bin/startplasma-wayland"
@@ -135,15 +139,12 @@ install -m 0644 "$root/config/forge-portals.conf" "$profile/airootfs/usr/share/x
 for desktop in forge-app-launcher.desktop forge-explorer.desktop forge-system-settings.desktop forge-workspace-runner.desktop forge-install-program.desktop forge-panel-manager.desktop forge-live-root-shell.desktop forge-live-installer.desktop; do
   install -m 0644 "$root/session/$desktop" "$profile/airootfs/usr/share/applications/$desktop"
 done
-for desktop in "$root"/session/forge-internal-*.desktop; do
-  install -m 0644 "$desktop" "$profile/airootfs/usr/share/applications/$(basename "$desktop")"
-done
+for desktop in "$root"/session/forge-internal-*.desktop; do install -m 0644 "$desktop" "$profile/airootfs/usr/share/applications/$(basename "$desktop")"; done
 install -m 0644 "$root/session/forge.desktop" "$profile/airootfs/usr/share/forge-os/wayland-sessions/forge.desktop"
 install -m 0644 "$root/config/greetd-config.toml" "$profile/airootfs/etc/greetd/config.toml"
 sed 's/@USER@/forge/g' "$root/config/forge-recovery-greetd.toml" >"$profile/airootfs/etc/greetd/forge-recovery.toml"
 install -m 0644 "$root/config/forge-recovery.service" "$profile/airootfs/etc/systemd/system/forge-recovery.service"
 install -m 0644 "$root/config/forge-live-setup.service" "$profile/airootfs/etc/systemd/system/forge-live-setup.service"
-install -d "$profile/airootfs/usr/share/forge-os"
 install -m 0644 "$root/config/forge-dr460nized.fish" "$profile/airootfs/usr/share/forge-os/forge-dr460nized.fish"
 install -m 0644 "$root/config/forge-starship.toml" "$profile/airootfs/usr/share/forge-os/forge-starship.toml"
 install -m 0644 "$root/config/mirrorlist" "$profile/airootfs/usr/share/forge-os/mirrorlist"
@@ -163,12 +164,10 @@ ln -sf /usr/lib/systemd/system/greetd.service "$profile/airootfs/etc/systemd/sys
 ln -sf /etc/systemd/system/forge-recovery.service "$profile/airootfs/etc/systemd/system/autovt@tty2.service"
 ln -sf /usr/lib/systemd/system/greetd.service "$profile/airootfs/etc/systemd/system/display-manager.service"
 ln -sf /etc/systemd/system/forge-live-setup.service "$profile/airootfs/etc/systemd/system/multi-user.target.wants/forge-live-setup.service"
-for service in NetworkManager.service bluetooth.service irqbalance.service systemd-timesyncd.service cups.service power-profiles-daemon.service ollama.service; do
+for service in NetworkManager.service bluetooth.service firewalld.service irqbalance.service systemd-timesyncd.service cups.service power-profiles-daemon.service ollama.service; do
   ln -sf "/usr/lib/systemd/system/$service" "$profile/airootfs/etc/systemd/system/multi-user.target.wants/$service"
 done
-for timer in fstrim.timer reflector.timer fwupd-refresh.timer; do
-  ln -sf "/usr/lib/systemd/system/$timer" "$profile/airootfs/etc/systemd/system/timers.target.wants/$timer"
-done
+for timer in fstrim.timer reflector.timer fwupd-refresh.timer; do ln -sf "/usr/lib/systemd/system/$timer" "$profile/airootfs/etc/systemd/system/timers.target.wants/$timer"; done
 ln -sf /usr/lib/systemd/system/graphical.target "$profile/airootfs/etc/systemd/system/default.target"
 
 sudo chown root:root "$release/chrome-sandbox"
@@ -177,4 +176,4 @@ mkdir -p "$out"
 sudo mkarchiso -v -w "$work" -o "$out" "$profile"
 verify_squashfs_executables
 sha256sum "$out"/*.iso | tee "$out/SHA256SUMS"
-echo "Built FORGE-OS ISO from FORGE $FORGE_SOURCE_COMMIT runtime $FORGE_RUNTIME_ID with verified Matrix-capable tuigreet."
+echo "Built FORGE-OS ISO from FORGE $FORGE_SOURCE_COMMIT runtime $FORGE_RUNTIME_ID with canonical tuigreet 0.11.0."
