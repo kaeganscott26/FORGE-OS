@@ -2,9 +2,9 @@
 
 ## Login
 
-Authenticate at the FORGE login. The default authenticated command is `startplasma-wayland forge-wayland-session forge-wayland-client`. F2 edits a full command for one login, F3 shows sessions, and F5 shows power actions.
+Authenticate at the FORGE login. The default authenticated command is `startplasma-wayland forge-wayland-session forge-wayland-client`. F2 edits a full command for one login, F3 shows sessions, F4 changes the supported background animation, and F5 shows power actions. Matrix is the persistent default background in the production profile.
 
-The production greeter intentionally uses the stock `greetd-tuigreet` feature set declared by the Arch package manifest. Experimental Matrix/DOOM backgrounds are not boot-critical features unless FORGE-OS deliberately packages and validates an enhanced greeter implementation.
+The login command is validated against the `greetd-tuigreet` package installed by the Arch manifest. FORGE-OS does not add undocumented greeter options to the boot path.
 
 ## Desktop
 
@@ -59,4 +59,4 @@ The native Updates control opens the installed `forge-os-update` command. It ref
 
 ## Recovery
 
-Ctrl+Alt+F2 requests the native FORGE Recovery profile on demand. If that graphical path is itself unhealthy, use another text TTY such as Ctrl+Alt+F3 and run `~/FORGE-OS/scripts/disable-graphical-login.sh` to restore console-first boot without deleting runtimes or user data.
+Ctrl+Alt+F2 requests native FORGE Recovery on demand. If that graphical path is itself unhealthy, use another text TTY such as Ctrl+Alt+F3 and run `~/FORGE-OS/scripts/disable-graphical-login.sh` to restore console-first boot without deleting runtimes or user data.
