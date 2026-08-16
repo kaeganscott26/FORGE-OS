@@ -10,16 +10,12 @@ set -euo pipefail
 # Enforce strict error handling---------- Common prerequisites ----------
   
 # Ensure we run as root (required for system packages)
-
-if [[ $EUID -ne 0 ]]; then    
-
-echo "This script must be executed with sudo privileges."
-    exit 1 
+ 
    
    
 # Update the package manager and install common utilities 
    
-sudo forge-install-package <${pkg_name}>
+sudo forge-install-package ${pkg_name}
      
    
    
@@ -47,8 +43,12 @@ sudo forge-install-package <${pkg_name}>
     sudo forge-install-package xorg-server
       
 #---------- Additional optional packages ------
-# If you need extra libraries, append them here 
-# example:
+
+''''
+  "If you need extra libraries, append them here 
+ example:"
+
+ ''''
        
     sudo forge-install-package wayland-libinput wg-resize
     echo "All steps completed successfully. Your Wayland display should now be functional."
