@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ -d /run/archiso || "${FORGE_LIVE_RECOVERY:-0}" == 1 ]] || { echo 'FORGE Live Setup is available only from FORGE-OS live media.' >&2; exit 77; }
+command -v kdialog >/dev/null 2>&1 || { echo 'kdialog is required.' >&2; exit 69; }
+command -v konsole >/dev/null 2>&1 || { echo 'Konsole is required.' >&2; exit 69; }
+command -v python3 >/dev/null 2>&1 || { echo 'python3 is required.' >&2; exit 69; }
+
+export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland}"
+export KDE_SESSION_VERSION="${KDE_SESSION_VERSION:-6}"
+
+parse_kdialog_selection() {
+  python3 - "$1" <<'PY'
+import shlex, sys
+for value in shlex.split(sys.argv[1]):
+    print(value)
+PY
+}
+
+open_root_shell() {
+  konsole --hold -p tabtitle='FORGE LIVE ROOT' -e sudo -i >/dev/null 2>&1 &
+}
+
+open_partition_manager() {
+  if command -v partitionmanager >/dev/null 2>&1; then
+    partitionmanager >/dev/null 2>&1 &
+  else
+    kdialog --error 'KDE Partition Manager is not installed in this live image.'
+  fi
+}
+
+open_network() {
+  if [[ "${FORGE_OS_SESSION:-0}" == 1 && -x /usr/local/bin/forge-system-surface ]]; then
+    /usr/local/bin/forge-system-surface network >/dev/null 2>&1 &
+  elif command -v systemsettings >/dev/null 2>&1; then
+    systemsettings >/dev/null 2>&1 &
+  else
+    kdialog --error 'Network settings are unavailable.'
+  fi
+}
+
+run_guided_install() {
+  local target install_user host_name time_zone selection_status feature_selection features_csv summary
+
+  target="$(kdialog --title 'FORGE-OS Setup · Target' --inputbox \
+    'Enter the mounted target root. FORGE Setup never partitions or formats disks. Use KDE Partition Manager first, then mount the root at /mnt and the EFI System Partition at /mnt/boot.' \
+    '/mnt' 2>/dev/null || true)"
+  [[ -n "$target" ]] || return 0
+  target="$(readlink -m -- "$target")"
+  if ! mountpoint -q "$target"; then
+    kdialog --title 'Target is not mounted' --sorry \
+      "$target is not a mounted filesystem. Open KDE Partition Manager and/or the live root shell, prepare the partitions, mount the target, then reopen Guided Install."
+    return 0
+  fi
+  if [[ -d /sys/firmware/efi ]] && ! mountpoint -q "$target/boot"; then
+    kdialog --title 'EFI partition required' --sorry \
+      "This machine booted in UEFI mode. Mount the EFI System Partition at $target/boot before continuing."
+    return 0
+  fi
+
+  install_user="$(kdialog --title 'FORGE-OS Setup · User' --inputbox \
+    'Choose the primary administrator username. Use lowercase letters/numbers, underscore, or hyphen.' \
+    'forgeuser' 2>/dev/null || true)"
+  [[ -n "$install_user" ]] || return 0
+  if [[ ! "$install_user" =~ ^[a-z_][a-z0-9_-]*$ ]]; then
+    kdialog --error 'Username must start with a lowercase letter or underscore and contain only lowercase letters, numbers, underscore, or hyphen.'
+    return 0
+  fi
+
+  host_name="$(kdialog --title 'FORGE-OS Setup · Computer name' --inputbox 'Choose this computer’s hostname.' 'forge-linux' 2>/dev/null || true)"
+  [[ -n "$host_name" ]] || return 0
+  if [[ ! "$host_name" =~ ^[A-Za-z0-9][A-Za-z0-9.-]{0,62}$ ]]; then
+    kdialog --error 'That hostname is not valid.'
+    return 0
+  fi
+
+  time_zone="$(kdialog --title 'FORGE-OS Setup · Time zone' --inputbox \
+    'Enter an IANA time zone such as America/Chicago, America/New_York, Europe/London, or UTC.' \
+    'UTC' 2>/dev/null || true)"
+  [[ -n "$time_zone" ]] || return 0
+  if [[ ! -e "/usr/share/zoneinfo/$time_zone" ]]; then
+    kdialog --error "Unknown time zone: $time_zone"
+    return 0
+  fi
+
+  set +e
+  feature_selection="$(kdialog --title 'FORGE-OS Setup · Optional services' --checklist \
+    'Required boot, networking, firewall, time sync, PipeWire/WirePlumber, trim, mirrors, greetd, and Wayland services are always installed. Choose the optional services you want enabled on first boot:' \
+    bluetooth 'Bluetooth devices and adapters' on \
+    printing 'CUPS printing and printer discovery' on \
+    local-ai 'Ollama local AI service' on \
+    power-profiles 'Power Profiles daemon' on \
+    firmware 'Firmware metadata refresh timer' on 2>/dev/null)"
+  selection_status=$?
+  set -e
+  (( selection_status == 0 )) || return 0
+  mapfile -t selected_features < <(parse_kdialog_selection "$feature_selection")
+  features_csv="$(IFS=,; echo "${selected_features[*]}")"
+
+  summary="Target: $target\nUser: $install_user\nHostname: $host_name\nTime zone: $time_zone\nOptional services: ${features_csv:-none}\n\nThe installer will use the exact FORGE/FORGE-OS runtime embedded in this test ISO, install the canonical greetd → /usr/local/bin/forge-wayland-session boot path, install recovery/maintenance tools, and enable a first-boot service verifier. It will NOT partition or format disks.\n\nContinue?"
+  kdialog --title 'Install FORGE-OS' --warningyesno "$summary" || return 0
+
+  # The installer retains two deliberate terminal confirmations: the new user
+  # password and the literal INSTALL gate immediately before target mutation.
+  # Everything else comes from this KDE-windowed setup UI.
+  konsole --hold -p tabtitle='FORGE-OS Installation' -e sudo /usr/local/bin/forge-live-guided-install \
+    --target "$target" --user "$install_user" --hostname "$host_name" --timezone "$time_zone" --features "$features_csv" >/dev/null 2>&1 &
+  kdialog --title 'FORGE-OS Setup' --msgbox \
+    'The installation is running in the FORGE-OS Installation window. Set the new user password and type INSTALL when prompted. When that window reports guided setup completed, return here and choose Restart.'
+}
+
+while true; do
+  choice="$(kdialog --title 'FORGE-OS Setup' --menu \
+    'Booted from FORGE-OS live media. This setup runs as normal KDE/Qt windows inside the KWin Wayland compositor. Prepare the disk, then run Guided Install.' \
+    guided 'Guided Install — configure and install FORGE-OS to a mounted target' \
+    partition 'Partition Disks — open KDE Partition Manager' \
+    network 'Network — open KDE network settings' \
+    root 'Advanced Root Shell — unrestricted live recovery shell' \
+    bundle 'Load ISO / ZIP — inspect or run a separate installer bundle' \
+    restart 'Restart machine' \
+    shutdown 'Shut down machine' \
+    desktop 'Close Setup — continue using the live FORGE desktop' 2>/dev/null || true)"
+  case "$choice" in
+    guided) run_guided_install ;;
+    partition) open_partition_manager ;;
+    network) open_network ;;
+    root)
+      kdialog --title 'Live root shell' --warningyesno 'Open an unrestricted root shell in the ephemeral live environment?' && open_root_shell
+      ;;
+    bundle)
+      if [[ -x /usr/local/bin/forge-live-select-installer ]]; then /usr/local/bin/forge-live-select-installer >/dev/null 2>&1 & else kdialog --error 'Bundle installer is unavailable.'; fi
+      ;;
+    restart) kdialog --warningyesno 'Restart this machine now?' && systemctl reboot ;;
+    shutdown) kdialog --warningyesno 'Shut down this machine now?' && systemctl poweroff ;;
+    desktop|'') exit 0 ;;
+    *) exit 0 ;;
+  esac
+done
