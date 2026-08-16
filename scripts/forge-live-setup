@@ -49,6 +49,7 @@ for required in \
   "$repo/scripts/forge-live-install" \
   "$repo/scripts/forge-live-select-installer" \
   "$repo/scripts/forge-clean-install" \
+  "$repo/scripts/forge-clean-install-wrapper" \
   "$repo/scripts/forge-live-guided-install" \
   "$repo/scripts/forge-live-setup-ui" \
   "$repo/scripts/forge-service-manager" \
@@ -65,7 +66,8 @@ done
 install -o root -g root -m 0644 "$repo/config/forge-live-greetd.toml" /etc/greetd/config.toml
 install -o root -g root -m 0755 "$repo/scripts/forge-live-install" /usr/local/libexec/forge-live-install
 install -o root -g root -m 0755 "$repo/scripts/forge-live-select-installer" /usr/local/bin/forge-live-select-installer
-install -o root -g root -m 0755 "$repo/scripts/forge-clean-install" /usr/local/bin/forge-clean-install
+install -o root -g root -m 0755 "$repo/scripts/forge-clean-install" /usr/local/libexec/forge-clean-install-core
+install -o root -g root -m 0755 "$repo/scripts/forge-clean-install-wrapper" /usr/local/bin/forge-clean-install
 install -o root -g root -m 0755 "$repo/scripts/forge-live-guided-install" /usr/local/bin/forge-live-guided-install
 install -o root -g root -m 0755 "$repo/scripts/forge-live-setup-ui" /usr/local/bin/forge-live-setup-ui
 install -o root -g root -m 0755 "$repo/scripts/forge-service-manager" /usr/local/bin/forge-service-manager
@@ -80,8 +82,9 @@ install -o root -g root -m 0644 "$repo/session/forge-live-setup.desktop" /usr/sh
 for script in \
   /usr/local/libexec/forge-live-install \
   /usr/local/libexec/forge-service-control \
-  /usr/local/bin/forge-live-select-installer \
+  /usr/local/libexec/forge-clean-install-core \
   /usr/local/bin/forge-clean-install \
+  /usr/local/bin/forge-live-select-installer \
   /usr/local/bin/forge-live-guided-install \
   /usr/local/bin/forge-live-setup-ui \
   /usr/local/bin/forge-service-manager \
@@ -92,4 +95,4 @@ done
 grep -Fq 'FORGE_LIVE_RECOVERY=1' /etc/greetd/config.toml || { echo 'Live recovery environment flag is missing from greetd.' >&2; exit 1; }
 grep -Fq '/usr/local/bin/forge-wayland-session' /etc/greetd/config.toml || { echo 'Live recovery greetd does not use the installed FORGE Wayland session.' >&2; exit 1; }
 
-echo 'FORGE live setup, guided clean installer, root recovery shell, Advanced maintenance, bundle installer, and GUI session are ready.'
+echo 'FORGE live setup, guided/finalized clean installer, root recovery shell, Advanced maintenance, bundle installer, and GUI session are ready.'
