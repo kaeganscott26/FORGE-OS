@@ -2,7 +2,23 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-temporary="$(mktemp -d)"
+
+# The real updater deliberately refuses EUID 0. GitHub Actions runs the Arch
+# container as root, so re-enter this test as an unprivileged account instead
+# of weakening the production root-safety contract just to satisfy CI.
+if [[ "$EUID" -eq 0 && -z "${FORGE_UPDATE_TEST_UNPRIVILEGED:-}" ]]; then
+  command -v runuser >/dev/null 2>&1 || { echo 'runuser is required to exercise the updater as a normal user.' >&2; exit 1; }
+  test_home="$(mktemp -d /tmp/forge-update-test.XXXXXX)"
+  unprivileged_user=nobody
+  chown "$unprivileged_user" "$test_home"
+  exec runuser -u "$unprivileged_user" -- env \
+    HOME="$test_home" \
+    FORGE_UPDATE_TEST_UNPRIVILEGED=1 \
+    FORGE_UPDATE_TEST_ROOT="$test_home" \
+    bash "$0"
+fi
+
+temporary="${FORGE_UPDATE_TEST_ROOT:-$(mktemp -d)}"
 cleanup() { rm -rf -- "$temporary"; }
 trap cleanup EXIT
 
@@ -31,9 +47,8 @@ create_fixture() {
   git_identity "$publisher"
 
   # The test intentionally rewrites the trusted HTTPS origin to a local bare
-  # repository. Modern Git correctly restricts local-file transport in nested
-  # operations unless it is explicitly allowed. This opt-in applies only to
-  # the disposable fixture; production updater origin policy remains HTTPS-only.
+  # repository. This opt-in applies only to disposable fixtures; production
+  # updater origin policy remains pinned to the trusted HTTPS repositories.
   git -C "$checkout" config protocol.file.allow always
   git -C "$publisher" config protocol.file.allow always
   git -C "$checkout" remote set-url origin "$expected_url"
