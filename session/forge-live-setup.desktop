@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=FORGE-OS Setup
+Comment=Guided FORGE-OS live installation and recovery
+Exec=/usr/local/bin/forge-live-setup-ui
+Icon=system-software-install
+Terminal=false
+Categories=System;Settings;
+NoDisplay=true
