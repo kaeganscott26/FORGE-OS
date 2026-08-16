@@ -1,4 +1,5 @@
-# FORGE-OS authoritative Arch package manifest. One repository package per line.
+# FORGE-OS authoritative Arch package manifest. One official repository package per line.
+# AUR packages are provisioned separately by scripts/configure-aur.sh.
 base
 base-devel
 linux
@@ -11,6 +12,7 @@ nodejs-lts-jod
 fish
 starship
 reflector
+pacman-contrib
 sudo
 wayland
 xorg-xwayland
@@ -23,8 +25,11 @@ konsole
 krunner
 plasma-nm
 plasma-pa
+plasma-firewall
+firewalld
 kscreen
 powerdevil
+partitionmanager
 breeze
 breeze-gtk
 breeze-icons
@@ -67,7 +72,6 @@ bluez-utils
 dbus
 dbus-broker
 greetd
-greetd-tuigreet
 flatpak
 podman
 distrobox
