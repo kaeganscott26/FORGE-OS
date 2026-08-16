@@ -18,6 +18,7 @@ This produces one compositor owner:
 
 ```text
 greetd on tty1
+  -> tuigreet
   -> startplasma-wayland forge-wayland-session forge-wayland-client
   -> FORGE dispatcher
   -> KWin Wayland + XWayland compatibility
@@ -25,18 +26,37 @@ greetd on tty1
   -> content-addressed FORGE runtime
 ```
 
-Login shortcuts are F2 command, F3 session, F4 persistent background selection, and F5 power. Matrix is the default animation.
+The production greeter command is intentionally limited to options supported by the `greetd-tuigreet` package declared in `manifests/arch-packages.txt`. Experimental/background-animation options must not be made boot-critical unless FORGE-OS deliberately changes its packaged greeter implementation. CI enforces this contract.
 
-## Install on an Arch development/reference system
+Login shortcuts are F2 command, F3 session, and F5 power.
 
-Keep clean, trusted `main` checkouts at `~/FORGE` and `~/FORGE-OS`, then run as the desktop user:
+## The two normal commands
+
+Normal installation and maintenance have exactly two repository entry points. Everything under `scripts/` is an implementation detail or an advanced/recovery tool unless a document explicitly says otherwise.
+
+### Install or repair the current checkout
+
+Run as the desktop user:
 
 ```bash
 cd ~/FORGE-OS
-./scripts/install-forge-linux.sh
+./install.sh
 ```
 
-The installer invokes sudo or PolicyKit only for system mutations. It does not reboot. `--skip-packages` is for a machine that already satisfies the complete manifest; `--use-current-build` accepts a build only when its version, package/lock hashes, runtime-source hash, overlays, executable, app archive, and payload still match.
+`install.sh` is the authoritative install/repair entry point. It delegates to the Linux installer, which provisions required Arch packages, hardware integration, the FORGE runtime, Wayland session files, greetd, recovery components, and verification. It invokes sudo only for system mutations and never reboots automatically.
+
+### Update FORGE + FORGE-OS and reinstall
+
+```bash
+cd ~/FORGE-OS
+./update.sh
+```
+
+`update.sh` is the authoritative source-based update entry point. It verifies both `~/FORGE` and `~/FORGE-OS`, fast-forwards their trusted `main` branches, runs the installer, and restores both source checkouts to their pre-update commits if installation fails. After a successful installation the same updater is also available as `forge-os-update`.
+
+Do not manually source `build/latest.env`, and do not run `bootstrap-forgeos.sh`, `build-forge.sh`, `install-runtime.sh`, or the package/bootstrap helpers as part of the normal update workflow. Those are internal stages used by the authoritative entry points.
+
+The installer still supports `--skip-packages` for a machine that already satisfies the complete manifest and `--use-current-build` for a build whose version, package/lock hashes, runtime-source hash, overlays, executable, app archive, and payload still match.
 
 ## Package commands
 
@@ -65,17 +85,27 @@ Arch is the host backend. Apt/Ubuntu and Kali run only in rootless Distrobox/Pod
 
 ## Recovery
 
-Press Ctrl+Alt+F2. systemd-logind starts the on-demand `autovt@tty2` alias, which opens a separate greetd, D-Bus, KWin, and full-screen native FORGE Recovery environment. Entering diagnostics does not require credentials. Logs and the user-owned diagnostic terminal are read-only/user-scoped; verified runtime rollback crosses PolicyKit, atomically activates last-known-good, removes only the superseded immutable runtime, and preserves home, projects, `.forge` memory, and task state.
+The graphical FORGE Recovery profile currently uses its own greetd/KWin path on tty2. Its greeter command is kept to the same packaged-tuigreet compatibility contract as the production login.
+
+For a guaranteed break-glass console when the graphical login path is unhealthy, switch to another available TTY (for example Ctrl+Alt+F3), log in, and run:
+
+```bash
+cd ~/FORGE-OS
+./scripts/disable-graphical-login.sh
+```
+
+That disables graphical login, restores console services, and preserves installed runtimes and user/project data. See [Recovery](docs/RECOVERY.md) for logs and rollback details.
 
 ## Build and validate
 
 ```bash
+./tests/greeter-contract.sh
 ./tests/source-verify.sh
 ./scripts/build-forge.sh ~/FORGE
 ./scripts/build-iso.sh
 ```
 
-`tests/source-verify.sh` is non-mutating. `tests/verify.sh` validates an installed machine. ISO publication additionally requires boot/hardware acceptance and artifact provenance from [the release checklist](docs/RELEASE_CHECKLIST.md).
+`tests/greeter-contract.sh` prevents the packaged greeter and configured command line from silently drifting apart. `tests/source-verify.sh` is non-mutating. `tests/verify.sh` validates an installed machine. ISO publication additionally requires boot/hardware acceptance and artifact provenance from [the release checklist](docs/RELEASE_CHECKLIST.md).
 
 ## Documentation
 
