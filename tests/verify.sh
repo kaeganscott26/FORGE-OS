@@ -19,6 +19,7 @@ overlay_hash() {
 }
 
 "$root/tests/session-dispatcher.sh" && pass 'canonical session dispatcher tests pass' || fail 'canonical session dispatcher tests failed'
+"$root/tests/greeter-contract.sh" && pass 'last-good greetd contract test passes' || fail 'last-good greetd contract test failed'
 
 source /etc/os-release 2>/dev/null || true
 [[ "${ID:-}" == arch ]] && pass 'platform is Arch Linux' || fail 'platform is not Arch Linux'
@@ -107,11 +108,12 @@ done
 grep -q '^source_profile = false$' /etc/greetd/config.toml 2>/dev/null && pass 'greetd does not source shell profiles' || fail 'greetd profile sourcing is still enabled'
 grep -q '^user = "greeter"$' /etc/greetd/config.toml 2>/dev/null && pass 'greetd uses dedicated greeter account' || fail 'greetd is not configured for greeter account'
 getent passwd greeter >/dev/null && pass 'greeter account exists' || fail 'greeter account is missing'
-grep -Fq -- "--cmd 'startplasma-wayland forge-wayland-session forge-wayland-client'" /etc/greetd/config.toml 2>/dev/null && pass 'greetd defaults to canonical FORGE runtime chain' || fail 'greetd default session command is wrong'
-grep -Fq -- "--cmd 'startplasma-wayland forge-wayland-session forge-wayland-client'" "$root/config/greetd-config.toml" && pass 'repository greetd defaults to canonical FORGE runtime chain' || fail 'repository greetd default session command is wrong'
+grep -Fq -- "--cmd '/usr/local/bin/forge-wayland-session'" /etc/greetd/config.toml 2>/dev/null && pass 'greetd uses the last-good installed FORGE Wayland session path' || fail 'greetd default session command is wrong'
+grep -Fq -- "--cmd '/usr/local/bin/forge-wayland-session'" "$root/config/greetd-config.toml" && pass 'repository greetd keeps the last-good installed FORGE Wayland session path' || fail 'repository greetd default session command is wrong'
+if grep -Eq -- '--background([ =]|$)|--matrix-|--kb-background|--remember-session' /etc/greetd/config.toml 2>/dev/null; then fail 'installed greetd has post-last-good persistent login behavior'; else pass 'installed greetd preserves pre-Matrix login behavior'; fi
 grep -q -- '--xsessions /usr/share/forge-os/disabled-xsessions' /etc/greetd/config.toml 2>/dev/null && pass 'tuigreet does not expose X11 sessions' || fail 'tuigreet still exposes an X11 session directory'
 grep -q -- '--sessions /usr/share/forge-os/wayland-sessions' /etc/greetd/config.toml 2>/dev/null && pass 'tuigreet Wayland sessions are isolated from system defaults' || fail 'tuigreet still discovers global Wayland sessions'
-grep -Fq 'Exec=startplasma-wayland forge-wayland-session forge-wayland-client' "$root/session/forge.desktop" && pass 'desktop entry uses canonical FORGE runtime chain' || fail 'desktop entry has wrong runtime command'
+grep -Fq 'Exec=startplasma-wayland forge-wayland-session forge-wayland-client' "$root/session/forge.desktop" && pass 'desktop compatibility entry uses canonical FORGE runtime chain' || fail 'desktop entry has wrong runtime command'
 grep -Fq 'forge_session=/usr/local/bin/forge-wayland-session' "$root/session/startplasma-wayland" &&
 grep -Fq 'exec "$forge_session"' "$root/session/startplasma-wayland" &&
   pass 'FORGE owns canonical Plasma command dispatch' ||
@@ -155,7 +157,7 @@ else
 fi
 
 if [[ -r "$HOME/FORGE/apps/desktop/resources/ollama/skills/local-model-tooling/SKILL.md" ]]; then
-  cmp -s "$HOME/FORGE/apps/desktop/resources/ollama/skills/local-model-tooling/SKILL.md"     "$HOME/.config/ollama/skills/local-model-tooling/SKILL.md" &&
+  cmp -s "$HOME/FORGE/apps/desktop/resources/ollama/skills/local-model-tooling/SKILL.md" "$HOME/.config/ollama/skills/local-model-tooling/SKILL.md" &&
     pass 'Ollama-local tooling skill matches FORGE contract' ||
     fail 'Ollama-local tooling skill is stale'
 else
@@ -174,10 +176,8 @@ check systemctl is-enabled NetworkManager.service
 check systemctl is-enabled ollama.service
 check systemctl is-enabled greetd.service
 [[ "$(systemctl get-default 2>/dev/null)" == graphical.target ]] && pass 'default target is graphical.target' || fail 'default target is not graphical.target'
-systemctl is-enabled forge-recovery.service >/dev/null 2>&1 &&
-  pass 'FORGE recovery service is enabled for graphical.target' ||
-  fail 'FORGE recovery service is not enabled'
-systemctl is-active forge-recovery.service >/dev/null 2>&1 && pass 'tty2 native recovery environment is active' || warn 'tty2 native recovery environment is enabled but not currently active'
+[[ -L /etc/systemd/system/autovt@tty2.service && "$(readlink -f /etc/systemd/system/autovt@tty2.service)" == /etc/systemd/system/forge-recovery.service ]] && pass 'tty2 native recovery is installed as an on-demand autovt alias' || fail 'tty2 native recovery autovt alias is not installed'
+systemctl is-active forge-recovery.service >/dev/null 2>&1 && warn 'tty2 recovery is currently active' || pass 'tty2 recovery remains inactive until requested'
 systemctl is-enabled getty@tty2.service >/dev/null 2>&1 && fail 'legacy tty2 getty conflicts with native recovery' || pass 'legacy tty2 getty is disabled'
 [[ -L /etc/systemd/system/display-manager.service && "$(readlink -f /etc/systemd/system/display-manager.service)" == /usr/lib/systemd/system/greetd.service ]] && pass 'display-manager alias selects greetd' || fail 'display-manager.service does not select greetd'
 if [[ -e /opt/forge/current/chrome-sandbox ]]; then
