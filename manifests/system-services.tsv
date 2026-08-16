@@ -1,0 +1,16 @@
+# scope|unit|default|risk|label|description
+system|greetd.service|required|critical|Login / GreetD|Canonical FORGE-OS graphical login and Wayland handoff
+system|NetworkManager.service|required|critical|NetworkManager|Wi-Fi Ethernet VPN and network state
+system|firewalld.service|required|standard|Firewall|Firewall backend used by the Security surface
+system|irqbalance.service|required|standard|IRQ Balance|Balances hardware interrupts across CPU cores
+system|systemd-timesyncd.service|required|standard|Time Sync|Keeps the system clock synchronized
+system|bluetooth.service|optional|standard|Bluetooth|Bluetooth adapters and devices
+system|cups.service|optional|standard|Printing / CUPS|Printer discovery queues and print jobs
+system|ollama.service|optional|standard|Ollama|Local model runtime used by FORGE local AI tooling
+system|power-profiles-daemon.service|optional|standard|Power Profiles|Performance balanced and power-saver profiles
+system|fstrim.timer|required|standard|SSD Trim|Periodic discard/TRIM for supported storage
+system|reflector.timer|required|standard|Mirror Refresh|Periodically refreshes ranked Arch package mirrors
+system|fwupd-refresh.timer|optional|standard|Firmware Metadata|Refreshes firmware update metadata when supported
+global|pipewire.socket|required|critical|PipeWire|Primary per-user audio/media socket
+ global|pipewire-pulse.socket|required|critical|PipeWire Pulse|PulseAudio compatibility socket for applications
+global|wireplumber.service|required|critical|WirePlumber|Per-user PipeWire session and device policy manager
