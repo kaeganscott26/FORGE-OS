@@ -2,6 +2,27 @@
 
 This file tracks unresolved engineering work that still affects distribution quality. Resolved debugging notes should be removed rather than accumulating here.
 
+## 🔴 Restore the authoritative Arch package manifest
+
+[`scripts/bootstrap-arch.sh`](../scripts/bootstrap-arch.sh) currently reads:
+
+```text
+manifests/arch-packages.txt
+```
+
+That file is absent from the current repository. The repository contains `manifests/arch-packages.sh`, but the bootstrap script does not consume it, and the current shell-script content is not a valid line-oriented replacement for the missing manifest.
+
+This is a **fresh-install/update blocker** whenever the authoritative installer runs package bootstrap without `--skip-packages`.
+
+Resolution should do one of the following deliberately:
+
+- restore a valid `manifests/arch-packages.txt` matching the package set required by `tests/verify.sh`; or
+- change `bootstrap-arch.sh`, ISO tooling, installer documentation, and tests together to a new authoritative manifest format.
+
+After repair, validate a clean package bootstrap on Arch and ensure the installer, ISO builder, verifier, and documentation all consume the same package source of truth.
+
+`--skip-packages` is only appropriate when the required packages are already present; it is not a substitute for restoring the distribution manifest.
+
 ## ⚖️ Normalize the Plasma-hosted FORGE profile
 
 The canonical `0.2.x` FORGE-OS path is FORGE-owned:
@@ -95,8 +116,9 @@ This behavior belongs upstream in FORGE. Once the upstream fix lands and passes 
 
 ## 💿 Distribution installer and release pipeline
 
-The current repository can build an ArchISO-style image using the same runtime/session layout as the physical installation. A polished end-user distribution still benefits from additional release engineering:
+The repository includes ArchISO-style image tooling intended to use the same runtime/session layout as the physical installation. A polished end-user distribution still needs:
 
+- repaired/validated package-manifest bootstrap;
 - guided disk installation and partitioning UX;
 - hardware compatibility documentation;
 - signed release artifacts and/or a signed update channel;
@@ -104,13 +126,11 @@ The current repository can build an ArchISO-style image using the same runtime/s
 - a signed binary/OS update channel that does not require local source checkouts;
 - broader multi-hardware validation.
 
-These are distribution-quality improvements, not blockers for continued runtime/session testing.
-
-The current development/reference updater is implemented and intentionally source-based: it updates clean trusted checkouts with fast-forward-only Git operations and runs the verified installer. A future signed artifact channel should preserve the same provenance, authentication, recovery, and no-downgrade guarantees.
+The current development/reference updater is source-based: it updates clean trusted checkouts with fast-forward-only Git operations and runs the verified installer. A future signed artifact channel should preserve the same provenance, authentication, recovery, and no-downgrade guarantees.
 
 ## 🧪 Stable ISO validation
 
-The earlier X11 runtime was physically demonstrated. The current KWin Wayland path still requires full cold-boot, native Electron, XWayland compatibility, KDE portal/PipeWire, wallpaper/panel persistence, compositor-failure, logout/relogin, package-install/application-refresh, and ISO validation using the [Release Checklist](RELEASE_CHECKLIST.md).
+The earlier X11 runtime was physically demonstrated. The current KWin Wayland path still requires full cold-boot, native Electron, XWayland compatibility, KDE portal/PipeWire, wallpaper/panel persistence, compositor-failure, logout/relogin, package-bootstrap, package-install/application-refresh, and ISO validation using the [Release Checklist](RELEASE_CHECKLIST.md).
 
 Stable validation must use the canonical direct FORGE-owned session without requiring an F2 override.
 
