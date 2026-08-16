@@ -9,6 +9,7 @@ git
 npm
 python
 nodejs-lts-jod
+rust
 fish
 starship
 reflector
