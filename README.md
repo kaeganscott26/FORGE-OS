@@ -26,9 +26,9 @@ greetd on tty1
   -> content-addressed FORGE runtime
 ```
 
-The production greeter command is intentionally limited to options supported by the `greetd-tuigreet` package declared in `manifests/arch-packages.txt`. Experimental/background-animation options must not be made boot-critical unless FORGE-OS deliberately changes its packaged greeter implementation. CI enforces this contract.
+The production greeter command is validated against the actual `greetd-tuigreet` package declared in `manifests/arch-packages.txt`. The current Arch package supports the persistent Matrix background and F4 background selector; CI executes the packaged binary's `--help` contract against both normal and recovery configurations so unsupported flags or mutually-exclusive combinations cannot silently become boot-critical again.
 
-Login shortcuts are F2 command, F3 session, and F5 power.
+Login shortcuts are F2 command, F3 session, F4 background, and F5 power.
 
 ## The two normal commands
 
@@ -85,7 +85,7 @@ Arch is the host backend. Apt/Ubuntu and Kali run only in rootless Distrobox/Pod
 
 ## Recovery
 
-The graphical FORGE Recovery profile currently uses its own greetd/KWin path on tty2. Its greeter command is kept to the same packaged-tuigreet compatibility contract as the production login.
+The graphical FORGE Recovery profile uses its own greetd/KWin path on tty2 and is installed as an on-demand `autovt@tty2.service` alias rather than an always-running graphical-target service.
 
 For a guaranteed break-glass console when the graphical login path is unhealthy, switch to another available TTY (for example Ctrl+Alt+F3), log in, and run:
 
