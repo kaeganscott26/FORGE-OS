@@ -5,6 +5,7 @@ base-devel
 linux
 linux-firmware
 archiso
+arch-install-scripts
 git
 npm
 python
@@ -15,6 +16,9 @@ starship
 reflector
 pacman-contrib
 sudo
+efibootmgr
+dosfstools
+gptfdisk
 wayland
 xorg-xwayland
 kwin
