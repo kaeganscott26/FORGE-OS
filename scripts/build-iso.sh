@@ -75,7 +75,9 @@ install -m 0755 "$root/session/forge-recovery-client" "$profile/airootfs/usr/loc
 install -m 0755 "$root/scripts/forge-runtime-rollback-activate" "$profile/airootfs/usr/local/libexec/forge-runtime-rollback-activate"
 install -m 0755 "$root/session/forge-plasma-initialize" "$profile/airootfs/usr/local/libexec/forge-plasma-initialize"
 for tool in forge-app-launcher forge-open forge-workspace-runner forge-install-program forge-app-install forge-install-pkg forge-panel-manager forge-os-update forge-runtime-rollback forge-workspace-bootstrap forge-refresh-mirrors install-wayland-stacks.sh; do
-  install -m 0755 "$root/scripts/$tool" "$profile/airootfs/usr/local/bin/$tool"
+  tool_source="$root/scripts/$tool"
+  [[ "$tool" == forge-workspace-bootstrap ]] && tool_source="$root/scripts/forge-workspace-bootstrap.sh"
+  install -m 0755 "$tool_source" "$profile/airootfs/usr/local/bin/$tool"
 done
 install -m 0755 "$root/scripts/forge-live-setup" "$profile/airootfs/usr/local/libexec/forge-live-setup"
 install -m 0644 "$root/config/kwinrc" "$profile/airootfs/etc/xdg/kwinrc"

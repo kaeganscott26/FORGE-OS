@@ -90,7 +90,9 @@ sudo install -o root -g root -m 0755 "$root/session/forge-recovery-client" /usr/
 sudo install -o root -g root -m 0755 "$root/scripts/forge-runtime-rollback-activate" /usr/local/libexec/forge-runtime-rollback-activate
 sudo install -o root -g root -m 0755 "$root/session/forge-plasma-initialize" /usr/local/libexec/forge-plasma-initialize
 for tool in forge-app-launcher forge-open forge-workspace-runner forge-install-program forge-app-install forge-install-pkg forge-panel-manager forge-os-update forge-runtime-rollback forge-workspace-bootstrap forge-refresh-mirrors install-wayland-stacks.sh; do
-  sudo install -o root -g root -m 0755 "$root/scripts/$tool" "/usr/local/bin/$tool"
+  tool_source="$root/scripts/$tool"
+  [[ "$tool" == forge-workspace-bootstrap ]] && tool_source="$root/scripts/forge-workspace-bootstrap.sh"
+  sudo install -o root -g root -m 0755 "$tool_source" "/usr/local/bin/$tool"
 done
 sudo install -o root -g root -m 0644 "$root/config/kwinrc" /etc/xdg/kwinrc
 sudo install -o root -g root -m 0644 "$root/config/kdeglobals" /etc/xdg/kdeglobals
@@ -138,7 +140,7 @@ for pair in \
   "$root/scripts/forge-app-install:/usr/local/bin/forge-app-install" \
   "$root/scripts/forge-install-pkg:/usr/local/bin/forge-install-pkg" \
   "$root/scripts/forge-runtime-rollback:/usr/local/bin/forge-runtime-rollback" \
-  "$root/scripts/forge-workspace-bootstrap:/usr/local/bin/forge-workspace-bootstrap" \
+  "$root/scripts/forge-workspace-bootstrap.sh:/usr/local/bin/forge-workspace-bootstrap" \
   "$root/scripts/forge-refresh-mirrors:/usr/local/bin/forge-refresh-mirrors" \
   "$root/scripts/install-wayland-stacks.sh:/usr/local/bin/install-wayland-stacks.sh" \
   "$root/scripts/forge-panel-manager:/usr/local/bin/forge-panel-manager" \

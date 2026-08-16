@@ -78,7 +78,7 @@ for pair in \
   "$root/scripts/forge-app-install:/usr/local/bin/forge-app-install" \
   "$root/scripts/forge-install-pkg:/usr/local/bin/forge-install-pkg" \
   "$root/scripts/forge-runtime-rollback:/usr/local/bin/forge-runtime-rollback" \
-  "$root/scripts/forge-workspace-bootstrap:/usr/local/bin/forge-workspace-bootstrap" \
+  "$root/scripts/forge-workspace-bootstrap.sh:/usr/local/bin/forge-workspace-bootstrap" \
   "$root/scripts/forge-refresh-mirrors:/usr/local/bin/forge-refresh-mirrors" \
   "$root/scripts/install-wayland-stacks.sh:/usr/local/bin/install-wayland-stacks.sh" \
   "$root/scripts/forge-panel-manager:/usr/local/bin/forge-panel-manager" \
