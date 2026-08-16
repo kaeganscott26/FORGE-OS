@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "${FORGE_LIVE_RECOVERY:-0}" == 1 || -d /run/archiso ]] || {
+  kdialog --error 'This installer launcher is available only in FORGE Live Recovery.' 2>/dev/null || true
+  exit 77
+}
+command -v kdialog >/dev/null || { echo 'kdialog is required.' >&2; exit 69; }
+command -v konsole >/dev/null || { echo 'konsole is required.' >&2; exit 69; }
+
+bundle="$(kdialog --title 'FORGE Live Recovery' --getopenfilename "$HOME" 'Installer bundles (*.iso *.zip)' || true)"
+[[ -n "$bundle" ]] || exit 0
+
+case "${bundle,,}" in
+  *.iso|*.zip) ;;
+  *) kdialog --error 'Choose an .iso or .zip installer bundle.'; exit 65 ;;
+esac
+
+exec konsole --hold -e sudo /usr/local/libexec/forge-live-install install "$bundle"
