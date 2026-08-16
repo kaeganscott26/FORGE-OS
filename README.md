@@ -1,63 +1,49 @@
 # FORGE-OS
 
-FORGE-OS is the Arch-based integration layer that makes FORGE the visible workspace, desktop, Explorer, settings, recovery, and update experience. Arch, systemd, KWin, Plasma services, NetworkManager, PipeWire, PolicyKit, and native package databases remain the operating-system substrate; they do not become the primary UI.
+FORGE-OS is the Arch-based integration layer that makes FORGE the visible workspace, desktop, Explorer, settings, recovery, and update experience. Arch, systemd, KWin, Plasma services, NetworkManager, PipeWire, PolicyKit, pacman, and the native package databases remain the operating-system substrate; they do not become the primary UI.
 
 Current stable candidate: `0.2.2`. Publication remains gated by [release acceptance](docs/RELEASE_CHECKLIST.md).
 
 ## Login contract
 
-The normal greetd/tuigreet profile has been restored to the last-good pre-Matrix behavior. After authentication, tuigreet hands directly to the installed FORGE Wayland session:
-
-```text
-/usr/local/bin/forge-wayland-session
-```
-
-That installed file is copied from `session/forge-wayland-session` by the authoritative installer. The normal boot path is therefore:
+Normal boot is intentionally simple and deterministic:
 
 ```text
 greetd on tty1
-  -> tuigreet
+  -> /usr/local/bin/tuigreet
   -> /usr/local/bin/forge-wayland-session
-  -> one KWin Wayland compositor + XWayland compatibility
+  -> KWin Wayland + XWayland compatibility
   -> /usr/local/libexec/forge-wayland-client
-  -> D-Bus, KRunner, KDE services, PolicyKit, and Plasma visuals beneath FORGE
+  -> D-Bus, KRunner, KDE services, PolicyKit, Plasma visuals
   -> /usr/local/bin/forge-session
   -> content-addressed FORGE runtime
 ```
 
-The login screen intentionally does **not** force a persistent Matrix/background mode. The greeter keeps the previous `--issue`, time, remembered user, password asterisks, power controls, isolated FORGE session directory, and direct Wayland handoff. `tests/greeter-contract.sh` executes the installed `tuigreet --help` contract so a future cosmetic change cannot silently introduce unsupported boot-critical options.
+F2 defaults to `/usr/local/bin/forge-wayland-session`, and the visible F3 FORGE session entry points to that same installed path. Old X11/session-client paths are removed from the installed production profile, while the historical `startplasma-wayland` dispatcher remains only as compatibility implementation.
 
-The FORGE desktop entry still retains `startplasma-wayland forge-wayland-session forge-wayland-client` as a compatibility/session-selector profile. `/usr/local/bin/startplasma-wayland` recognizes that exact profile and dispatches into the same installed `forge-wayland-session`; non-FORGE invocations continue to the vendor `/usr/bin/startplasma-wayland`.
+The login UI uses the actively maintained NotAShelf tuigreet rolling fork because its current development line contains the background API required by FORGE-OS. Matrix is the default background; F4 opens the live background selector, including the classic DOOM fire effect. The installer deliberately does not enable session remembering, so an experimental old command cannot silently replace the canonical F2 path. `tests/greeter-contract.sh` validates every configured greeter option against the actual installed binary before greetd is enabled.
 
-## The two normal commands
+## Install and update
 
-Normal installation and maintenance have exactly two repository entry points. The underlying bootstrap, build, runtime, and configuration scripts are intentionally retained because the installer executes them as explicit stages.
-
-### Install or repair the current checkout
-
-Run as the desktop user:
+Normal maintenance keeps two repository entry points:
 
 ```bash
 cd ~/FORGE-OS
 ./install.sh
 ```
 
-`install.sh` delegates to `scripts/install-forge-linux.sh`. The installer verifies clean/current FORGE and FORGE-OS checkouts, runs `bootstrap-forgeos.sh` unless packages are skipped, runs hardware configuration, builds FORGE with `build-forge.sh` unless a verified current build is requested, installs that runtime with `install-runtime.sh`, installs the Wayland/greetd/recovery files, configures the user desktop, and finishes with installed-machine verification. It invokes sudo only for system mutations and never reboots automatically.
-
-### Update FORGE + FORGE-OS and reinstall
+and:
 
 ```bash
 cd ~/FORGE-OS
 ./update.sh
 ```
 
-`update.sh` delegates to `scripts/forge-os-update`. It verifies both `~/FORGE` and `~/FORGE-OS`, fast-forwards their trusted `main` branches, runs the installer, and restores both source checkouts to their pre-update commits if installation fails. After installation, the same updater is available as `forge-os-update`.
+The bootstrap/build/runtime scripts are intentionally retained because `scripts/install-forge-linux.sh` executes them as explicit stages. A normal install provisions official Arch packages, multilib, the reviewed mirror baseline, Reflector, Chaotic-AUR, `yay`, the rolling maintained tuigreet fork, hardware/services, the FORGE runtime, Wayland/greetd/recovery files, user configuration, and final installed-machine verification. Required system services and user audio services are enabled persistently across reboot.
 
-The installer supports `--skip-packages` for a machine that already satisfies the complete manifest and `--use-current-build` only when the recorded version, package/lock hashes, runtime-source hash, overlays, executable, app archive, and payload still match.
+## Packages and repositories
 
-## Package commands
-
-The user-facing commands retain familiar pacman operations while keeping the native databases and default installation paths:
+Interactive Arch package commands inside FORGE's Fish environment route through `forge-install-pkg`; GUI program installation routes `forge-install-program -> forge-app-install -> forge-install-pkg`. Internal bootstrap code uses absolute `/usr/bin/pacman` so the wrapper cannot recurse.
 
 ```bash
 forge-app-install -S steam
@@ -67,44 +53,38 @@ forge-install-pkg -Ss package-name
 forge-install-pkg -Rns package-name
 ```
 
-Arch is the host backend. Apt/Ubuntu and Kali run only in rootless Distrobox/Podman containers; Nix uses its own profile/store. They are initialized with `forge-workspace-bootstrap apt|kali|nix|all` and selected with `--backend`. Kali/Debian repositories are never mixed into pacman.
+Official Arch repositories remain the system package base. `multilib` is enabled explicitly. Chaotic-AUR is added as a binary community repository, and `yay` provides the ordinary AUR workflow. Apt/Ubuntu and Kali remain isolated in rootless Distrobox/Podman containers; Nix uses its own store and profile.
 
-`forge-refresh-mirrors --country COUNTRY` ranks current HTTPS Arch mirrors; `--tracked` installs the reviewed repository list. The active mirror list is never replaced merely because an installer ran.
+The installer first establishes the tracked HTTPS Arch mirror list, then Reflector ranks current HTTPS mirrors. `reflector.timer` keeps the official Arch mirror list fresh after reboot; third-party repositories retain their own mirrorlist packages.
 
-## Desktop behavior
+## FORGE-OS top bar
 
-- Fish is the login shell and uses the repository Dr460nized-inspired Fish/Starship palette.
-- FORGE Explorer is the default directory/file workflow; Dolphin is not the primary shell UI.
-- The native top bar owns Applications, System, Workspace Intelligence, clock, and Session.
-- Native system surfaces cover Network, Audio, Display, Power, Applications, Updates, Security, Recovery, and Advanced state.
-- Workspace source/memory indexing starts when a workspace opens and refreshes automatically on filesystem changes without prompting the model.
-- KWin provides focus, placement, blur, contrast, translucency, and animation under the FORGE shell.
+The FORGE-OS bar reserves its own shell space above the normal FORGE application header, so Releases, GitHub, Settings, workspace controls, and other normal FORGE controls are no longer covered.
+
+Applications and System remain the primary left-side controls. The center system strip exposes launchable controls for **Network, Audio, Display, Power, Applications, Storage, Appearance, Updates, Security, Recovery, and Advanced**. The strip uses responsive font sizing and horizontal overflow instead of overlapping text or modules. Time and Session remain on the right.
+
+Session actions are detached OS helpers rather than fragile synchronous Electron power calls. Lock, logout, restart, and shutdown therefore survive the FORGE process/session being terminated as part of the requested action.
+
+## Persistent services
+
+The installer enables the required system services and maintenance timers, including NetworkManager, Bluetooth, irqbalance, time sync, CUPS, Ollama, power-profile support where available, fstrim, and Reflector. PipeWire, PipeWire Pulse, and WirePlumber are globally enabled for user sessions and started immediately when a user systemd manager is available.
 
 ## Installed-system recovery
 
-FORGE Recovery uses a separate greetd/KWin path on tty2 and is installed as the on-demand `autovt@tty2.service` alias rather than an always-running second graphical service. If the graphical stack itself is unhealthy, switch to another TTY such as Ctrl+Alt+F3, log in, and run:
+Ctrl+Alt+F2 requests the separate FORGE Recovery profile through the on-demand `autovt@tty2.service` alias. If the graphical stack itself is unhealthy, switch to another TTY such as Ctrl+Alt+F3 and run:
 
 ```bash
 cd ~/FORGE-OS
 ./scripts/disable-graphical-login.sh
 ```
 
-That disables graphical login, restores console services, and preserves installed runtimes and user/project data. See [Recovery](docs/RECOVERY.md) for logs and rollback details.
+That restores console-first access while preserving installed runtimes and user/project data.
 
 ## Live ISO recovery and provisioning
 
-The ISO has a separate live-only profile. `forge-live-setup.service` detects ArchISO before it makes any privileged live changes. On live media it:
+The ISO has a separate live-only profile. `forge-live-setup.service` detects ArchISO before making privileged live changes. It creates the ephemeral `forge` account with its password locked, grants passwordless sudo only inside that live environment, enters the same Wayland runtime with live-recovery flags, and opens FORGE's full-screen **Live Recovery** GUI.
 
-- creates the ephemeral `forge` account;
-- grants passwordless sudo **only to that live account**;
-- installs the dedicated live greetd profile;
-- enters the same tested FORGE Wayland runtime with `FORGE_LIVE_RECOVERY=1` and `FORGE_RECOVERY_MODE=1`;
-- opens FORGE in its full-screen **Live Recovery** GUI;
-- exposes **Recovery Root Shell** and **Load / Install ISO or ZIP** launchers.
-
-The bundle loader accepts local `.iso` and `.zip` files, stages them read-only/extracted under `/run`, rejects unsafe ZIP paths, recognizes explicit installer entry points, and requires the user to type `INSTALL` before an installer is executed. Bundles without a recognized installer remain a manual-recovery case instead of being executed blindly.
-
-On an installed system, `forge-live-setup` exits without creating the live user, passwordless sudo rule, or live greeter configuration.
+Live Recovery exposes **Recovery Root Shell** and **Load / Install ISO or ZIP**. ISO files are mounted read-only; ZIP paths are checked before extraction; only recognized installer entry points are eligible for automatic execution; and the user must type `INSTALL` before a bundle installer runs.
 
 ## Build and validate
 
@@ -115,7 +95,7 @@ On an installed system, `forge-live-setup` exits without creating the live user,
 ./scripts/build-iso.sh
 ```
 
-`tests/greeter-contract.sh` prevents the packaged greeter and configured command lines from drifting apart. `tests/source-verify.sh` checks the complete source/build contract. `tests/verify.sh` validates an installed machine. ISO publication additionally requires boot/hardware acceptance and artifact provenance from [the release checklist](docs/RELEASE_CHECKLIST.md).
+Source verification checks the current greeter, top-bar, session-control, package-routing, mirror/repository, service, live-recovery, FORGE typecheck/lint/test/build, and runtime contracts. `tests/verify.sh` validates the installed machine. ISO publication additionally requires VM/physical hardware acceptance and artifact provenance from [the release checklist](docs/RELEASE_CHECKLIST.md).
 
 ## Documentation
 
