@@ -71,7 +71,8 @@ for command in greetd tuigreet kwin_wayland plasmashell qdbus6 krunner kdialog k
   command -v "$command" >/dev/null || { echo "Required command is missing: $command" >&2; exit 1; }
 done
 tuigreet --help 2>&1 | grep -F -- '--no-xsession-wrapper' >/dev/null || { echo 'Installed tuigreet does not support --no-xsession-wrapper.' >&2; exit 1; }
-for file in session/forge-wayland-session session/forge-wayland-client session/forge-recovery-session session/forge-recovery-client session/forge-plasma-initialize session/forge-session scripts/forge-panel-manager; do bash -n "$root/$file"; done
+"$root/tests/greeter-contract.sh"
+for file in session/forge-wayland-session session/forge-wayland-client session/forge-recovery-session session/forge-recovery-client session/forge-plasma-initialize session/forge-session scripts/forge-panel-manager scripts/forge-live-setup scripts/forge-live-install; do bash -n "$root/$file"; done
 
 sudo install -d -o root -g root -m 0755 \
   /usr/local/libexec \
@@ -121,10 +122,10 @@ if [[ -r "$ollama_skills_root/skills.json" ]]; then
   install -m 0644 "$ollama_skills_root/skills.json" "$target_home/.config/ollama/skills.json"
 
   [[ ! -r "$ollama_skills_root/skills/local-model-tooling/SKILL.md" ]] ||
-    install -m 0644 "$ollama_skills_root/skills/local-model-tooling/SKILL.md"       "$target_home/.config/ollama/skills/local-model-tooling/SKILL.md"
+    install -m 0644 "$ollama_skills_root/skills/local-model-tooling/SKILL.md" "$target_home/.config/ollama/skills/local-model-tooling/SKILL.md"
 
   [[ ! -r "$ollama_skills_root/skills/local-model-tooling/agents/openai.yaml" ]] ||
-    install -m 0644 "$ollama_skills_root/skills/local-model-tooling/agents/openai.yaml"       "$target_home/.config/ollama/skills/local-model-tooling/agents/openai.yaml"
+    install -m 0644 "$ollama_skills_root/skills/local-model-tooling/agents/openai.yaml" "$target_home/.config/ollama/skills/local-model-tooling/agents/openai.yaml"
 else
   echo 'FORGE Ollama skill bundle is not present; skipping optional skill installation.'
 fi
@@ -181,7 +182,11 @@ installed_executable="/opt/forge/current/${FORGE_EXECUTABLE_RELATIVE_PATH}"
 getent passwd greeter >/dev/null || { echo 'The dedicated greeter account is missing.' >&2; exit 1; }
 
 grep -q '^source_profile = false$' /etc/greetd/config.toml || { echo 'greetd profile sourcing is not disabled.' >&2; exit 1; }
-grep -q -- "--cmd 'startplasma-wayland forge-wayland-session forge-wayland-client'" /etc/greetd/config.toml || { echo 'greetd does not default to the canonical FORGE runtime chain.' >&2; exit 1; }
+grep -Fq -- "--cmd '/usr/local/bin/forge-wayland-session'" /etc/greetd/config.toml || { echo 'greetd does not default to the last-good FORGE Wayland session path.' >&2; exit 1; }
+if grep -Eq -- '--background([ =]|$)|--matrix-|--kb-background|--remember-session' /etc/greetd/config.toml; then
+  echo 'greetd contains post-last-good persistent login behavior; refusing to enable it.' >&2
+  exit 1
+fi
 grep -q -- '--sessions /usr/share/forge-os/wayland-sessions' /etc/greetd/config.toml || { echo 'tuigreet is not isolated to the FORGE Wayland session directory.' >&2; exit 1; }
 
 sudo systemctl daemon-reload
@@ -197,7 +202,7 @@ if [[ -r "$forge_source/apps/desktop/resources/ollama/skills.json" ]]; then
     { echo 'Ollama-local skill parity installation failed.' >&2; exit 1; }
 
   if [[ -r "$forge_source/apps/desktop/resources/ollama/skills/local-model-tooling/SKILL.md" ]]; then
-    cmp -s "$forge_source/apps/desktop/resources/ollama/skills/local-model-tooling/SKILL.md"       "$target_home/.config/ollama/skills/local-model-tooling/SKILL.md" ||
+    cmp -s "$forge_source/apps/desktop/resources/ollama/skills/local-model-tooling/SKILL.md" "$target_home/.config/ollama/skills/local-model-tooling/SKILL.md" ||
       { echo 'Ollama-local tooling skill installation failed.' >&2; exit 1; }
   fi
 fi
