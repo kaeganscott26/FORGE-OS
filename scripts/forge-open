@@ -11,13 +11,6 @@ case "$target" in
   *) echo "Refusing to open a path outside the FORGE workspace: $target" >&2; exit 77 ;;
 esac
 
-if [[ -f "$target" && -x "$target" ]]; then
-  state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/forge"
-  mkdir -p "$state_dir"
-  cd -- "$(dirname -- "$target")"
-  nohup "$target" >>"$state_dir/program-launch.log" 2>&1 &
-  disown
-else
-  xdg-open "$target" >/dev/null 2>&1 &
-  disown
-fi
+if [[ -d "$target" ]]; then workspace_target="$target"; else workspace_target="$(dirname -- "$target")"; fi
+nohup /usr/local/bin/forge-session --workspace="$workspace_target" >/dev/null 2>&1 &
+disown

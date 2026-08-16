@@ -12,4 +12,4 @@ for package in "$@"; do
   [[ "$package" =~ ^[a-zA-Z0-9@._+-]+$ ]] || { echo "Invalid Arch package name: $package" >&2; exit 64; }
 done
 command -v pkexec >/dev/null || { echo 'pkexec is required for authenticated package installation.' >&2; exit 69; }
-exec pkexec /usr/bin/pacman -S --needed -- "${@}"
+exec /usr/local/bin/forge-app-install -S "${@}"

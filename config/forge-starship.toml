@@ -1,0 +1,80 @@
+add_newline = true
+command_timeout = 1200
+format = """$os$username$hostname$directory$git_branch$git_status$package$nodejs$python$rust$golang$nix_shell$cmd_duration$line_break$character"""
+
+palette = "forge_dr460nized"
+
+[palettes.forge_dr460nized]
+cyan = "#71d5ff"
+green = "#b8ff4d"
+magenta = "#c50ed2"
+orange = "#ff9e64"
+red = "#ff6b81"
+surface = "#182027"
+yellow = "#ffd166"
+
+[os]
+disabled = false
+style = "bold cyan"
+
+[os.symbols]
+Arch = "FORGE "
+Linux = "FORGE "
+Macos = "FORGE "
+Windows = "FORGE "
+
+[username]
+show_always = true
+style_user = "bold green"
+format = "[$user]($style)"
+
+[hostname]
+ssh_only = false
+style = "bold magenta"
+format = "[@$hostname]($style) "
+
+[directory]
+style = "bold cyan"
+truncation_length = 4
+truncate_to_repo = false
+read_only = " ro"
+
+[git_branch]
+symbol = "git:"
+style = "bold magenta"
+
+[git_status]
+style = "bold yellow"
+
+[package]
+symbol = "pkg:"
+style = "bold orange"
+
+[nodejs]
+symbol = "node:"
+style = "bold green"
+
+[python]
+symbol = "py:"
+style = "bold yellow"
+
+[rust]
+symbol = "rs:"
+style = "bold orange"
+
+[golang]
+symbol = "go:"
+style = "bold cyan"
+
+[nix_shell]
+symbol = "nix:"
+style = "bold cyan"
+
+[cmd_duration]
+min_time = 1500
+format = " took [$duration](bold yellow)"
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+vimcmd_symbol = "[❮](bold cyan)"

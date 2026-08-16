@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=FORGE Explorer
+Comment=Browse workspaces, inspect metadata and packages, and run executable files in the native FORGE shell
+Exec=/usr/local/bin/forge-session --workspace=%f
+Icon=system-file-manager
+Type=Application
+Categories=System;FileTools;FileManager;
+MimeType=inode/directory;application/x-executable;application/x-sharedlib;application/vnd.archlinux.package;application/vnd.debian.binary-package;application/json;text/plain;
+Keywords=files;folders;explorer;workspace;packages;executables;
+StartupNotify=true

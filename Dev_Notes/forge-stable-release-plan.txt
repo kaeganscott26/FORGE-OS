@@ -1,0 +1,24 @@
+
+# Codex_Session_8-16-26 10am
+
+codex must treat this as one update plan and all checks must be completed and verify.sh passes all runtime/compatibility checks. DO NOT STOP UNTIL ALL CHECKPOINTS IN THIS PLANNED TASk IS FINISHED FULLY without runtime errors or breaking current architecture
+
+• Updated Plan
+  └ Inventory is complete. The canonical dispatcher and environment contract are implemented, but isolated dispatcher tests, F4 profiles, and login theming remain before this step can be called complete.
+    ✔ Inventory both repositories, current local diffs, updated docs/Dev Notes, runtime processes/configuration, build scripts, release workflows, and all stale/redundant assets
+    □ Define and implement the canonical FORGE-owned Plasma Wayland session chain with one compositor owner, D-Bus/KRunner autostart, persistent login effects, F2/F4 profiles, and unchanged installed command paths
+    □ Replace commit-coupled build/update identity with versioned content manifests and compatible source-state provenance that tolerates ordinary commits while retaining integrity and rollback
+    □ Complete package management: authoritative manifests, forge-app-install/forge-install-pkg pacman flags, application discovery, mirrors, Wayland/Garuda stack, isolated Kali/apt and Nix compatibility, and safe
+      install/update scripts
+    □ Implement native FORGE-OS desktop surfaces for Applications, Network, Audio, Display, Power, Updates, Security, Recovery, and Advanced settings
+    □ Finish native Explorer executable/package/metadata handling, user/sudo permission mode, copy/paste, multi-window overlap/focus behavior, and Windows-11-style file workflows without delegating the primary UI to
+      Dolphin
+    □ Polish Workspace Intelligence top-bar plugin, chat sizing, automatic workspace context/memory indexing, agent tooling, release-workflow permission representation, and Ollama-local skill parity
+    □ Build the cross-platform native Recovery plugin/environment with logs, privileged diagnostic terminal boundary, last-known-good rollback, persistent memory preservation, and safe runtime cleanup
+    □ Match shared UI/runtime behavior across Linux, macOS, Windows, standalone, and OS-integrated builds while keeping Linux-only OS integration isolated
+    □ Create splash/login theming, persistent matrix effect, expanded F4 choices, Fish/Dr460nized-style terminal experience, and KDE translucency/windowing polish
+    □ Consolidate documentation, remove confirmed stale/redundant files, update README/Dev Notes/changelogs/manuals, and create a durable HANDOFF.md if work must continue across sessions
+    □ Run static checks, unit/integration tests, package-manifest resolution, production builds, runtime probes, recovery/rollback tests, updater tests, and repository consistency checks
+    □ Build and checksum Linux packages and the FORGE-OS ISO; perform all locally possible artifact inspections and record any physical boot/hardware acceptance that cannot be automated here
+    □ Only after every stable gate passes, bump the next build number, synchronize package metadata/runtime manifests, commit intentionally, push, tag, publish the stable GitHub release and ISO, verify remote hashes/
+      update feeds, then write the complete Codex session log and print finished

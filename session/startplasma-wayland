@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# FORGE-OS owns this command only for its canonical three-name session
+# contract. Plasma's vendor executable remains unchanged at /usr/bin.
+forge_session=/usr/local/bin/forge-wayland-session
+plasma_session=/usr/bin/startplasma-wayland
+if [[ "${FORGE_SESSION_DISPATCH_TEST:-0}" == 1 ]]; then
+  [[ -n "${FORGE_TEST_FORGE_SESSION:-}" && -n "${FORGE_TEST_PLASMA_SESSION:-}" ]] || { echo 'Test dispatcher commands are required.' >&2; exit 64; }
+  forge_session="$FORGE_TEST_FORGE_SESSION"
+  plasma_session="$FORGE_TEST_PLASMA_SESSION"
+fi
+
+if [[ "$#" -eq 2 && "$1" == forge-wayland-session && "$2" == forge-wayland-client ]]; then
+  export FORGE_RUNTIME_CHAIN='startplasma-wayland forge-wayland-session forge-wayland-client'
+  exec "$forge_session"
+fi
+
+# Preserve normal Plasma behavior for callers that are not selecting the
+# FORGE-owned session profile.
+exec "$plasma_session" "$@"

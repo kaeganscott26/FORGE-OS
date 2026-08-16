@@ -1,0 +1,11 @@
+[Unit]
+Description=Prepare the ephemeral FORGE-OS live desktop account
+Before=greetd.service forge-recovery.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/forge-live-setup
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

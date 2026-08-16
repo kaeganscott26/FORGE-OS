@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "$EUID" -eq 0 ]] || { echo 'forge-live-setup is a system service.' >&2; exit 77; }
+if ! id forge >/dev/null 2>&1; then
+  useradd --create-home --shell /usr/bin/fish --groups wheel,audio,video,input,storage,network forge
+fi
+passwd --delete forge >/dev/null
+install -d -o forge -g forge -m 0700 /home/forge/.local/state/forge
+install -d -o forge -g forge -m 0755 /home/forge/.config/fish/conf.d
+if [[ -r /usr/share/forge-os/forge-dr460nized.fish ]]; then
+  install -o forge -g forge -m 0644 /usr/share/forge-os/forge-dr460nized.fish /home/forge/.config/fish/conf.d/forge-dr460nized.fish
+fi
+if [[ -r /opt/forge/current/resources/ollama/skills.json ]]; then
+  install -d -o forge -g forge -m 0700 /home/forge/.config/ollama/skills/local-model-tooling/agents
+  install -o forge -g forge -m 0644 /opt/forge/current/resources/ollama/skills.json /home/forge/.config/ollama/skills.json
+  if [[ -r /opt/forge/current/resources/ollama/skills/local-model-tooling/SKILL.md ]]; then
+    install -o forge -g forge -m 0644 /opt/forge/current/resources/ollama/skills/local-model-tooling/SKILL.md /home/forge/.config/ollama/skills/local-model-tooling/SKILL.md
+    install -o forge -g forge -m 0644 /opt/forge/current/resources/ollama/skills/local-model-tooling/agents/openai.yaml /home/forge/.config/ollama/skills/local-model-tooling/agents/openai.yaml
+  fi
+fi
+install -d -o root -g root -m 0750 /etc/sudoers.d
+printf '%%wheel ALL=(ALL:ALL) ALL\n' >/etc/sudoers.d/10-forge-live
+chmod 0440 /etc/sudoers.d/10-forge-live

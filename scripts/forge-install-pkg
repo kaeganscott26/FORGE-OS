@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: forge-install-pkg [--backend arch|apt|kali|nix] OPERATION [PACKAGE...]
+Operations: -S, -Syu, -R, -Rns, -Q, -Ss, -Si; Arch also supports -U.
+EOF
+}
+
+backend=arch
+if [[ "${1:-}" == --backend ]]; then [[ $# -ge 3 ]] || { usage >&2; exit 64; }; backend="$2"; shift 2; fi
+(( $# > 0 )) || { usage >&2; exit 64; }
+operation="$1"; shift
+[[ "$operation" =~ ^-(S|Syu|R|Rns|U|Q|Ss|Si)$ ]] || { usage >&2; exit 64; }
+
+case "$backend" in
+  arch)
+    command -v /usr/bin/pacman >/dev/null || { echo 'The Arch backend is unavailable.' >&2; exit 69; }
+    case "$operation" in
+      -Q|-Ss|-Si) exec /usr/bin/pacman "$operation" -- "$@" ;;
+      -S|-Syu) exec pkexec /usr/bin/pacman "$operation" --needed -- "$@" ;;
+      *) exec pkexec /usr/bin/pacman "$operation" -- "$@" ;;
+    esac
+    ;;
+  apt|kali)
+    [[ "$operation" != -U ]] || { echo '-U is Arch-only.' >&2; exit 64; }
+    box=forge-apt; [[ "$backend" == kali ]] && box=forge-kali
+    distrobox list --no-color 2>/dev/null | grep -q "$box" || { echo "Initialize with: forge-workspace-bootstrap $backend" >&2; exit 69; }
+    case "$operation" in
+      -S) exec distrobox enter "$box" -- sudo apt-get install -- "$@" ;;
+      -Syu) distrobox enter "$box" -- sudo apt-get update; exec distrobox enter "$box" -- sudo apt-get dist-upgrade ;;
+      -R|-Rns) exec distrobox enter "$box" -- sudo apt-get remove -- "$@" ;;
+      -Q) exec distrobox enter "$box" -- dpkg-query -W "$@" ;;
+      -Ss) exec distrobox enter "$box" -- apt-cache search -- "$@" ;;
+      -Si) exec distrobox enter "$box" -- apt-cache show -- "$@" ;;
+    esac
+    ;;
+  nix)
+    [[ "$operation" != -U && "$operation" != -Rns ]] || operation=-R
+    command -v nix-env >/dev/null || { echo 'Initialize with: forge-workspace-bootstrap nix' >&2; exit 69; }
+    case "$operation" in
+      -S) attrs=(); for package in "$@"; do [[ "$package" =~ ^[A-Za-z0-9._+-]+$ ]] || { echo "Invalid Nix attribute: $package" >&2; exit 64; }; attrs+=("nixpkgs.$package"); done; exec nix-env -iA "${attrs[@]}" ;;
+      -Syu) nix-channel --update nixpkgs; exec nix-env -u ;;
+      -R) exec nix-env -e "$@" ;;
+      -Q) exec nix-env -q "$@" ;;
+      -Ss) exec nix search nixpkgs "$@" ;;
+      -Si) exec nix-env -qa --description "$@" ;;
+    esac
+    ;;
+  *) echo "Unknown backend: $backend" >&2; exit 64 ;;
+esac

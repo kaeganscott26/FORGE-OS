@@ -1,15 +1,38 @@
 [Windows]
 BorderlessMaximizedWindows=true
 Placement=Smart
+FocusPolicy=ClickToFocus
+NextFocusPrefersMouse=false
+RollOverDesktops=true
+
+[Compositing]
+AnimationSpeed=2
+Backend=OpenGL
+GLCore=true
+LatencyPolicy=Low
+WindowsBlockCompositing=false
 
 [Plugins]
 blurEnabled=true
 contrastEnabled=true
 diminactiveEnabled=false
+fadingpopupsEnabled=true
+fullscreenEnabled=true
+scaleEnabled=true
+slideEnabled=true
+translucencyEnabled=true
 
 [Effect-blur]
 BlurStrength=8
 NoiseStrength=2
+
+[Effect-translucency]
+ComboboxPopups=92
+Dialogs=94
+Inactive=97
+Menus=92
+MoveResize=88
+TornOffMenus=92
 
 [TabBox]
 LayoutName=thumbnail_grid

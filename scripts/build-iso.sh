@@ -5,7 +5,7 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 record="$root/build/latest.env"
 [[ -r "$record" ]] || { echo 'Run scripts/build-forge.sh first.' >&2; exit 1; }
 source "$record"
-for name in FORGE_SOURCE_COMMIT FORGE_VERSION FORGE_PACKAGE_SHA256 FORGE_LOCK_SHA256 FORGE_OS_VERSION FORGE_OS_COMMIT FORGE_OS_OVERLAY_SHA256 FORGE_RUNTIME_RELATIVE_PATH FORGE_EXECUTABLE_RELATIVE_PATH FORGE_EXECUTABLE_SHA256 FORGE_APP_ASAR_SHA256 FORGE_PAYLOAD_SHA256 FORGE_RUNTIME_ID; do
+for name in FORGE_SOURCE_COMMIT FORGE_VERSION FORGE_PACKAGE_SHA256 FORGE_LOCK_SHA256 FORGE_RUNTIME_SOURCE_SHA256 FORGE_OS_VERSION FORGE_OS_COMMIT FORGE_OS_OVERLAY_SHA256 FORGE_RUNTIME_RELATIVE_PATH FORGE_EXECUTABLE_RELATIVE_PATH FORGE_EXECUTABLE_SHA256 FORGE_APP_ASAR_SHA256 FORGE_PAYLOAD_SHA256 FORGE_RUNTIME_ID; do
   [[ -n "${!name:-}" ]] || { echo "Missing $name in $record" >&2; exit 1; }
 done
 overlay_hash() {
@@ -18,7 +18,6 @@ overlay_hash() {
 }
 payload_hash() { (cd "$1"; { find . -type f ! -name .forge-runtime.env -print0 | sort -z | xargs -0 sha256sum; find . -type l -printf 'LINK %p %l\n' | LC_ALL=C sort; }) | sha256sum | awk '{print $1}'; }
 [[ "$FORGE_OS_VERSION" == "$(<"$root/VERSION")" ]] || { echo 'Build record FORGE-OS version mismatch.' >&2; exit 1; }
-[[ "$FORGE_OS_COMMIT" == "$(git -C "$root" rev-parse HEAD)" ]] || { echo 'Build record FORGE-OS commit mismatch.' >&2; exit 1; }
 [[ "$FORGE_OS_OVERLAY_SHA256" == "$(overlay_hash | sha256sum | awk '{print $1}')" ]] || { echo 'Build record overlay hash mismatch.' >&2; exit 1; }
 runtime="$root/$FORGE_RUNTIME_RELATIVE_PATH"
 runtime_exec="$runtime/$FORGE_EXECUTABLE_RELATIVE_PATH"
@@ -43,6 +42,8 @@ install -d \
   "$profile/airootfs/usr/share/applications" \
   "$profile/airootfs/usr/share/xdg-desktop-portal" \
   "$profile/airootfs/etc/greetd" \
+  "$profile/airootfs/etc/systemd/system/greetd.service.d" \
+  "$profile/airootfs/etc/systemd/system/forge-recovery.service.d" \
   "$profile/airootfs/usr/share/forge-os/wayland-sessions" \
   "$profile/airootfs/etc/systemd/system/graphical.target.wants" \
   "$profile/airootfs/etc/systemd/system/getty.target.wants" \
@@ -51,20 +52,34 @@ cp -a "$runtime/." "$release/"
 ln -s "releases/$FORGE_RUNTIME_ID" "$profile/airootfs/opt/forge/current"
 install -m 4755 "$runtime/chrome-sandbox" "$release/chrome-sandbox"
 install -m 0755 "$root/session/forge-wayland-session" "$profile/airootfs/usr/local/bin/forge-wayland-session"
+install -m 0755 "$root/session/startplasma-wayland" "$profile/airootfs/usr/local/bin/startplasma-wayland"
 install -m 0755 "$root/session/forge-session" "$profile/airootfs/usr/local/bin/forge-session"
 install -m 0755 "$root/session/forge-wayland-client" "$profile/airootfs/usr/local/libexec/forge-wayland-client"
+install -m 0755 "$root/session/forge-recovery-session" "$profile/airootfs/usr/local/bin/forge-recovery-session"
+install -m 0755 "$root/session/forge-recovery-client" "$profile/airootfs/usr/local/libexec/forge-recovery-client"
+install -m 0755 "$root/scripts/forge-runtime-rollback-activate" "$profile/airootfs/usr/local/libexec/forge-runtime-rollback-activate"
 install -m 0755 "$root/session/forge-plasma-initialize" "$profile/airootfs/usr/local/libexec/forge-plasma-initialize"
-for tool in forge-app-launcher forge-open forge-workspace-runner forge-install-program forge-panel-manager forge-os-update; do
+for tool in forge-app-launcher forge-open forge-workspace-runner forge-install-program forge-app-install forge-install-pkg forge-panel-manager forge-os-update forge-runtime-rollback forge-workspace-bootstrap forge-refresh-mirrors install-wayland-stacks.sh; do
   install -m 0755 "$root/scripts/$tool" "$profile/airootfs/usr/local/bin/$tool"
 done
+install -m 0755 "$root/scripts/forge-live-setup" "$profile/airootfs/usr/local/libexec/forge-live-setup"
 install -m 0644 "$root/config/kwinrc" "$profile/airootfs/etc/xdg/kwinrc"
 install -m 0644 "$root/config/kdeglobals" "$profile/airootfs/etc/xdg/kdeglobals"
 install -m 0644 "$root/config/forge-portals.conf" "$profile/airootfs/usr/share/xdg-desktop-portal/forge-portals.conf"
-for desktop in forge-app-launcher.desktop forge-system-settings.desktop forge-workspace-runner.desktop forge-install-program.desktop forge-panel-manager.desktop; do
+for desktop in forge-app-launcher.desktop forge-explorer.desktop forge-system-settings.desktop forge-workspace-runner.desktop forge-install-program.desktop forge-panel-manager.desktop; do
   install -m 0644 "$root/session/$desktop" "$profile/airootfs/usr/share/applications/$desktop"
 done
 install -m 0644 "$root/session/forge.desktop" "$profile/airootfs/usr/share/forge-os/wayland-sessions/forge.desktop"
 install -m 0644 "$root/config/greetd-config.toml" "$profile/airootfs/etc/greetd/config.toml"
+sed 's/@USER@/forge/g' "$root/config/forge-recovery-greetd.toml" >"$profile/airootfs/etc/greetd/forge-recovery.toml"
+install -m 0644 "$root/config/forge-recovery.service" "$profile/airootfs/etc/systemd/system/forge-recovery.service"
+install -m 0644 "$root/config/forge-live-setup.service" "$profile/airootfs/etc/systemd/system/forge-live-setup.service"
+install -d "$profile/airootfs/usr/share/forge-os"
+install -m 0644 "$root/config/forge-dr460nized.fish" "$profile/airootfs/usr/share/forge-os/forge-dr460nized.fish"
+install -m 0644 "$root/config/forge-starship.toml" "$profile/airootfs/usr/share/forge-os/forge-starship.toml"
+install -m 0644 "$root/config/mirrorlist" "$profile/airootfs/usr/share/forge-os/mirrorlist"
+printf '[Unit]\nRequires=forge-live-setup.service\nAfter=forge-live-setup.service\n' >"$profile/airootfs/etc/systemd/system/greetd.service.d/forge-live.conf"
+printf '[Unit]\nRequires=forge-live-setup.service\nAfter=forge-live-setup.service\n' >"$profile/airootfs/etc/systemd/system/forge-recovery.service.d/live.conf"
 install -m 0644 "$record" "$release/.forge-runtime.env"
 install -m 0644 "$root/VERSION" "$profile/airootfs/etc/forge-os-version"
 sed -e "s/@VERSION@/$(<"$root/VERSION")/g" -e "s/@SOURCE_COMMIT@/${FORGE_SOURCE_COMMIT:0:12}/g" "$root/config/issue" >"$profile/airootfs/etc/issue"
@@ -77,9 +92,10 @@ while IFS= read -r package; do
 done < <(sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$root/manifests/arch-packages.txt")
 
 ln -sf /usr/lib/systemd/system/greetd.service "$profile/airootfs/etc/systemd/system/graphical.target.wants/greetd.service"
+ln -sf /etc/systemd/system/forge-recovery.service "$profile/airootfs/etc/systemd/system/autovt@tty2.service"
 ln -sf /usr/lib/systemd/system/greetd.service "$profile/airootfs/etc/systemd/system/display-manager.service"
-ln -sf /usr/lib/systemd/system/getty@.service "$profile/airootfs/etc/systemd/system/getty.target.wants/getty@tty2.service"
-for service in NetworkManager.service bluetooth.service irqbalance.service power-profiles-daemon.service; do
+ln -sf /etc/systemd/system/forge-live-setup.service "$profile/airootfs/etc/systemd/system/multi-user.target.wants/forge-live-setup.service"
+for service in NetworkManager.service bluetooth.service irqbalance.service power-profiles-daemon.service ollama.service; do
   ln -sf "/usr/lib/systemd/system/$service" "$profile/airootfs/etc/systemd/system/multi-user.target.wants/$service"
 done
 ln -sf /usr/lib/systemd/system/graphical.target "$profile/airootfs/etc/systemd/system/default.target"

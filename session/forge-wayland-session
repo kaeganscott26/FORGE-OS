@@ -13,9 +13,11 @@ export XDG_SESSION_TYPE=wayland
 export FORGE_OS_SESSION=1
 export FORGE_SHELL_MODE=1
 export FORGE_OS_VERSION="$(cat /etc/forge-os-version 2>/dev/null || printf unknown)"
+export FORGE_RUNTIME_CHAIN="${FORGE_RUNTIME_CHAIN:-startplasma-wayland forge-wayland-session forge-wayland-client}"
 export QT_QPA_PLATFORM='wayland;xcb'
 export KDE_FULL_SESSION=true
 export KDE_SESSION_VERSION=6
+export XDG_DATA_DIRS="$HOME/.nix-profile/share:/nix/var/nix/profiles/default/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/forge"
 mkdir -p "$state_dir"

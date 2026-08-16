@@ -5,15 +5,16 @@ set -euo pipefail
 [[ -n "${WAYLAND_DISPLAY:-}" ]] || { echo 'KWin did not publish WAYLAND_DISPLAY.' >&2; exit 71; }
 
 if command -v dbus-update-activation-environment >/dev/null 2>&1; then
-  dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE DBUS_SESSION_BUS_ADDRESS FORGE_OS_SESSION FORGE_SHELL_MODE FORGE_OS_VERSION
+  dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE DBUS_SESSION_BUS_ADDRESS FORGE_OS_SESSION FORGE_SHELL_MODE FORGE_OS_VERSION FORGE_RUNTIME_CHAIN
 fi
-command -v systemctl >/dev/null 2>&1 && systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE FORGE_OS_SESSION FORGE_SHELL_MODE FORGE_OS_VERSION || true
+command -v systemctl >/dev/null 2>&1 && systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE FORGE_OS_SESSION FORGE_SHELL_MODE FORGE_OS_VERSION FORGE_RUNTIME_CHAIN || true
 command -v xdg-user-dirs-update >/dev/null 2>&1 && xdg-user-dirs-update
 
 # Plasma is a visual/service layer underneath FORGE, not the primary shell.
 # The one-time initializer removes Plasma's stock panel; user-created panels
 # remain fully managed by plasmashell thereafter.
 command -v kded6 >/dev/null 2>&1 && kded6 &
+command -v krunner >/dev/null 2>&1 && krunner --daemon &
 if [[ -x /usr/lib/polkit-kde-authentication-agent-1 ]]; then
   /usr/lib/polkit-kde-authentication-agent-1 &
 fi

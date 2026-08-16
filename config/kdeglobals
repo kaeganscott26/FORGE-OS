@@ -8,3 +8,8 @@ Theme=breeze-dark
 [KDE]
 LookAndFeelPackage=org.kde.breezedark.desktop
 widgetStyle=kvantum-dark
+AnimationDurationFactor=0.8
+
+[Colors:Window]
+BackgroundNormal=18,24,27
+ForegroundNormal=220,230,224

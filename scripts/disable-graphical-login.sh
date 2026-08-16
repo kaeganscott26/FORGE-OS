@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 sudo systemctl disable --now greetd.service
+sudo systemctl disable --now forge-recovery.service >/dev/null 2>&1 || true
 sudo systemctl set-default multi-user.target
 sudo systemctl enable --now getty@tty1.service
 sudo systemctl enable --now getty@tty2.service

@@ -15,4 +15,8 @@ if sudo systemctl enable --now power-profiles-daemon.service; then
 else
   echo 'Warning: power-profiles-daemon could not be started; continuing the update.' >&2
 fi
+
+if ! sudo systemctl enable --now ollama.service; then
+  echo 'Warning: Ollama could not be started; local model tooling will remain unavailable until the service is repaired.' >&2
+fi
 echo 'Hardware services enabled. Reboot manually to activate a new kernel or AMD microcode.'

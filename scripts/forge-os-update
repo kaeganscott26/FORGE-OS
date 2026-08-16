@@ -17,12 +17,26 @@ for index in "${!repositories[@]}"; do
   [[ -d "$repository/.git" ]] || { echo "Required Git checkout is missing: $repository" >&2; exit 66; }
   [[ "$(git -C "$repository" branch --show-current)" == main ]] || { echo "Update checkout must be on main: $repository" >&2; exit 65; }
   [[ -z "$(git -C "$repository" status --porcelain)" ]] || { echo "Update checkout has uncommitted changes: $repository" >&2; exit 65; }
-  origin="$(git -C "$repository" remote get-url origin)"
+  origin="$(git -C "$repository" config --get remote.origin.url)"
   [[ "${origin%.git}" == "${expected_origins[$index]}" ]] || {
     echo "Update checkout has an untrusted origin: $repository ($origin)" >&2
     exit 65
   }
 done
+
+forge_before="$(git -C "$forge_repository" rev-parse HEAD)"
+os_before="$(git -C "$os_repository" rev-parse HEAD)"
+rollback_sources=true
+restore_sources_on_failure() {
+  local status=$?
+  if [[ "$rollback_sources" == true ]]; then
+    echo 'Update failed; restoring both clean source checkouts to their pre-update commits.' >&2
+    git -C "$forge_repository" reset --hard "$forge_before" >/dev/null
+    git -C "$os_repository" reset --hard "$os_before" >/dev/null
+  fi
+  exit "$status"
+}
+trap restore_sources_on_failure EXIT
 
 echo 'Checking the trusted FORGE and FORGE-OS origins...'
 git -C "$forge_repository" fetch --prune origin main
@@ -35,11 +49,14 @@ for repository in "${repositories[@]}"; do
   }
 done
 
-git -C "$forge_repository" pull --ff-only origin main
-git -C "$os_repository" pull --ff-only origin main
+git -C "$forge_repository" merge --ff-only origin/main
+git -C "$os_repository" merge --ff-only origin/main
 
 echo 'Installing the verified FORGE-OS update...'
 "$os_repository/scripts/install-forge-linux.sh"
+
+rollback_sources=false
+trap - EXIT
 
 echo
 echo 'FORGE-OS is updated. Reboot when convenient to enter the newly installed session stack.'

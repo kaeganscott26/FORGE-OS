@@ -2,6 +2,6 @@
 [Desktop Entry]
 Name=FORGE
 Comment=FORGE OS Wayland shell with Plasma visual services
-Exec=/usr/local/bin/forge-wayland-session
+Exec=startplasma-wayland forge-wayland-session forge-wayland-client
 Type=Application
-DesktopNames=FORGE
+X-DesktopNames=FORGE

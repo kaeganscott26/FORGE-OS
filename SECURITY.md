@@ -1,6 +1,6 @@
 # Security
 
-FORGE-OS `0.2.1-alpha` is experimental and should currently be used only on test hardware or systems with verified backups. The production graphical path is the rootless FORGE-owned KWin Wayland session; XWayland is retained only for legacy applications.
+FORGE-OS `0.2.2` is the stable live/recovery candidate. Until its ISO boot and hardware checklist is attached to the release, use it on test hardware or systems with verified backups. The production graphical path is the rootless FORGE-owned KWin Wayland session; XWayland is retained only for legacy applications.
 
 Updates launched through FORGE are visible, pin the official FORGE and FORGE-OS origins, reject dirty or divergent checkouts, use fast-forward-only pulls, and retain authentication at the authoritative installer boundary. They never discard local work or reboot automatically.
 

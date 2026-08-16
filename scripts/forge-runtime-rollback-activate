@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "$EUID" -eq 0 && $# -eq 2 ]] || { echo 'This helper is invoked through PolicyKit by forge-runtime-rollback.' >&2; exit 77; }
+runtime_root="$(realpath -m -- "${FORGE_RUNTIME_ROOT:-/opt/forge}")"
+[[ "$runtime_root" != / && "$runtime_root" != "$HOME" ]] || { echo 'Unsafe FORGE runtime root.' >&2; exit 64; }
+target="$(realpath -e -- "$1")"; current="$(realpath -e -- "$2")"
+case "$target" in "$runtime_root"/releases/*) ;; *) echo 'Rollback target is outside the immutable release store.' >&2; exit 74 ;; esac
+case "$current" in "$runtime_root"/releases/*) ;; *) echo 'Current runtime is outside the immutable release store.' >&2; exit 74 ;; esac
+[[ "$target" != "$current" && -r "$target/.forge-runtime.env" ]] || { echo 'Rollback runtime is not distinct and verified.' >&2; exit 74; }
+source "$target/.forge-runtime.env"
+binary="$target/${FORGE_EXECUTABLE_RELATIVE_PATH:-missing}"
+asar="$target/resources/app.asar"
+[[ "$(sha256sum "$binary" | awk '{print $1}')" == "${FORGE_EXECUTABLE_SHA256:-}" ]] || { echo 'Privileged rollback executable verification failed.' >&2; exit 74; }
+[[ "$(sha256sum "$asar" | awk '{print $1}')" == "${FORGE_APP_ASAR_SHA256:-}" ]] || { echo 'Privileged rollback app archive verification failed.' >&2; exit 74; }
+ln -sfn "releases/$(basename "$target")" "$runtime_root/current"
+ln -sfn "releases/$(basename "$target")" "$runtime_root/last-known-good"
+rm -rf -- "$current"

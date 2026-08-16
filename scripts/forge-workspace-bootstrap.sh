@@ -1,63 +1,44 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "========================================="
-echo "🚀 Starting Ultimate Mixed Distribution Workspace Setup"
-echo "========================================="
+usage() {
+  cat <<'EOF'
+Usage: forge-workspace-bootstrap apt|kali|nix|all
 
-# ----------------------------------------------------
-# 1. GARUDA LINUX MIRRORS & REPOSITORIES (Chaotic-AUR)
-# ----------------------------------------------------
-echo "📦 Setting up Garuda Linux Mirrors & Chaotic-AUR..."
-
-# Receive and sign the chaotic-aur primary keys
-sudo pacman-key --recv-key 3056513887B78AEB --keyserver ://ubuntu.com
-sudo pacman-key --lsign-key 3056513887B78AEB
-
-# Install the official Garuda/Chaotic keyring and network mirrorlist directly
-sudo pacman -U --noconfirm 'https://chaotic.cx' \
-                           'https://chaotic.cx'
-
-# Append the Chaotic-AUR repository to your Pacman config safely if not already present
-if ! grep -q "\[chaotic-aur\]" /etc/pacman.conf; then
-    sudo tee -a /etc/pacman.conf << 'EOF'
-
-[chaotic-aur]
-Include = /etc/pacman.d/chaotic-mirrorlist
+Creates rootless, isolated compatibility environments. It never adds Debian,
+Ubuntu, Kali, or Nix repositories to the Arch host package database.
 EOF
-fi
+}
 
-# Synchronize host databases and grab rankers used by Garuda
-sudo pacman -Syu --noconfirm reflector rate-mirrors
+[[ "$EUID" -ne 0 ]] || { echo 'Run as the signed-in user, not root.' >&2; exit 77; }
+action="${1:-}"
+[[ "$action" =~ ^(apt|kali|nix|all)$ ]] || { usage >&2; exit 64; }
 
-# ----------------------------------------------------
-# 2. NIXOS / NIX PACKAGE MANAGER INTEGRATION
-# ----------------------------------------------------
-echo "❄️ Installing Nix Package Manager (Multi-user)..."
+ensure_box() {
+  local name="$1" image="$2"
+  command -v distrobox >/dev/null || { echo 'Install the declared distrobox package first.' >&2; exit 69; }
+  command -v podman >/dev/null || { echo 'Install the declared podman package first.' >&2; exit 69; }
+  if distrobox list --no-color 2>/dev/null | awk 'NR > 1 {print $3}' | grep -Fxq "$name"; then
+    echo "$name already exists."
+    return
+  fi
+  distrobox create --yes --name "$name" --image "$image"
+  distrobox generate-entry "$name" >/dev/null 2>&1 || true
+}
 
-# Installs multi-user Nix with systemd service integrations automatically
-if ! command -v nix &> /dev/null; then
-    curl -L https://nixos.org | sh -s -- --daemon --yes
-    # Source the environment profile for immediate use in this script session
-    if [ -f /etc/profile.d/nix.sh ]; then
-        source /etc/profile.d/nix.sh
-    fi
-else
-    echo "Nix is already installed."
-fi
+setup_nix() {
+  command -v nix-env >/dev/null || { echo 'Install the declared nix package first.' >&2; exit 69; }
+  pkexec /usr/bin/systemctl enable --now nix-daemon.service
+  if ! nix-channel --list | awk '{print $1}' | grep -Fxq nixpkgs; then
+    nix-channel --add https://channels.nixos.org/nixpkgs-unstable nixpkgs
+  fi
+  nix-channel --update nixpkgs
+}
 
-# ----------------------------------------------------
-# 3. KALI LINUX ENVIRONMENT (Safe Tool Access via Distrobox)
-# ----------------------------------------------------
-echo "🐉 Deploying Kali Linux Container Sandbox..."
+[[ "$action" == apt || "$action" == all ]] && ensure_box forge-apt docker.io/library/ubuntu:24.04
+[[ "$action" == kali || "$action" == all ]] && ensure_box forge-kali docker.io/kalilinux/kali-rolling:latest
+[[ "$action" == nix || "$action" == all ]] && setup_nix
 
-# Distrobox uses podman/docker to let you run a full Kali userspace with local display access
-sudo pacman -S --noconfirm distrobox podman
-sudo systemctl enable --now podman.socket
-
-# Create a permanent Kali workspace container tracking official Kali repositories
-distrobox create --image docker.io/kalilinux/kali-rolling --name kali-workspace --yes
-
-echo "========================================="
-echo "✅ Bootstrap Complete! Read instructions below to use."
-echo "========================================="
+command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "${XDG_DATA_HOME:-$HOME/.local/share}/applications" >/dev/null 2>&1 || true
+command -v kbuildsycoca6 >/dev/null 2>&1 && kbuildsycoca6 --noincremental >/dev/null 2>&1 || true
+echo "FORGE compatibility environment '$action' is ready."

@@ -18,6 +18,7 @@ mkdir -p "$state_dir"
 commit="$(git -C "$forge_source" rev-parse HEAD)"
 lock_sha="$(sha256sum "$forge_source/package-lock.json" | awk '{print $1}')"
 package_sha="$(sha256sum "$forge_source/package.json" | awk '{print $1}')"
+runtime_source_sha="$($repository_root/scripts/runtime-source-hash.sh "$forge_source")"
 overlay_sha="$(
   for overlay in "${overlays[@]}"; do
     relative="${overlay#"$repository_root/"}"
@@ -62,13 +63,16 @@ payload_sha="$(
     find . -type l -printf 'LINK %p %l\n' | LC_ALL=C sort
   } | sha256sum | awk '{print $1}'
 )"
-runtime_id="${commit:0:12}-${overlay_sha:0:12}-${payload_sha:0:16}"
+# Runtime activation is content/version based. Git commits remain provenance,
+# but documentation-only commits do not invalidate an already verified build.
+runtime_id="forge-${forge_version}-${forge_os_version}-${overlay_sha:0:12}-${payload_sha:0:16}"
 cat >"$state_dir/latest.env.tmp" <<EOF
 FORGE_SOURCE_COMMIT=$commit
 FORGE_VERSION=$forge_version
 FORGE_BUILD_DATE=$build_date
 FORGE_PACKAGE_SHA256=$package_sha
 FORGE_LOCK_SHA256=$lock_sha
+FORGE_RUNTIME_SOURCE_SHA256=$runtime_source_sha
 FORGE_OS_VERSION=$forge_os_version
 FORGE_OS_COMMIT=$forge_os_commit
 FORGE_OS_OVERLAY_SHA256=$overlay_sha

@@ -1,94 +1,27 @@
-# 🔐 Security Model
+# Security model
 
-FORGE-OS keeps Linux as the authority for users, PAM authentication, permissions, services, networking, filesystems, and hardware. FORGE owns the desktop experience without replacing the operating system's security model.
+## Login and session
 
-## 👤 User and login boundary
+Normal tty1 login uses the unprivileged `greeter` account and PAM. The post-auth command is exactly `startplasma-wayland forge-wayland-session forge-wayland-client`; the narrow FORGE dispatcher owns its one-KWin branch, while unrelated calls fall through to the unchanged vendor executable. Shell profiles are not sourced.
 
-- `tuigreet` runs as the unprivileged dedicated `greeter` account.
-- PAM authenticates the selected normal user.
-- The FORGE graphical session runs as that authenticated user.
-- Production autologin is not configured.
-- `greetd` uses `source_profile = false`, so shell profiles cannot silently become part of graphical-session startup.
+F2 changes the complete command for one authenticated login. F3 selects the isolated FORGE session, F4 changes the visual background, and F5 exposes power actions. None grants root.
 
-The canonical post-authentication command is:
+The on-demand tty2 recovery session is intentionally pre-authenticated for diagnostics. It exposes user-owned logs and a user terminal. Runtime mutation still requires PolicyKit and is restricted to verified immutable directories under `/opt/forge/releases`.
 
-```bash
-/usr/local/bin/forge-wayland-session
-```
+## Files, applications, and packages
 
-Tuigreet discovers only the FORGE-owned Wayland entry by default. KWin runs rootlessly as the authenticated user; XWayland is a compatibility service, not a login/session backend.
+FORGE runs as a normal user. Renderer requests cross typed IPC; they never receive raw Node, shell, or package-manager access. Explorer resolves canonical workspace-contained paths and rejects traversal/symlink escapes. Administrator execution is explicit and confirmed.
 
-## ⌨️ F2 session-command selection
+Arch package mutations call the fixed `/usr/bin/pacman` through PolicyKit and use normal pacman database/cache/install paths. Apt/Ubuntu/Kali remain in rootless Distrobox containers; Nix remains in `/nix/store` and user profiles. No Debian/Kali repository is added to the Arch host. Mirrors are changed only by the explicit reviewed/ranked command.
 
-The greeter can accept an alternate complete session command through **F2** for development, compatibility testing, personalization, or recovery.
+## Runtime and updates
 
-That ability changes which user-session program is launched **after successful PAM authentication**. It does not grant root privileges and does not bypass Linux file/process permissions, but it can bypass FORGE shell UX/policy by deliberately launching a different desktop/session.
+Runtime identity uses application version, package/lock hashes, runtime-source content, ordered overlays, executable/app archive hashes, and full payload hash. Ordinary commits do not force a version bump; commit and deterministic build date remain provenance. Activation occurs only after verification. `chrome-sandbox` remains root-owned mode `4755`; permanent `--no-sandbox` is prohibited.
 
-Therefore:
+The source updater accepts no renderer-supplied URL, branch, command, or install path. It pins the two official origins, requires clean `main` checkouts, rejects divergence, fast-forwards only, and invokes the authoritative installer. It never resets local work or reboots automatically.
 
-- the stable ISO default remains `/usr/local/bin/forge-wayland-session`;
-- stable acceptance must not require F2;
-- alternate session commands are an authenticated-user capability, not a privileged system-management interface;
-- documentation must distinguish host-owned development profiles from the canonical FORGE-owned shell.
+## Agent and secrets
 
-See [`session/README.md`](../session/README.md).
+The release workflow may request all registered filesystem, process, Git, network, packaging, and publication tools. It cannot create a global allow-everything permission. Every mutation follows the FORGE policy/approval/audit path described in the FORGE repository `AGENTS.md`.
 
-## ⚖️ Session/compositor ownership
-
-Exactly one top-level component should own the graphical session/compositor.
-
-The canonical FORGE-owned session starts KWin itself. A host-owned Plasma profile should instead launch FORGE into an already-running Plasma/KWin environment.
-
-The current reference-machine wrapper:
-
-```bash
-/usr/lib/plasma-dbus-run session-if-needed /usr/bin/startplasma-wayland /usr/local/bin/forge-wayland-session
-```
-
-is treated as a development override because both the outer Plasma session and the inner FORGE launcher can attempt KWin/session ownership. This is primarily a reliability/isolation concern, but inconsistent D-Bus/portal/session ownership can also weaken assumptions made by security-sensitive desktop services.
-
-## 🧱 Privilege boundary
-
-The installer invokes `sudo` only for package installation, service configuration, and root-owned system/runtime files. FORGE itself is not run as root.
-
-Workspace program launching is limited to canonical paths beneath the active FORGE workspace and never evaluates a shell command string. Non-executable files go through `xdg-open`; executable files must already have their executable bit set.
-
-Package installation accepts validated repository package names and uses PolicyKit with `/usr/bin/pacman`, preserving an explicit authentication boundary. Future `forge install ...` UX must keep this privilege separation rather than turning FORGE into a root process or accepting renderer-controlled shell strings.
-
-The renderer cannot supply an update command, repository, branch, or install path. In a FORGE-OS session the update action can only launch the fixed `/usr/local/bin/forge-os-update` helper. That helper runs visibly as the authenticated user, pins trusted origins, rejects dirty/non-`main`/divergent/untrusted checkouts, uses fast-forward-only pulls, and invokes the authoritative installer. Privileged changes remain behind authentication prompts; updates never reboot automatically.
-
-Content-addressed runtime directories under `/opt/forge` are root-owned. Electron's `chrome-sandbox` is root-owned mode `4755`; permanent `--no-sandbox` is prohibited by release policy.
-
-## 🎛️ Runtime-profile UI boundary
-
-OS-facing capabilities should be enabled by explicit runtime profile:
-
-- standalone FORGE should not expose FORGE-OS-only package/power/panel/session controls;
-- host-owned Plasma/GNOME profiles should not duplicate or override host desktop security/session surfaces by accident;
-- native FORGE-OS shell mode may expose typed, allowlisted OS IPC behind the existing authentication and privilege boundaries.
-
-## 🧾 Logs and secrets
-
-Session logs may record startup stages, runtime identity, executable/workspace selection, and exit status. They must not record passwords, tokens, API keys, or complete environment dumps.
-
-FORGE child-process environment handling should pass only explicit session variables and continue rejecting secret-like requested variables.
-
-## 🗃️ Local state
-
-Machine-generated rollback state and user-specific desktop configuration belong beneath the user's XDG state directory, not in Git. Build output, ISO artifacts, credentials, and local configuration backups must not be committed.
-
-## 🛟 Recovery as an availability control
-
-`getty@tty2.service` is a required recovery path. `Ctrl+Alt+F2` must remain usable when the graphical stack fails. The graphical-disable flow returns the system to console operation without deleting the installed runtime or user data.
-
-## 📦 Release security gates
-
-A stable ISO must satisfy the checks in the [Release Checklist](RELEASE_CHECKLIST.md), including sandbox permissions, absence of embedded secrets, working recovery access, no permanent autologin, authenticated package operations, and a canonical direct session that does not rely on a nested compositor wrapper.
-
-## 🔗 Related documentation
-
-- [Runtime & Session Architecture](../session/README.md)
-- [Architecture](../ARCHITECTURE.md)
-- [Desktop Session](DESKTOP_SESSION.md)
-- [Recovery](RECOVERY.md)
-- [Release Checklist](RELEASE_CHECKLIST.md)
+Passwords, tokens, API keys, full environment dumps, and private workspace content must not enter logs or Git. Session/recovery logs record bounded runtime events and are user-readable only.

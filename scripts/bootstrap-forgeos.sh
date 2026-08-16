@@ -5,7 +5,7 @@ repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 manifest="$repository_root/manifests/arch-packages.txt"
 source /etc/os-release
 [[ "${ID:-}" == arch ]] || { echo 'This bootstrap supports Arch Linux only.' >&2; exit 1; }
-command -v pacman >/dev/null || { echo 'pacman is required.' >&2; exit 1; }
+command -v pacman >/dev/null || { echo 'The Arch package backend is required.' >&2; exit 1; }
 mapfile -t packages < <(sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$manifest")
 (( ${#packages[@]} > 0 )) || { echo 'Package manifest is empty.' >&2; exit 1; }
 
@@ -27,4 +27,4 @@ else
 fi
 
 echo "Installing ${#packages[@]} declared packages from $manifest"
-sudo pacman -Syu --needed --noconfirm "${packages[@]}"
+sudo /usr/bin/pacman -Syu --needed --noconfirm "${packages[@]}"

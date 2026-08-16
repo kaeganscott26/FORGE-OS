@@ -1,0 +1,30 @@
+name: Verify FORGE-OS source contract
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Install validation dependencies
+        run: pacman -Syu --noconfirm git nodejs-lts-jod npm python systemd desktop-file-utils pacman-contrib
+      - uses: actions/checkout@v7
+        with:
+          path: FORGE-OS
+      - uses: actions/checkout@v7
+        with:
+          repository: kaeganscott26/FORGE
+          path: FORGE
+      - name: Install locked FORGE dependencies
+        run: npm --prefix FORGE ci
+      - name: Verify complete source contract
+        run: FORGE_SOURCE="$GITHUB_WORKSPACE/FORGE" ./FORGE-OS/tests/source-verify.sh

@@ -1,0 +1,12 @@
+[Unit]
+Description=FORGE native graphical recovery environment on tty2
+After=systemd-user-sessions.service systemd-logind.service
+Conflicts=getty@tty2.service
+
+[Service]
+ExecStart=/usr/bin/greetd --socket-path /run/forge-recovery-greetd.sock --config /etc/greetd/forge-recovery.toml
+Restart=always
+RestartSec=2
+
+[Install]
+Alias=autovt@tty2.service

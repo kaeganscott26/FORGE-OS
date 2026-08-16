@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() { echo 'Usage: forge-refresh-mirrors [--tracked | --country COUNTRY]'; }
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+tracked="$root/config/mirrorlist"
+[[ -r "$tracked" ]] || tracked=/usr/share/forge-os/mirrorlist
+mode="${1:---country}"
+country="${2:-United States}"
+case "$mode" in
+  --tracked)
+    (( $# == 1 )) || { usage >&2; exit 64; }
+    [[ -r "$tracked" ]] || { echo 'Tracked FORGE mirror list is unavailable.' >&2; exit 69; }
+    pkexec /usr/bin/install -o root -g root -m 0644 "$tracked" /etc/pacman.d/mirrorlist
+    ;;
+  --country)
+    (( $# <= 2 )) || { usage >&2; exit 64; }
+    [[ "$country" =~ ^[A-Za-z][A-Za-z[:space:].-]{0,80}$ ]] || { echo 'Invalid country name.' >&2; exit 64; }
+    command -v reflector >/dev/null || { echo 'Install the declared reflector package first.' >&2; exit 69; }
+    temporary="$(mktemp)"; trap 'rm -f -- "$temporary"' EXIT
+    reflector --country "$country" --age 24 --latest 30 --protocol https --sort rate --save "$temporary"
+    grep -q '^Server = https://' "$temporary" || { echo 'Reflector returned no HTTPS mirrors.' >&2; exit 69; }
+    pkexec /usr/bin/install -o root -g root -m 0644 "$temporary" /etc/pacman.d/mirrorlist
+    ;;
+  *) usage >&2; exit 64 ;;
+esac
+echo 'Arch mirror order refreshed. Package installation remains explicit.'
