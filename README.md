@@ -4,35 +4,34 @@ FORGE-OS is the Arch-based integration layer that makes FORGE the visible worksp
 
 Current stable candidate: `0.2.2`. Publication remains gated by [release acceptance](docs/RELEASE_CHECKLIST.md).
 
-## Canonical login command
+## Login contract
 
-The greetd/tuigreet default and the F2 command profile are exactly:
+The normal greetd/tuigreet profile has been restored to the last-good pre-Matrix behavior. After authentication, tuigreet hands directly to the installed FORGE Wayland session:
 
 ```text
-startplasma-wayland forge-wayland-session forge-wayland-client
+/usr/local/bin/forge-wayland-session
 ```
 
-Keep those three command names and their order unchanged. FORGE-OS installs a dispatcher at `/usr/local/bin/startplasma-wayland`; it recognizes only the two trailing FORGE names, records the chain identity, and enters `/usr/local/bin/forge-wayland-session`. Every other invocation falls through to the unchanged vendor `/usr/bin/startplasma-wayland`.
-
-This produces one compositor owner:
+That installed file is copied from `session/forge-wayland-session` by the authoritative installer. The normal boot path is therefore:
 
 ```text
 greetd on tty1
   -> tuigreet
-  -> startplasma-wayland forge-wayland-session forge-wayland-client
-  -> FORGE dispatcher
-  -> KWin Wayland + XWayland compatibility
-  -> D-Bus, KRunner, KDE services, and Plasma visuals beneath FORGE
+  -> /usr/local/bin/forge-wayland-session
+  -> one KWin Wayland compositor + XWayland compatibility
+  -> /usr/local/libexec/forge-wayland-client
+  -> D-Bus, KRunner, KDE services, PolicyKit, and Plasma visuals beneath FORGE
+  -> /usr/local/bin/forge-session
   -> content-addressed FORGE runtime
 ```
 
-The production greeter command is validated against the actual `greetd-tuigreet` package declared in `manifests/arch-packages.txt`. The current Arch package supports the persistent Matrix background and F4 background selector; CI executes the packaged binary's `--help` contract against both normal and recovery configurations so unsupported flags or mutually-exclusive combinations cannot silently become boot-critical again.
+The login screen intentionally does **not** force a persistent Matrix/background mode. The greeter keeps the previous `--issue`, time, remembered user, password asterisks, power controls, isolated FORGE session directory, and direct Wayland handoff. `tests/greeter-contract.sh` executes the installed `tuigreet --help` contract so a future cosmetic change cannot silently introduce unsupported boot-critical options.
 
-Login shortcuts are F2 command, F3 session, F4 background, and F5 power.
+The FORGE desktop entry still retains `startplasma-wayland forge-wayland-session forge-wayland-client` as a compatibility/session-selector profile. `/usr/local/bin/startplasma-wayland` recognizes that exact profile and dispatches into the same installed `forge-wayland-session`; non-FORGE invocations continue to the vendor `/usr/bin/startplasma-wayland`.
 
 ## The two normal commands
 
-Normal installation and maintenance have exactly two repository entry points. Everything under `scripts/` is an implementation detail or an advanced/recovery tool unless a document explicitly says otherwise.
+Normal installation and maintenance have exactly two repository entry points. The underlying bootstrap, build, runtime, and configuration scripts are intentionally retained because the installer executes them as explicit stages.
 
 ### Install or repair the current checkout
 
@@ -43,7 +42,7 @@ cd ~/FORGE-OS
 ./install.sh
 ```
 
-`install.sh` is the authoritative install/repair entry point. It delegates to the Linux installer, which provisions required Arch packages, hardware integration, the FORGE runtime, Wayland session files, greetd, recovery components, and verification. It invokes sudo only for system mutations and never reboots automatically.
+`install.sh` delegates to `scripts/install-forge-linux.sh`. The installer verifies clean/current FORGE and FORGE-OS checkouts, runs `bootstrap-forgeos.sh` unless packages are skipped, runs hardware configuration, builds FORGE with `build-forge.sh` unless a verified current build is requested, installs that runtime with `install-runtime.sh`, installs the Wayland/greetd/recovery files, configures the user desktop, and finishes with installed-machine verification. It invokes sudo only for system mutations and never reboots automatically.
 
 ### Update FORGE + FORGE-OS and reinstall
 
@@ -52,11 +51,9 @@ cd ~/FORGE-OS
 ./update.sh
 ```
 
-`update.sh` is the authoritative source-based update entry point. It verifies both `~/FORGE` and `~/FORGE-OS`, fast-forwards their trusted `main` branches, runs the installer, and restores both source checkouts to their pre-update commits if installation fails. After a successful installation the same updater is also available as `forge-os-update`.
+`update.sh` delegates to `scripts/forge-os-update`. It verifies both `~/FORGE` and `~/FORGE-OS`, fast-forwards their trusted `main` branches, runs the installer, and restores both source checkouts to their pre-update commits if installation fails. After installation, the same updater is available as `forge-os-update`.
 
-Do not manually source `build/latest.env`, and do not run `bootstrap-forgeos.sh`, `build-forge.sh`, `install-runtime.sh`, or the package/bootstrap helpers as part of the normal update workflow. Those are internal stages used by the authoritative entry points.
-
-The installer still supports `--skip-packages` for a machine that already satisfies the complete manifest and `--use-current-build` for a build whose version, package/lock hashes, runtime-source hash, overlays, executable, app archive, and payload still match.
+The installer supports `--skip-packages` for a machine that already satisfies the complete manifest and `--use-current-build` only when the recorded version, package/lock hashes, runtime-source hash, overlays, executable, app archive, and payload still match.
 
 ## Package commands
 
@@ -79,15 +76,13 @@ Arch is the host backend. Apt/Ubuntu and Kali run only in rootless Distrobox/Pod
 - Fish is the login shell and uses the repository Dr460nized-inspired Fish/Starship palette.
 - FORGE Explorer is the default directory/file workflow; Dolphin is not the primary shell UI.
 - The native top bar owns Applications, System, Workspace Intelligence, clock, and Session.
-- Native system surfaces cover Network, Audio, Display, Power, Applications, Updates, Security, Recovery, and Advanced state. Fixed backend actions are exposed for networking, audio, power, applications, and updates.
+- Native system surfaces cover Network, Audio, Display, Power, Applications, Updates, Security, Recovery, and Advanced state.
 - Workspace source/memory indexing starts when a workspace opens and refreshes automatically on filesystem changes without prompting the model.
 - KWin provides focus, placement, blur, contrast, translucency, and animation under the FORGE shell.
 
-## Recovery
+## Installed-system recovery
 
-The graphical FORGE Recovery profile uses its own greetd/KWin path on tty2 and is installed as an on-demand `autovt@tty2.service` alias rather than an always-running graphical-target service.
-
-For a guaranteed break-glass console when the graphical login path is unhealthy, switch to another available TTY (for example Ctrl+Alt+F3), log in, and run:
+FORGE Recovery uses a separate greetd/KWin path on tty2 and is installed as the on-demand `autovt@tty2.service` alias rather than an always-running second graphical service. If the graphical stack itself is unhealthy, switch to another TTY such as Ctrl+Alt+F3, log in, and run:
 
 ```bash
 cd ~/FORGE-OS
@@ -95,6 +90,21 @@ cd ~/FORGE-OS
 ```
 
 That disables graphical login, restores console services, and preserves installed runtimes and user/project data. See [Recovery](docs/RECOVERY.md) for logs and rollback details.
+
+## Live ISO recovery and provisioning
+
+The ISO has a separate live-only profile. `forge-live-setup.service` detects ArchISO before it makes any privileged live changes. On live media it:
+
+- creates the ephemeral `forge` account;
+- grants passwordless sudo **only to that live account**;
+- installs the dedicated live greetd profile;
+- enters the same tested FORGE Wayland runtime with `FORGE_LIVE_RECOVERY=1` and `FORGE_RECOVERY_MODE=1`;
+- opens FORGE in its full-screen **Live Recovery** GUI;
+- exposes **Recovery Root Shell** and **Load / Install ISO or ZIP** launchers.
+
+The bundle loader accepts local `.iso` and `.zip` files, stages them read-only/extracted under `/run`, rejects unsafe ZIP paths, recognizes explicit installer entry points, and requires the user to type `INSTALL` before an installer is executed. Bundles without a recognized installer remain a manual-recovery case instead of being executed blindly.
+
+On an installed system, `forge-live-setup` exits without creating the live user, passwordless sudo rule, or live greeter configuration.
 
 ## Build and validate
 
@@ -105,7 +115,7 @@ That disables graphical login, restores console services, and preserves installe
 ./scripts/build-iso.sh
 ```
 
-`tests/greeter-contract.sh` prevents the packaged greeter and configured command line from silently drifting apart. `tests/source-verify.sh` is non-mutating. `tests/verify.sh` validates an installed machine. ISO publication additionally requires boot/hardware acceptance and artifact provenance from [the release checklist](docs/RELEASE_CHECKLIST.md).
+`tests/greeter-contract.sh` prevents the packaged greeter and configured command lines from drifting apart. `tests/source-verify.sh` checks the complete source/build contract. `tests/verify.sh` validates an installed machine. ISO publication additionally requires boot/hardware acceptance and artifact provenance from [the release checklist](docs/RELEASE_CHECKLIST.md).
 
 ## Documentation
 
