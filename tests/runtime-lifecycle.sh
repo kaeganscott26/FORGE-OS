@@ -31,10 +31,15 @@ current="$(readlink -f "$runtime_root/current")"
 [[ "$(sha256sum "$current/$FORGE_EXECUTABLE_RELATIVE_PATH" | awk '{print $1}')" == "$FORGE_EXECUTABLE_SHA256" ]] || { echo 'A corrupt installed release was not replaced from verified build content.' >&2; exit 1; }
 
 sudo env FORGE_RUNTIME_ROOT="$runtime_root" "$root/scripts/forge-runtime-rollback-activate" "$previous" "$current"
-[[ "$(readlink -f "$runtime_root/current")" == "$previous" && ! -e "$current" ]] || { echo 'Rollback did not activate last-known-good and remove the superseded runtime.' >&2; exit 1; }
+[[ "$(readlink -f "$runtime_root/current")" == "$previous" ]] || { echo 'Rollback did not activate last-known-good.' >&2; exit 1; }
+[[ -d "$current" && "$(readlink -f "$runtime_root/last-known-good")" == "$current" ]] || { echo 'Rollback did not retain the superseded current runtime as the reversible target.' >&2; exit 1; }
+
+sudo env FORGE_RUNTIME_ROOT="$runtime_root" "$root/scripts/forge-runtime-rollback-activate" "$current" "$previous"
+[[ "$(readlink -f "$runtime_root/current")" == "$current" ]] || { echo 'Second rollback did not switch back to the retained runtime.' >&2; exit 1; }
+[[ "$(readlink -f "$runtime_root/last-known-good")" == "$previous" ]] || { echo 'Second rollback did not restore the alternate last-known-good pointer.' >&2; exit 1; }
 
 FORGE_RUNTIME_ROOT="$runtime_root" "$root/scripts/install-runtime.sh" >/dev/null
 current="$(readlink -f "$runtime_root/current")"
-[[ "$(basename "$current")" == "$FORGE_RUNTIME_ID" && -d "$previous" && "$(readlink -f "$runtime_root/last-known-good")" == "$previous" ]] || { echo 'Update after rollback did not recreate a conflict-free current/known-good pair.' >&2; exit 1; }
+[[ "$(basename "$current")" == "$FORGE_RUNTIME_ID" && -d "$previous" && "$(readlink -f "$runtime_root/last-known-good")" == "$previous" ]] || { echo 'Update after reversible rollback did not preserve a valid current/known-good pair.' >&2; exit 1; }
 
-echo 'PASS: isolated install, repeat install, corrupt-runtime replacement, rollback, cleanup, and update-after-rollback lifecycle'
+echo 'PASS: isolated install, corrupt-runtime replacement, reversible rollback, and update-after-rollback lifecycle'
