@@ -29,6 +29,13 @@ create_fixture() {
   git clone --quiet "$bare" "$publisher"
   git_identity "$checkout"
   git_identity "$publisher"
+
+  # The test intentionally rewrites the trusted HTTPS origin to a local bare
+  # repository. Modern Git correctly restricts local-file transport in nested
+  # operations unless it is explicitly allowed. This opt-in applies only to
+  # the disposable fixture; production updater origin policy remains HTTPS-only.
+  git -C "$checkout" config protocol.file.allow always
+  git -C "$publisher" config protocol.file.allow always
   git -C "$checkout" remote set-url origin "$expected_url"
   git -C "$checkout" config "url.file://$bare.insteadOf" "$expected_url"
 }
