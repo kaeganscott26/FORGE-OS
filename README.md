@@ -6,6 +6,22 @@ Current development release: **`0.2.1-alpha`**.
 
 > The goal is simple: power on the machine, authenticate, and land directly inside FORGE without exposing a conventional Linux desktop workflow.
 
+## 🧭 Runtime configurations
+
+FORGE is intentionally able to run in more than one Linux presentation mode. The workspace/runtime stays the durable product boundary; the surrounding desktop/session can change depending on whether FORGE is being used as a normal application, as a Linux desktop application, or as the FORGE-OS shell.
+
+| Runtime / session | FORGE-OS version line | Status | What it does |
+| --- | --- | --- | --- |
+| **Standalone FORGE application** | FORGE app version; not tied to a FORGE-OS session version | ✅ Supported outside FORGE-OS | Runs the normal polished FORGE application on macOS, Windows, or an ordinary Linux desktop. `FORGE_OS_SESSION` / shell-only surfaces are absent; the host OS owns launchers, panels, settings, and desktop behavior. |
+| **FORGE X11 / Openbox session** | `0.1.1-alpha` session line | 🗃️ Historical | greetd authenticated into the verified `/usr/bin/xinit /usr/local/libexec/forge-session-client` chain. Openbox supplied the lightweight desktop/window-management substrate while FORGE remained the primary workspace. Retained in Git history, not the current production session. |
+| **Plasma 6 / KWin X11 session** | `0.1.2-alpha`–`0.1.3-alpha` | 🗃️ Historical | Added Plasma 6/KWin X11, KDE helpers, System Settings, application surfaces, and an automatic Openbox fallback while preserving the X11/xinit login chain. This was the bridge between the original X11 runtime and native Wayland. |
+| **FORGE native KWin Wayland shell** | `0.2.0-alpha` onward; current `0.2.1-alpha` | ✅ Current default | greetd → `forge-wayland-session` → KWin Wayland → Plasma visual/service layer → `forge-session` → FORGE. FORGE owns the visible UX; Plasma supplies composition, effects, wallpaper, portals, optional panels, and Linux desktop interoperability underneath it. |
+| **FORGE Wayland session + Electron XWayland fallback** | `0.2.x` | ✅ Current compatibility option | Keeps the current KWin Wayland FORGE-OS session but launches the packaged FORGE Electron window through XWayland by setting `FORGE_USE_XWAYLAND=1`. Intended for compatibility/testing when native Electron Wayland behavior is unsuitable. |
+
+The current shell is also **panel-configurable**: the stock Plasma panel is removed during first-session initialization, while `forge-panel-manager [edge]` can add persistent Plasma panels when a user wants conventional clock, tray, launcher, or status widgets. This changes the desktop presentation without changing the underlying `0.2.x` Wayland session.
+
+The production session contract exports `FORGE_OS_SESSION=1` and `FORGE_SHELL_MODE=1`. Outside that contract, FORGE behaves as the standalone application and does not expose FORGE-OS-only system surfaces.
+
 ## 🚀 Quick start
 
 Keep both repositories current, then run the authoritative installer from the normal desktop user account:
