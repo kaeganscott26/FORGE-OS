@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Recovery Root Shell
+Comment=Open an explicitly privileged shell in the ephemeral FORGE live environment
+Exec=konsole --hold -e sudo -i
+Icon=utilities-terminal
+Terminal=false
+Categories=System;Utility;
+NoDisplay=true
