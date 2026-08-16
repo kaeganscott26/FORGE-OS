@@ -1,0 +1,257 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: sudo forge-clean-install [--target /mnt] [--user USER] [--hostname NAME] [--timezone ZONE]
+
+FORGE-OS test installer for an already partitioned/formatted/mounted target.
+It NEVER partitions or formats disks.
+
+Required before running:
+  1. Mount the target root filesystem at /mnt (or --target PATH).
+  2. On UEFI systems, mount the EFI System Partition at TARGET/boot.
+  3. Have working network access for pacstrap/AUR bootstrap.
+
+Example:
+  mount /dev/nvme0n1p2 /mnt
+  mkdir -p /mnt/boot
+  mount /dev/nvme0n1p1 /mnt/boot
+  sudo forge-clean-install --target /mnt --user North3rnLight3r --hostname forge-linux
+EOF
+}
+
+[[ "$EUID" -eq 0 ]] || { echo 'forge-clean-install must run as root from the FORGE live environment.' >&2; exit 77; }
+if [[ ! -d /run/archiso && "${FORGE_LIVE_RECOVERY:-0}" != 1 ]]; then
+  echo 'Refusing clean-install outside the FORGE live/ArchISO environment.' >&2
+  exit 77
+fi
+
+target=/mnt
+install_user=''
+host_name='forge-linux'
+time_zone='UTC'
+while (( $# )); do
+  case "$1" in
+    --target) target="${2:?missing --target value}"; shift 2 ;;
+    --user) install_user="${2:?missing --user value}"; shift 2 ;;
+    --hostname) host_name="${2:?missing --hostname value}"; shift 2 ;;
+    --timezone) time_zone="${2:?missing --timezone value}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown option: $1" >&2; usage >&2; exit 64 ;;
+  esac
+done
+
+target="$(readlink -f -- "$target")"
+[[ "$target" != / && "$target" == /* ]] || { echo 'Unsafe target path.' >&2; exit 64; }
+mountpoint -q "$target" || { echo "Target root is not mounted: $target" >&2; exit 66; }
+[[ -d "$target/boot" ]] || mkdir -p "$target/boot"
+if [[ -d /sys/firmware/efi ]]; then
+  mountpoint -q "$target/boot" || {
+    echo "UEFI boot detected, but the EFI System Partition is not mounted at $target/boot." >&2
+    exit 66
+  }
+fi
+
+root_source="$(findmnt -nro SOURCE --target "$target")"
+[[ -n "$root_source" ]] || { echo 'Unable to resolve the target root block device.' >&2; exit 66; }
+if findmnt -nro TARGET / | grep -Fxq "$target"; then
+  echo 'Refusing to install over the running live root.' >&2
+  exit 77
+fi
+
+if [[ -z "$install_user" ]]; then
+  read -r -p 'New FORGE-OS username: ' install_user
+fi
+[[ "$install_user" =~ ^[a-z_][a-z0-9_-]*$ ]] || { echo 'Username must be a normal lowercase Linux account name.' >&2; exit 64; }
+[[ "$host_name" =~ ^[A-Za-z0-9][A-Za-z0-9.-]{0,62}$ ]] || { echo 'Invalid hostname.' >&2; exit 64; }
+[[ -e "/usr/share/zoneinfo/$time_zone" ]] || { echo "Unknown timezone: $time_zone" >&2; exit 64; }
+
+repo=/opt/forge-os
+runtime="$(readlink -f /opt/forge/current 2>/dev/null || true)"
+[[ -d "$repo" && -x "$repo/scripts/install-forge-linux.sh" ]] || { echo 'FORGE-OS live payload is missing.' >&2; exit 69; }
+[[ -d "$runtime" && -r "$runtime/.forge-runtime.env" ]] || { echo 'FORGE runtime provenance is missing from the live image.' >&2; exit 69; }
+source "$runtime/.forge-runtime.env"
+for name in FORGE_SOURCE_COMMIT FORGE_OS_COMMIT FORGE_OS_VERSION FORGE_RUNTIME_ID; do
+  [[ -n "${!name:-}" ]] || { echo "Missing runtime provenance field: $name" >&2; exit 69; }
+done
+[[ "$FORGE_OS_VERSION" == "$(<"$repo/VERSION")" ]] || { echo 'Live runtime and FORGE-OS source versions disagree.' >&2; exit 69; }
+
+mapfile -t packages < <(sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$repo/manifests/arch-packages.txt")
+(( ${#packages[@]} > 0 )) || { echo 'FORGE-OS package manifest is empty.' >&2; exit 69; }
+for command in pacstrap genfstab arch-chroot; do command -v "$command" >/dev/null || { echo "Missing live installer command: $command" >&2; exit 69; }; done
+
+printf '\nFORGE-OS CLEAN INSTALL\n'
+printf '  Version: %s\n' "$FORGE_OS_VERSION"
+printf '  Target:  %s (%s)\n' "$target" "$root_source"
+printf '  User:    %s\n' "$install_user"
+printf '  Host:    %s\n' "$host_name"
+printf '  TZ:      %s\n\n' "$time_zone"
+printf 'This WILL install packages and overwrite OS files beneath %s.\n' "$target"
+printf 'It will NOT partition or format any disk. Type INSTALL to continue: '
+read -r confirmation
+[[ "$confirmation" == INSTALL ]] || { echo 'Installation cancelled.'; exit 130; }
+
+# Use the live mirror state for the target bootstrap, but keep package ownership
+# and keyrings target-local through pacstrap -K.
+install -d -m 0755 "$target/etc/pacman.d"
+install -m 0644 /etc/pacman.d/mirrorlist "$target/etc/pacman.d/mirrorlist"
+
+pacstrap -K "$target" "${packages[@]}"
+
+genfstab -U "$target" >"$target/etc/fstab"
+sed -i 's/^#\(en_US.UTF-8 UTF-8\)$/\1/' "$target/etc/locale.gen"
+arch-chroot "$target" locale-gen
+printf 'LANG=en_US.UTF-8\n' >"$target/etc/locale.conf"
+printf '%s\n' "$host_name" >"$target/etc/hostname"
+ln -sfn "/usr/share/zoneinfo/$time_zone" "$target/etc/localtime"
+arch-chroot "$target" hwclock --systohc
+
+# Enable multilib in the installed target before community/AUR bootstrap.
+sed -i '/^#\[multilib\]$/,/^#Include = \/etc\/pacman.d\/mirrorlist$/ { s/^#\[multilib\]$/[multilib]/; s|^#Include = /etc/pacman.d/mirrorlist$|Include = /etc/pacman.d/mirrorlist|; }' "$target/etc/pacman.conf"
+arch-chroot "$target" /usr/bin/pacman -Sy --noconfirm
+
+arch-chroot "$target" useradd --create-home --shell /usr/bin/fish --groups wheel,audio,video,input,storage "$install_user"
+install -d -m 0750 "$target/etc/sudoers.d"
+printf '%%wheel ALL=(ALL:ALL) ALL\n' >"$target/etc/sudoers.d/10-wheel"
+chmod 0440 "$target/etc/sudoers.d/10-wheel"
+
+printf '\nSet the password for %s:\n' "$install_user"
+arch-chroot "$target" passwd "$install_user"
+arch-chroot "$target" passwd --lock root >/dev/null
+
+# Recreate the exact tested runtime rather than rebuilding anything on the new
+# target. Preserve chrome-sandbox ownership/mode and all runtime provenance.
+install -d -m 0755 "$target/opt/forge/releases"
+rm -rf -- "$target/opt/forge/releases/$FORGE_RUNTIME_ID"
+cp -a "$runtime" "$target/opt/forge/releases/$FORGE_RUNTIME_ID"
+ln -sfn "releases/$FORGE_RUNTIME_ID" "$target/opt/forge/current"
+chown -R root:root "$target/opt/forge/releases/$FORGE_RUNTIME_ID"
+if [[ -e "$target/opt/forge/releases/$FORGE_RUNTIME_ID/chrome-sandbox" ]]; then
+  chmod 4755 "$target/opt/forge/releases/$FORGE_RUNTIME_ID/chrome-sandbox"
+fi
+
+# Copy the immutable FORGE-OS source snapshot embedded in this ISO.
+rm -rf -- "$target/opt/forge-os"
+cp -a "$repo" "$target/opt/forge-os"
+chown -R root:root "$target/opt/forge-os"
+
+install -d -m 0755 \
+  "$target/usr/local/bin" "$target/usr/local/libexec" "$target/etc/greetd" "$target/etc/xdg/reflector" \
+  "$target/usr/share/applications" "$target/usr/share/xdg-desktop-portal" "$target/usr/share/forge-os/wayland-sessions"
+
+install -m 0755 "$repo/session/forge-wayland-session" "$target/usr/local/bin/forge-wayland-session"
+install -m 0755 "$repo/session/startplasma-wayland" "$target/usr/local/bin/startplasma-wayland"
+install -m 0755 "$repo/session/forge-session" "$target/usr/local/bin/forge-session"
+install -m 0755 "$repo/session/forge-wayland-client" "$target/usr/local/libexec/forge-wayland-client"
+install -m 0755 "$repo/session/forge-recovery-session" "$target/usr/local/bin/forge-recovery-session"
+install -m 0755 "$repo/session/forge-recovery-client" "$target/usr/local/libexec/forge-recovery-client"
+install -m 0755 "$repo/session/forge-plasma-initialize" "$target/usr/local/libexec/forge-plasma-initialize"
+install -m 0755 "$repo/scripts/forge-runtime-rollback-activate" "$target/usr/local/libexec/forge-runtime-rollback-activate"
+
+for tool in \
+  forge-app-launcher forge-open forge-workspace-runner forge-install-program forge-app-install forge-install-pkg \
+  forge-panel-manager forge-os-update forge-runtime-rollback forge-refresh-mirrors install-wayland-stacks.sh \
+  forge-system-surface forge-session-control; do
+  install -m 0755 "$repo/scripts/$tool" "$target/usr/local/bin/$tool"
+done
+install -m 0755 "$repo/scripts/forge-workspace-bootstrap.sh" "$target/usr/local/bin/forge-workspace-bootstrap"
+
+install -m 0644 "$repo/config/kwinrc" "$target/etc/xdg/kwinrc"
+install -m 0644 "$repo/config/kdeglobals" "$target/etc/xdg/kdeglobals"
+install -m 0644 "$repo/config/reflector.conf" "$target/etc/xdg/reflector/reflector.conf"
+install -m 0644 "$repo/config/forge-portals.conf" "$target/usr/share/xdg-desktop-portal/forge-portals.conf"
+install -m 0644 "$repo/config/mirrorlist" "$target/usr/share/forge-os/mirrorlist"
+install -m 0644 "$repo/config/forge-dr460nized.fish" "$target/usr/share/forge-os/forge-dr460nized.fish"
+install -m 0644 "$repo/config/forge-starship.toml" "$target/usr/share/forge-os/forge-starship.toml"
+
+for desktop in forge-app-launcher.desktop forge-explorer.desktop forge-system-settings.desktop forge-workspace-runner.desktop forge-install-program.desktop forge-panel-manager.desktop; do
+  install -m 0644 "$repo/session/$desktop" "$target/usr/share/applications/$desktop"
+done
+for desktop in "$repo"/session/forge-internal-*.desktop; do
+  install -m 0644 "$desktop" "$target/usr/share/applications/$(basename "$desktop")"
+done
+install -m 0644 "$repo/session/forge.desktop" "$target/usr/share/forge-os/wayland-sessions/forge.desktop"
+install -m 0644 "$repo/config/greetd-config.toml" "$target/etc/greetd/config.toml"
+sed "s/@USER@/$install_user/g" "$repo/config/forge-recovery-greetd.toml" >"$target/etc/greetd/forge-recovery.toml"
+install -m 0644 "$repo/config/forge-recovery.service" "$target/etc/systemd/system/forge-recovery.service"
+
+# Copy the exact canonical tuigreet binary/provenance used to build the ISO.
+install -m 0755 /usr/local/bin/tuigreet "$target/usr/local/bin/tuigreet"
+install -m 0644 /usr/share/forge-os/tuigreet-source.env "$target/usr/share/forge-os/tuigreet-source.env"
+install -d -o 0 -g 0 -m 0755 "$target/var/cache/tuigreet"
+if getent passwd greeter >/dev/null 2>&1; then
+  greeter_uid="$(arch-chroot "$target" id -u greeter)"
+  greeter_gid="$(arch-chroot "$target" id -g greeter)"
+  chown "$greeter_uid:$greeter_gid" "$target/var/cache/tuigreet"
+fi
+
+printf '%s\n' "$FORGE_OS_VERSION" >"$target/etc/forge-os-version"
+sed -e "s/@VERSION@/$FORGE_OS_VERSION/g" -e "s/@SOURCE_COMMIT@/${FORGE_SOURCE_COMMIT:0:12}/g" "$repo/config/issue" >"$target/etc/issue"
+
+# User defaults that do not require a live D-Bus desktop session.
+user_home="$target/home/$install_user"
+install -d -m 0755 "$user_home/.config/fish/conf.d" "$user_home/.local/state/forge"
+install -m 0644 "$repo/config/forge-dr460nized.fish" "$user_home/.config/fish/conf.d/forge-dr460nized.fish"
+chown -R "$(arch-chroot "$target" id -u "$install_user"):$(arch-chroot "$target" id -g "$install_user")" "$user_home/.config" "$user_home/.local"
+
+# Community repo/AUR setup runs as the target user with a temporary narrowly
+# scoped install-time sudo grant, then the grant is removed immediately.
+printf '%s ALL=(ALL:ALL) NOPASSWD: ALL\n' "$install_user" >"$target/etc/sudoers.d/20-forge-install-temp"
+chmod 0440 "$target/etc/sudoers.d/20-forge-install-temp"
+arch-chroot "$target" runuser -u "$install_user" -- env HOME="/home/$install_user" USER="$install_user" LOGNAME="$install_user" /opt/forge-os/scripts/configure-aur.sh
+rm -f -- "$target/etc/sudoers.d/20-forge-install-temp"
+
+# Clone editable source checkouts at the exact ISO provenance while leaving main
+# attached to origin/main so the first normal `git pull --ff-only` can advance.
+arch-chroot "$target" runuser -u "$install_user" -- bash -lc '
+set -euo pipefail
+cd "$HOME"
+rm -rf FORGE FORGE-OS
+git clone https://github.com/kaeganscott26/FORGE.git FORGE
+git -C FORGE checkout -B main '"$FORGE_SOURCE_COMMIT"'
+git -C FORGE branch --set-upstream-to=origin/main main
+git clone https://github.com/kaeganscott26/FORGE-OS.git FORGE-OS
+git -C FORGE-OS checkout -B main '"$FORGE_OS_COMMIT"'
+git -C FORGE-OS branch --set-upstream-to=origin/main main
+'
+
+# Persistent services and graphical login.
+for unit in NetworkManager.service bluetooth.service firewalld.service irqbalance.service systemd-timesyncd.service cups.service ollama.service; do
+  systemctl --root="$target" enable "$unit" >/dev/null
+ done
+for timer in fstrim.timer reflector.timer; do systemctl --root="$target" enable "$timer" >/dev/null; done
+for unit in pipewire.socket pipewire-pulse.socket wireplumber.service; do systemctl --root="$target" --global enable "$unit" >/dev/null 2>&1 || true; done
+systemctl --root="$target" enable greetd.service >/dev/null
+ln -sfn /usr/lib/systemd/system/greetd.service "$target/etc/systemd/system/display-manager.service"
+ln -sfn /etc/systemd/system/forge-recovery.service "$target/etc/systemd/system/autovt@tty2.service"
+ln -sfn /usr/lib/systemd/system/graphical.target "$target/etc/systemd/system/default.target"
+
+# UEFI systemd-boot installation. Manual partitioning remains fully user-owned.
+if [[ -d /sys/firmware/efi ]]; then
+  arch-chroot "$target" bootctl install
+  root_uuid="$(blkid -s UUID -o value "$root_source")"
+  [[ -n "$root_uuid" ]] || { echo 'Unable to resolve target root UUID.' >&2; exit 69; }
+  root_options="root=UUID=$root_uuid rw"
+  mount_options="$(findmnt -nro OPTIONS --target "$target")"
+  if [[ "$mount_options" =~ (^|,)subvol=([^,]+) ]]; then
+    root_options+=" rootflags=subvol=${BASH_REMATCH[2]}"
+  fi
+  install -d -m 0755 "$target/boot/loader/entries"
+  printf 'default forge-os.conf\ntimeout 3\nconsole-mode max\neditor no\n' >"$target/boot/loader/loader.conf"
+  {
+    printf 'title FORGE-OS %s\n' "$FORGE_OS_VERSION"
+    printf 'linux /vmlinuz-linux\n'
+    [[ -e "$target/boot/amd-ucode.img" ]] && printf 'initrd /amd-ucode.img\n'
+    [[ -e "$target/boot/intel-ucode.img" ]] && printf 'initrd /intel-ucode.img\n'
+    printf 'initrd /initramfs-linux.img\n'
+    printf 'options %s\n' "$root_options"
+  } >"$target/boot/loader/entries/forge-os.conf"
+else
+  echo 'WARNING: non-UEFI system detected. Bootloader was not installed automatically.' >&2
+  echo 'Install a BIOS-compatible bootloader manually before rebooting.' >&2
+fi
+
+printf '\nFORGE-OS %s clean installation finished.\n' "$FORGE_OS_VERSION"
+printf 'Target: %s\nUser: %s\nHostname: %s\n' "$target" "$install_user" "$host_name"
+printf 'You can inspect the target, then unmount it and reboot when ready.\n'
