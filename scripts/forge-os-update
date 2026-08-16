@@ -49,6 +49,13 @@ for repository in "${repositories[@]}"; do
   }
 done
 
+# Save the complete currently installed FORGE-owned integration layer before
+# changing either source tree. The checkpoint is hash-manifested and includes
+# the active immutable runtime identity, so Advanced can restore a broken
+# greetd/session/service update instead of rolling back only app.asar.
+[[ -x "$os_repository/scripts/forge-system-checkpoint" ]] || { echo 'System checkpoint helper is missing from FORGE-OS.' >&2; exit 69; }
+sudo "$os_repository/scripts/forge-system-checkpoint" "$forge_before" "$os_before"
+
 git -C "$forge_repository" merge --ff-only origin/main
 git -C "$os_repository" merge --ff-only origin/main
 
@@ -59,4 +66,4 @@ rollback_sources=false
 trap - EXIT
 
 echo
-echo 'FORGE-OS is updated. Reboot when convenient to enter the newly installed session stack.'
+echo 'FORGE-OS is updated. The pre-update system checkpoint is available from Advanced -> Roll back system checkpoint. Reboot when convenient to enter the newly installed session stack.'
