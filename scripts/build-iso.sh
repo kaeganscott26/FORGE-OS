@@ -43,10 +43,33 @@ sed -i '/^#\[multilib\]$/,/^#Include = \/etc\/pacman.d\/mirrorlist$/ {
   s/^#\[multilib\]$/[multilib]/
   s|^#Include = /etc/pacman.d/mirrorlist$|Include = /etc/pacman.d/mirrorlist|
 }' "$profile/pacman.conf"
+pacman_config_staged="$profile/pacman.conf.staged"
+awk -v mirror_file="$root/config/mirrorlist" '
+  $0 == "Include = /etc/pacman.d/mirrorlist" {
+    found = 0
+    while ((getline mirror < mirror_file) > 0) {
+      if (mirror ~ /^Server[[:space:]]*=/) { print mirror; found = 1 }
+    }
+    close(mirror_file)
+    if (!found) exit 42
+    next
+  }
+  { print }
+' "$profile/pacman.conf" >"$pacman_config_staged" || {
+  echo 'Unable to stage the tracked FORGE-OS mirrors in the ISO pacman configuration.' >&2
+  exit 1
+}
+mv "$pacman_config_staged" "$profile/pacman.conf"
 /usr/bin/pacman-conf --config "$profile/pacman.conf" --repo-list | grep -Fxq multilib || {
   echo 'The ISO pacman configuration does not expose [multilib].' >&2
   exit 1
 }
+for repository in core extra multilib; do
+  /usr/bin/pacman-conf --config "$profile/pacman.conf" --repo "$repository" Server | grep -q '^https://' || {
+    echo "The ISO pacman configuration has no tracked HTTPS server for [$repository]." >&2
+    exit 1
+  }
+done
 release="$profile/airootfs/opt/forge/releases/$FORGE_RUNTIME_ID"
 install -d \
   "$release" \
