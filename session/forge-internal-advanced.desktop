@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=FORGE Advanced
+Exec=/usr/local/bin/forge-system-surface advanced
+NoDisplay=true

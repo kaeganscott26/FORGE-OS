@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=FORGE Security
+Exec=/usr/local/bin/forge-system-surface security
+NoDisplay=true

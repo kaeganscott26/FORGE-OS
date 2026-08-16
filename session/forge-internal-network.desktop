@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=FORGE Network
+Exec=/usr/local/bin/forge-system-surface network
+NoDisplay=true

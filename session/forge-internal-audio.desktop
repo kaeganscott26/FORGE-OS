@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=FORGE Audio
+Exec=/usr/local/bin/forge-system-surface audio
+NoDisplay=true

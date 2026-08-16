@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=FORGE Lock Session
+Exec=/usr/local/bin/forge-session-control lock
+NoDisplay=true

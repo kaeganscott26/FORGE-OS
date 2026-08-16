@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "${FORGE_OS_SESSION:-0}" == 1 ]] || { echo 'FORGE system surfaces are available only inside FORGE-OS.' >&2; exit 77; }
+surface="${1:-}"
+
+kcm_available() {
+  command -v kcmshell6 >/dev/null 2>&1 || return 1
+  kcmshell6 --list 2>/dev/null | grep -Fq -- "$1"
+}
+
+open_kcm() {
+  local module
+  for module in "$@"; do
+    if kcm_available "$module"; then exec kcmshell6 "$module"; fi
+  done
+  command -v systemsettings >/dev/null 2>&1 && exec systemsettings
+  echo 'KDE System Settings is unavailable.' >&2
+  exit 69
+}
+
+case "$surface" in
+  network) open_kcm kcm_networkmanagement kcm_networkmanagement_global ;;
+  audio) open_kcm kcm_pulseaudio kcm_soundtheme ;;
+  display) open_kcm kcm_kscreen kcm_kwindecoration ;;
+  power) open_kcm kcm_powerdevilprofilesconfig kcm_powerdevilactivitiesconfig ;;
+  applications) exec /usr/local/bin/forge-app-launcher ;;
+  storage)
+    if command -v partitionmanager >/dev/null 2>&1; then exec partitionmanager; fi
+    open_kcm kcm_device_automounter kcm_disks
+    ;;
+  appearance) open_kcm kcm_lookandfeel kcm_colors kcm_style ;;
+  updates)
+    command -v konsole >/dev/null 2>&1 || { echo 'Konsole is unavailable.' >&2; exit 69; }
+    exec konsole --hold -e /usr/local/bin/forge-os-update
+    ;;
+  security) open_kcm kcm_firewall kcm_users ;;
+  recovery)
+    command -v konsole >/dev/null 2>&1 || { echo 'Konsole is unavailable.' >&2; exit 69; }
+    exec konsole --hold -e bash -lc 'printf "FORGE Recovery\n\nCtrl+Alt+F2 opens the dedicated graphical recovery profile.\nRollback command: forge-runtime-rollback\nDisable graphical login: ~/FORGE-OS/scripts/disable-graphical-login.sh\n\n"; exec fish'
+    ;;
+  advanced) exec systemsettings ;;
+  *) echo 'Usage: forge-system-surface network|audio|display|power|applications|storage|appearance|updates|security|recovery|advanced' >&2; exit 64 ;;
+esac

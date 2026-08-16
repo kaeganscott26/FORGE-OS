@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "${FORGE_OS_SESSION:-0}" == 1 ]] || { echo 'FORGE session controls are available only inside FORGE-OS.' >&2; exit 77; }
+action="${1:-}"
+session_id="${XDG_SESSION_ID:-}"
+
+case "$action" in
+  lock)
+    if [[ -n "$session_id" ]]; then exec loginctl lock-session "$session_id"; fi
+    exec loginctl lock-session
+    ;;
+  logout)
+    if [[ -n "$session_id" ]]; then exec loginctl terminate-session "$session_id"; fi
+    exec systemctl --user exit
+    ;;
+  restart|shutdown)
+    system_action=reboot
+    [[ "$action" == shutdown ]] && system_action=poweroff
+    if systemctl "$system_action" --no-block; then exit 0; fi
+    command -v pkexec >/dev/null 2>&1 || { echo "Unable to $action: PolicyKit is unavailable." >&2; exit 77; }
+    exec pkexec /usr/bin/systemctl "$system_action" --no-block
+    ;;
+  *) echo 'Usage: forge-session-control lock|logout|restart|shutdown' >&2; exit 64 ;;
+esac
