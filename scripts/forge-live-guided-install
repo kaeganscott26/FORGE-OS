@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: sudo forge-live-guided-install --target /mnt --user USER --hostname NAME --timezone ZONE [--features CSV]
+
+Runs the guarded FORGE-OS clean installer, then applies the live setup feature
+selection and installs/enables the first-boot service verifier.
+EOF
+}
+
+[[ "$EUID" -eq 0 ]] || { echo 'forge-live-guided-install must run as root in the live environment.' >&2; exit 77; }
+[[ -d /run/archiso || "${FORGE_LIVE_RECOVERY:-0}" == 1 ]] || { echo 'Guided installation is live-media only.' >&2; exit 77; }
+
+target=/mnt
+install_user=''
+host_name='forge-linux'
+time_zone='UTC'
+features='bluetooth,printing,local-ai,power-profiles,firmware'
+while (( $# )); do
+  case "$1" in
+    --target) target="${2:?missing --target value}"; shift 2 ;;
+    --user) install_user="${2:?missing --user value}"; shift 2 ;;
+    --hostname) host_name="${2:?missing --hostname value}"; shift 2 ;;
+    --timezone) time_zone="${2:?missing --timezone value}"; shift 2 ;;
+    --features) features="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown option: $1" >&2; usage >&2; exit 64 ;;
+  esac
+done
+
+[[ -n "$install_user" ]] || { echo '--user is required for guided installation.' >&2; exit 64; }
+target="$(readlink -f -- "$target")"
+mountpoint -q "$target" || { echo "Target root is not mounted: $target" >&2; exit 66; }
+
+case ",$features," in
+  *$'\n'*|*$'\r'*) echo 'Invalid feature list.' >&2; exit 64 ;;
+esac
+for feature in ${features//,/ }; do
+  case "$feature" in
+    bluetooth|printing|local-ai|power-profiles|firmware|'') ;;
+    *) echo "Unknown setup feature: $feature" >&2; exit 64 ;;
+  esac
+done
+
+/usr/local/bin/forge-clean-install \
+  --target "$target" \
+  --user "$install_user" \
+  --hostname "$host_name" \
+  --timezone "$time_zone"
+
+repo=/opt/forge-os
+[[ -r "$repo/config/forge-first-boot.service" && -x "$repo/scripts/forge-first-boot" ]] || {
+  echo 'First-boot payload is missing from the live image.' >&2
+  exit 69
+}
+
+install -d -m 0755 "$target/usr/local/libexec" "$target/etc/systemd/system" "$target/etc/forge-os" "$target/usr/share/forge-os"
+install -m 0755 "$repo/scripts/forge-first-boot" "$target/usr/local/libexec/forge-first-boot"
+install -m 0644 "$repo/config/forge-first-boot.service" "$target/etc/systemd/system/forge-first-boot.service"
+install -m 0644 "$repo/manifests/system-services.tsv" "$target/usr/share/forge-os/system-services.tsv"
+printf 'FORGE_FEATURES=%q\n' "$features" >"$target/etc/forge-os/features.conf"
+
+# The clean installer enables the complete tested baseline. Respect the setup
+# checkbox choices by disabling optional services/timers that the user did not
+# select. Required services are never made optional here.
+feature_enabled() { [[ ",${features}," == *",$1,"* ]]; }
+if ! feature_enabled bluetooth; then systemctl --root="$target" disable bluetooth.service >/dev/null 2>&1 || true; fi
+if ! feature_enabled printing; then systemctl --root="$target" disable cups.service >/dev/null 2>&1 || true; fi
+if ! feature_enabled local-ai; then systemctl --root="$target" disable ollama.service >/dev/null 2>&1 || true; fi
+if ! feature_enabled power-profiles; then systemctl --root="$target" disable power-profiles-daemon.service >/dev/null 2>&1 || true; fi
+if ! feature_enabled firmware; then systemctl --root="$target" disable fwupd-refresh.timer >/dev/null 2>&1 || true; fi
+
+systemctl --root="$target" enable forge-first-boot.service >/dev/null
+
+cat <<EOF
+
+FORGE-OS guided setup completed.
+  Target:   $target
+  User:     $install_user
+  Hostname: $host_name
+  Features: ${features:-required-services-only}
+
+The first installed boot will verify and start every required service before
+greetd enters the canonical /usr/local/bin/forge-wayland-session path.
+EOF
