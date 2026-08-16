@@ -31,6 +31,26 @@ The two commands are **not equivalent session ownership models**. The direct com
 - tty2 remains the independent recovery console.
 - F2 login-screen selection provides a deliberate development/recovery mechanism for alternate session commands.
 
+## 🔴 Current fresh-install blocker: package manifest mismatch
+
+The authoritative installer calls [`scripts/bootstrap-arch.sh`](scripts/bootstrap-arch.sh) unless `--skip-packages` is supplied.
+
+`bootstrap-arch.sh` currently expects:
+
+```text
+manifests/arch-packages.txt
+```
+
+but that file is not present in the current repository. The repository instead contains `manifests/arch-packages.sh`, which is **not** consumed by `bootstrap-arch.sh` and is not currently a valid replacement for the missing line-oriented package manifest.
+
+Impact:
+
+- a normal fresh install/update path that reaches package bootstrap is expected to fail before package installation;
+- `--skip-packages` can only be used safely on a machine where all required dependencies are already installed;
+- documentation must not claim a clean fresh install is fully validated until the authoritative package manifest is restored and the installer/verifier pass together.
+
+This is tracked in [Implementation Gaps](docs/IMPLEMENTATION_GAPS.md). The session/runtime architecture can still be evaluated independently from this packaging defect, but it is a release blocker.
+
 ## 🧱 Canonical production chain
 
 ```text
@@ -48,6 +68,7 @@ systemd graphical.target
 
 The OS architecture is functional, but current polish work remains:
 
+- restore and validate the authoritative package manifest used by `bootstrap-arch.sh`;
 - normalize a first-class **Plasma-hosted FORGE** profile so it launches FORGE inside an already-owned Plasma/KWin session instead of risking duplicate compositor ownership;
 - make FORGE application discovery refresh immediately after package installation so newly installed `.desktop` applications appear in the FORGE Applications surface without relying on a separate KDE/Qt launcher;
 - replace the current external-terminal package-install UX with an integrated FORGE-facing install flow while retaining PolicyKit/pacman as the privileged backend;
@@ -58,10 +79,11 @@ These are tracked in [Implementation Gaps](docs/IMPLEMENTATION_GAPS.md) and [Kno
 
 ## 🧪 Validation still required before a stable ISO tag
 
-The architecture and integrated updater are implemented and repository-testable, but physical KWin Wayland, GPU, wallpaper, panel, portal, Electron, update, logout, and recovery acceptance is still required before a stable release.
+The architecture and integrated updater are implemented and repository-testable, but physical KWin Wayland, GPU, wallpaper, panel, portal, Electron, update, logout, package bootstrap, and recovery acceptance is still required before a stable release.
 
 Before publishing an ISO as stable:
 
+- restore `manifests/arch-packages.txt` (or intentionally change the bootstrap contract) and prove a clean package bootstrap;
 - cold boot after pulling and reinstalling the current repository state;
 - confirm login requires no F2 command override for the canonical profile;
 - confirm FORGE remains active after login;
