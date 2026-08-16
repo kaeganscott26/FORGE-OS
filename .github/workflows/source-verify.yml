@@ -42,5 +42,7 @@ jobs:
         run: npm --prefix FORGE ci
       - name: Verify greeter package contract
         run: TUIGREET_BIN=/usr/local/bin/tuigreet bash ./FORGE-OS/tests/greeter-contract.sh
+      - name: Verify clean install safety contract
+        run: FORGE_SOURCE="$GITHUB_WORKSPACE/FORGE" bash ./FORGE-OS/tests/clean-install-contract.sh
       - name: Verify complete source contract
         run: FORGE_SOURCE="$GITHUB_WORKSPACE/FORGE" TUIGREET_BIN=/usr/local/bin/tuigreet ./FORGE-OS/tests/source-verify.sh
