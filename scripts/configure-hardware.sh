@@ -8,6 +8,7 @@ source /etc/os-release
 required_system_units=(
   NetworkManager.service
   bluetooth.service
+  firewalld.service
   irqbalance.service
   systemd-timesyncd.service
   cups.service
