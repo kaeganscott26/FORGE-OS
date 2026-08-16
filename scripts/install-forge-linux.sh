@@ -114,10 +114,20 @@ printf '%s\n' "$version" | sudo tee /etc/forge-os-version >/dev/null
 sudo chown root:root /etc/forge-os-version
 sudo chmod 0644 /etc/forge-os-version
 install -d -m 0700 "$target_home/.local/state/forge"
-install -d -m 0700 "$target_home/.config/ollama/skills/local-model-tooling/agents"
-install -m 0644 "$forge_source/apps/desktop/resources/ollama/skills.json" "$target_home/.config/ollama/skills.json"
-install -m 0644 "$forge_source/apps/desktop/resources/ollama/skills/local-model-tooling/SKILL.md" "$target_home/.config/ollama/skills/local-model-tooling/SKILL.md"
-install -m 0644 "$forge_source/apps/desktop/resources/ollama/skills/local-model-tooling/agents/openai.yaml" "$target_home/.config/ollama/skills/local-model-tooling/agents/openai.yaml"
+
+ollama_skills_root="$forge_source/apps/desktop/resources/ollama"
+if [[ -r "$ollama_skills_root/skills.json" ]]; then
+  install -d -m 0700 "$target_home/.config/ollama/skills/local-model-tooling/agents"
+  install -m 0644 "$ollama_skills_root/skills.json" "$target_home/.config/ollama/skills.json"
+
+  [[ ! -r "$ollama_skills_root/skills/local-model-tooling/SKILL.md" ]] ||
+    install -m 0644 "$ollama_skills_root/skills/local-model-tooling/SKILL.md"       "$target_home/.config/ollama/skills/local-model-tooling/SKILL.md"
+
+  [[ ! -r "$ollama_skills_root/skills/local-model-tooling/agents/openai.yaml" ]] ||
+    install -m 0644 "$ollama_skills_root/skills/local-model-tooling/agents/openai.yaml"       "$target_home/.config/ollama/skills/local-model-tooling/agents/openai.yaml"
+else
+  echo 'FORGE Ollama skill bundle is not present; skipping optional skill installation.'
+fi
 
 sudo rm -f /etc/profile.d/forge-autostart.sh /etc/forge/session.env
 if [[ -f "$target_home/.xinitrc" ]] && grep -q '/usr/local/bin/forge-session' "$target_home/.xinitrc" && grep -q 'FORGE_OS_SESSION=1' "$target_home/.xinitrc"; then
