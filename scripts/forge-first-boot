@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "$EUID" -eq 0 ]] || { echo 'forge-first-boot must run as root.' >&2; exit 77; }
+state_dir=/var/lib/forge-os
+complete="$state_dir/first-boot-complete"
+install -d -m 0755 "$state_dir"
+[[ ! -e "$complete" ]] || exit 0
+
+required_units=(
+  NetworkManager.service
+  firewalld.service
+  irqbalance.service
+  systemd-timesyncd.service
+)
+optional_units=(
+  bluetooth.service
+  cups.service
+  ollama.service
+  power-profiles-daemon.service
+)
+required_timers=(
+  fstrim.timer
+  reflector.timer
+)
+optional_timers=(
+  fwupd-refresh.timer
+)
+user_units=(
+  pipewire.socket
+  pipewire-pulse.socket
+  wireplumber.service
+)
+
+for unit in "${required_units[@]}"; do
+  systemctl cat "$unit" >/dev/null
+  systemctl enable "$unit" >/dev/null
+  systemctl start "$unit"
+done
+
+for unit in "${optional_units[@]}"; do
+  if systemctl cat "$unit" >/dev/null 2>&1; then
+    systemctl enable "$unit" >/dev/null
+    systemctl start "$unit" || echo "Optional service did not start during first boot: $unit" >&2
+  fi
+done
+
+for timer in "${required_timers[@]}"; do
+  systemctl cat "$timer" >/dev/null
+  systemctl enable "$timer" >/dev/null
+  systemctl start "$timer"
+done
+
+for timer in "${optional_timers[@]}"; do
+  if systemctl cat "$timer" >/dev/null 2>&1; then
+    systemctl enable "$timer" >/dev/null
+    systemctl start "$timer" || echo "Optional timer did not start during first boot: $timer" >&2
+  fi
+done
+
+for unit in "${user_units[@]}"; do
+  systemctl --global enable "$unit" >/dev/null
+ done
+
+# greetd is the canonical installed-system entry point. The setup service runs
+# before it, so a successful first boot cannot race a partially configured UI.
+systemctl enable greetd.service >/dev/null
+ln -sfn /usr/lib/systemd/system/greetd.service /etc/systemd/system/display-manager.service
+ln -sfn /usr/lib/systemd/system/graphical.target /etc/systemd/system/default.target
+
+# Mark completion only after every required service/timer has started.
+touch "$complete"
+systemctl disable forge-first-boot.service >/dev/null 2>&1 || true
+systemctl daemon-reload
+
+echo 'FORGE-OS first-boot service activation completed.'
