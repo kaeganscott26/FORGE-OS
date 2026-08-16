@@ -4,15 +4,17 @@ set -euo pipefail
 [[ "${XDG_SESSION_TYPE:-}" == wayland ]] || { echo 'FORGE Wayland client requires XDG_SESSION_TYPE=wayland.' >&2; exit 71; }
 [[ -n "${WAYLAND_DISPLAY:-}" ]] || { echo 'KWin did not publish WAYLAND_DISPLAY.' >&2; exit 71; }
 
+export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland}"
+export KDE_SESSION_VERSION="${KDE_SESSION_VERSION:-6}"
+
 if command -v dbus-update-activation-environment >/dev/null 2>&1; then
-  dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE DBUS_SESSION_BUS_ADDRESS FORGE_OS_SESSION FORGE_SHELL_MODE FORGE_OS_VERSION FORGE_RUNTIME_CHAIN FORGE_RECOVERY_MODE FORGE_LIVE_RECOVERY
+  dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE DBUS_SESSION_BUS_ADDRESS FORGE_OS_SESSION FORGE_SHELL_MODE FORGE_OS_VERSION FORGE_RUNTIME_CHAIN FORGE_RECOVERY_MODE FORGE_LIVE_RECOVERY QT_QPA_PLATFORM KDE_SESSION_VERSION
 fi
-command -v systemctl >/dev/null 2>&1 && systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE FORGE_OS_SESSION FORGE_SHELL_MODE FORGE_OS_VERSION FORGE_RUNTIME_CHAIN FORGE_RECOVERY_MODE FORGE_LIVE_RECOVERY || true
+command -v systemctl >/dev/null 2>&1 && systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE FORGE_OS_SESSION FORGE_SHELL_MODE FORGE_OS_VERSION FORGE_RUNTIME_CHAIN FORGE_RECOVERY_MODE FORGE_LIVE_RECOVERY QT_QPA_PLATFORM KDE_SESSION_VERSION || true
 command -v xdg-user-dirs-update >/dev/null 2>&1 && xdg-user-dirs-update
 
-# Plasma is a visual/service layer underneath FORGE, not the primary shell.
-# The one-time initializer removes Plasma's stock panel; user-created panels
-# remain fully managed by plasmashell thereafter.
+# Plasma/KDE provides native services, portals, settings windows, and the visual
+# layer underneath FORGE. KWin remains the only compositor/session owner.
 command -v kded6 >/dev/null 2>&1 && kded6 &
 command -v krunner >/dev/null 2>&1 && krunner --daemon &
 if [[ -x /usr/lib/polkit-kde-authentication-agent-1 ]]; then
@@ -22,6 +24,20 @@ plasmashell --no-respawn &
 plasma_pid=$!
 trap 'kill "$plasma_pid" 2>/dev/null || true' EXIT HUP INT TERM
 /usr/local/libexec/forge-plasma-initialize || true
+
+# A live ISO enters the same KWin/FORGE runtime, then opens the dedicated setup
+# as a normal themed KDE window. The marker prevents duplicate setup windows if
+# FORGE itself is restarted inside the same live session.
+if [[ "${FORGE_LIVE_RECOVERY:-0}" == 1 && -x /usr/local/bin/forge-live-setup-ui ]]; then
+  marker=/run/forge-live-setup/ui-started
+  if [[ ! -e "$marker" ]]; then
+    install -m 0600 /dev/null "$marker" 2>/dev/null || touch "$marker"
+    (
+      sleep 3
+      /usr/local/bin/forge-live-setup-ui >>"${XDG_STATE_HOME:-$HOME/.local/state}/forge/live-setup.log" 2>&1 || true
+    ) &
+  fi
+fi
 
 printf '[%s] Wayland session active; WAYLAND_DISPLAY=%s; DISPLAY=%s\n' \
   "$(date --iso-8601=seconds)" "$WAYLAND_DISPLAY" "${DISPLAY:-unset}"
