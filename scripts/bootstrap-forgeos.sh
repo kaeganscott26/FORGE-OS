@@ -5,7 +5,8 @@ repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 manifest="$repository_root/manifests/arch-packages.txt"
 source /etc/os-release
 [[ "${ID:-}" == arch ]] || { echo 'This bootstrap supports Arch Linux only.' >&2; exit 1; }
-command -v pacman >/dev/null || { echo 'The Arch package backend is required.' >&2; exit 1; }
+[[ "$EUID" -ne 0 ]] || { echo 'Run this bootstrap as the desktop user; sudo is invoked only for system mutations.' >&2; exit 77; }
+command -v /usr/bin/pacman >/dev/null || { echo 'The Arch package backend is required.' >&2; exit 1; }
 mapfile -t packages < <(sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$manifest")
 (( ${#packages[@]} > 0 )) || { echo 'Package manifest is empty.' >&2; exit 1; }
 
@@ -39,27 +40,52 @@ enable_multilib() {
   }
   sudo install -o root -g root -m 0644 "$staged" "$pacman_config"
   rm -f -- "$staged"
-  echo 'Enabled the official Arch [multilib] repository for Steam and 32-bit compatibility.'
+  echo 'Enabled the official Arch [multilib] repository.'
+}
+
+install_reference_mirrors() {
+  [[ "${FORGE_PRESERVE_MIRRORS:-0}" != 1 ]] || { echo 'Preserving current mirrorlist by explicit request.'; return; }
+  grep -q '^Server = https://' "$repository_root/config/mirrorlist" || { echo 'Tracked mirror list contains no HTTPS servers.' >&2; exit 1; }
+  sudo install -o root -g root -m 0644 "$repository_root/config/mirrorlist" /etc/pacman.d/mirrorlist
+  echo 'Installed tracked FORGE-OS HTTPS mirrors as the bootstrap baseline.'
+}
+
+refresh_ranked_mirrors() {
+  command -v reflector >/dev/null 2>&1 || return 0
+  local temporary
+  temporary="$(mktemp)"
+  if reflector --country 'United States' --age 24 --latest 30 --protocol https --sort rate --save "$temporary" && grep -q '^Server = https://' "$temporary"; then
+    sudo install -o root -g root -m 0644 "$temporary" /etc/pacman.d/mirrorlist
+    echo 'Ranked current U.S. HTTPS Arch mirrors with reflector.'
+  else
+    echo 'Warning: reflector refresh failed; retaining the tracked mirror baseline.' >&2
+  fi
+  rm -f -- "$temporary"
 }
 
 enable_multilib
+install_reference_mirrors
 
 legacy_x11=(xorg-server xorg-xinit openbox kwin-x11 thunar thunar-volman dunst xclip polkit-gnome)
 installed_legacy=()
 for package in "${legacy_x11[@]}"; do
-  pacman -Q "$package" >/dev/null 2>&1 && installed_legacy+=("$package")
+  /usr/bin/pacman -Q "$package" >/dev/null 2>&1 && installed_legacy+=("$package")
 done
 if (( ${#installed_legacy[@]} > 0 )); then
   echo "Removing retired X11 session packages: ${installed_legacy[*]}"
-  sudo pacman -Rns --noconfirm "${installed_legacy[@]}"
+  sudo /usr/bin/pacman -Rns --noconfirm "${installed_legacy[@]}"
 fi
 
-if [[ "${FORGE_USE_REFERENCE_MIRRORS:-0}" == 1 ]]; then
-  sudo install -o root -g root -m 0644 "$repository_root/config/mirrorlist" /etc/pacman.d/mirrorlist
-  echo 'Installed the FORGE-OS reference mirror order by explicit request.'
-else
-  echo 'Preserving the machine current pacman mirrorlist. Set FORGE_USE_REFERENCE_MIRRORS=1 to install the tracked reference list.'
-fi
-
-echo "Installing ${#packages[@]} declared packages from $manifest"
+echo "Installing ${#packages[@]} official packages from $manifest"
 sudo /usr/bin/pacman -Syu --needed --noconfirm "${packages[@]}"
+refresh_ranked_mirrors
+"$repository_root/scripts/configure-aur.sh"
+
+for repository in core extra multilib; do
+  /usr/bin/pacman-conf --repo-list | grep -Fxq "$repository" || { echo "Required pacman repository is disabled: $repository" >&2; exit 1; }
+done
+if [[ "${FORGE_DISABLE_CHAOTIC_AUR:-0}" != 1 ]]; then
+  /usr/bin/pacman-conf --repo-list | grep -Fxq chaotic-aur || { echo 'Chaotic-AUR repository was not enabled.' >&2; exit 1; }
+fi
+
+echo 'FORGE-OS package, mirror, AUR, and greeter bootstrap complete.'
