@@ -2,23 +2,63 @@
 set -euo pipefail
 
 [[ "$EUID" -eq 0 ]] || { echo 'forge-live-setup is a system service.' >&2; exit 77; }
-if ! id forge >/dev/null 2>&1; then
-  useradd --create-home --shell /usr/bin/fish --groups wheel,audio,video,input,storage,network forge
+
+is_live=false
+if [[ "${FORGE_LIVE_FORCE:-0}" == 1 || -d /run/archiso ]] || grep -Eq '(^| )(archisobasedir|archisolabel|cow_spacesize)=' /proc/cmdline 2>/dev/null; then
+  is_live=true
 fi
-passwd --delete forge >/dev/null
-install -d -o forge -g forge -m 0700 /home/forge/.local/state/forge
-install -d -o forge -g forge -m 0755 /home/forge/.config/fish/conf.d
+if [[ "$is_live" != true ]]; then
+  echo 'forge-live-setup detected an installed system; no live-user, passwordless sudo, or live greeter changes were applied.'
+  exit 0
+fi
+
+live_user=forge
+live_home=/home/forge
+repo=/opt/forge-os
+
+groups=(wheel audio video input storage)
+getent group network >/dev/null 2>&1 && groups+=(network)
+group_csv="$(IFS=,; echo "${groups[*]}")"
+if ! id "$live_user" >/dev/null 2>&1; then
+  useradd --create-home --shell /usr/bin/fish --groups "$group_csv" "$live_user"
+else
+  usermod --append --groups "$group_csv" --shell /usr/bin/fish "$live_user"
+fi
+passwd --delete "$live_user" >/dev/null
+
+install -d -o "$live_user" -g "$live_user" -m 0700 "$live_home/.local/state/forge"
+install -d -o "$live_user" -g "$live_user" -m 0755 "$live_home/.config/fish/conf.d"
 if [[ -r /usr/share/forge-os/forge-dr460nized.fish ]]; then
-  install -o forge -g forge -m 0644 /usr/share/forge-os/forge-dr460nized.fish /home/forge/.config/fish/conf.d/forge-dr460nized.fish
+  install -o "$live_user" -g "$live_user" -m 0644 /usr/share/forge-os/forge-dr460nized.fish "$live_home/.config/fish/conf.d/forge-dr460nized.fish"
 fi
 if [[ -r /opt/forge/current/resources/ollama/skills.json ]]; then
-  install -d -o forge -g forge -m 0700 /home/forge/.config/ollama/skills/local-model-tooling/agents
-  install -o forge -g forge -m 0644 /opt/forge/current/resources/ollama/skills.json /home/forge/.config/ollama/skills.json
+  install -d -o "$live_user" -g "$live_user" -m 0700 "$live_home/.config/ollama/skills/local-model-tooling/agents"
+  install -o "$live_user" -g "$live_user" -m 0644 /opt/forge/current/resources/ollama/skills.json "$live_home/.config/ollama/skills.json"
   if [[ -r /opt/forge/current/resources/ollama/skills/local-model-tooling/SKILL.md ]]; then
-    install -o forge -g forge -m 0644 /opt/forge/current/resources/ollama/skills/local-model-tooling/SKILL.md /home/forge/.config/ollama/skills/local-model-tooling/SKILL.md
-    install -o forge -g forge -m 0644 /opt/forge/current/resources/ollama/skills/local-model-tooling/agents/openai.yaml /home/forge/.config/ollama/skills/local-model-tooling/agents/openai.yaml
+    install -o "$live_user" -g "$live_user" -m 0644 /opt/forge/current/resources/ollama/skills/local-model-tooling/SKILL.md "$live_home/.config/ollama/skills/local-model-tooling/SKILL.md"
+  fi
+  if [[ -r /opt/forge/current/resources/ollama/skills/local-model-tooling/agents/openai.yaml ]]; then
+    install -o "$live_user" -g "$live_user" -m 0644 /opt/forge/current/resources/ollama/skills/local-model-tooling/agents/openai.yaml "$live_home/.config/ollama/skills/local-model-tooling/agents/openai.yaml"
   fi
 fi
+
+# Passwordless elevation is deliberately scoped to the ephemeral live account.
+# This file is never written by this service on an installed system.
 install -d -o root -g root -m 0750 /etc/sudoers.d
-printf '%%wheel ALL=(ALL:ALL) ALL\n' >/etc/sudoers.d/10-forge-live
+printf '%s ALL=(ALL:ALL) NOPASSWD: ALL\n' "$live_user" >/etc/sudoers.d/10-forge-live
 chmod 0440 /etc/sudoers.d/10-forge-live
+visudo -cf /etc/sudoers.d/10-forge-live >/dev/null
+
+[[ -r "$repo/config/forge-live-greetd.toml" ]] || { echo 'Live recovery greetd profile is missing from the ISO repository payload.' >&2; exit 1; }
+[[ -r "$repo/scripts/forge-live-install" ]] || { echo 'Live recovery installer helper is missing from the ISO repository payload.' >&2; exit 1; }
+install -o root -g root -m 0644 "$repo/config/forge-live-greetd.toml" /etc/greetd/config.toml
+install -o root -g root -m 0755 "$repo/scripts/forge-live-install" /usr/local/libexec/forge-live-install
+bash -n /usr/local/libexec/forge-live-install
+
+# The initial live session enters the same tested Wayland stack as an installed
+# system, but FORGE_LIVE_RECOVERY/FORGE_RECOVERY_MODE cause the application to
+# expose the recovery/provisioning GUI instead of the ordinary shell surface.
+grep -Fq 'FORGE_LIVE_RECOVERY=1' /etc/greetd/config.toml || { echo 'Live recovery environment flag is missing from greetd.' >&2; exit 1; }
+grep -Fq "/usr/local/bin/forge-wayland-session" /etc/greetd/config.toml || { echo 'Live recovery greetd does not use the installed FORGE Wayland session.' >&2; exit 1; }
+
+echo 'FORGE live recovery account, privileged shell boundary, bundle installer, and GUI session are ready.'
