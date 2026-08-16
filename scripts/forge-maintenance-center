@@ -22,8 +22,9 @@ while true; do
     root-shell 'Administrator shell — authenticated root shell with unrestricted system control' \
     verify 'Verify installed build — hashes, runtime, services, greeter, recovery, sandbox' \
     repair 'Repair current checkout — rebuild/reinstall the current verified FORGE + FORGE-OS source' \
-    update 'Update + reinstall — fast-forward trusted main branches and install the new verified build' \
-    rollback 'Roll back runtime — switch to the verified last-known-good build' \
+    update 'Update + reinstall — checkpoint current system, fast-forward trusted main, install new build' \
+    system-rollback 'Roll back system checkpoint — restore pre-update runtime + greetd/session/service configuration' \
+    runtime-rollback 'Switch runtime only — toggle verified current/last-known-good FORGE runtime' \
     console 'Console recovery — disable graphical login and boot to text mode' \
     close 'Close' 2>/dev/null || true)"
 
@@ -58,19 +59,31 @@ while true; do
         continue
       fi
       kdialog --title 'Update and reinstall' --warningyesno \
-        'Fast-forward the trusted FORGE and FORGE-OS main branches and run the authoritative installer? The updater rolls source checkouts back if installation fails.' || continue
+        'Save a hash-manifested checkpoint of the currently installed FORGE-OS integration, fast-forward the trusted FORGE/FORGE-OS main branches, and run the authoritative installer? Source checkouts are restored automatically if installation fails.' || continue
       open_terminal_action 'FORGE Update' "cd \"$repo\" && ./update.sh; status=\$?; printf '\\nUpdater exit status: %s\\n' \"\$status\"; exec fish"
       ;;
-    rollback)
+    system-rollback)
+      checkpoint=/var/lib/forge-os/checkpoints/previous/metadata.env
+      if [[ ! -r "$checkpoint" || ! -x /usr/local/bin/forge-system-rollback ]]; then
+        kdialog --sorry 'No verified pre-update FORGE-OS system checkpoint is available yet. A checkpoint is created automatically before the next update.'
+        continue
+      fi
+      created="$(sed -n 's/^FORGE_CHECKPOINT_CREATED=//p' "$checkpoint" | head -n1)"
+      os_commit="$(sed -n 's/^FORGE_CHECKPOINT_OS_COMMIT=//p' "$checkpoint" | head -n1)"
+      kdialog --title 'Roll back FORGE-OS system checkpoint' --warningyesno \
+        "Restore the hash-verified pre-update system checkpoint from ${created:-unknown time} (FORGE-OS ${os_commit:0:12})? This restores the FORGE runtime plus FORGE-owned greetd, Wayland session, service, theme, launcher, recovery, and helper configuration. User files/projects and package databases are not rolled back. The build you are leaving remains available as the alternate runtime target." || continue
+      open_terminal_action 'FORGE System Rollback' "/usr/local/bin/forge-system-rollback; status=\$?; printf '\\nSystem rollback exit status: %s\\n' \"\$status\"; exec fish"
+      ;;
+    runtime-rollback)
       target="$(readlink -f /opt/forge/last-known-good 2>/dev/null || true)"
       current="$(readlink -f /opt/forge/current 2>/dev/null || true)"
       if [[ -z "$target" || ! -d "$target" || "$target" == "$current" ]]; then
         kdialog --sorry 'No distinct verified last-known-good runtime is available.'
         continue
       fi
-      kdialog --title 'Roll back FORGE runtime' --warningyesno \
-        "Switch from $(basename "$current") to verified last-known-good $(basename "$target")? The current runtime is retained as the alternate rollback target, so the switch is reversible." || continue
-      open_terminal_action 'FORGE Rollback' "/usr/local/bin/forge-runtime-rollback; status=\$?; printf '\\nRollback exit status: %s\\n' \"\$status\"; exec fish"
+      kdialog --title 'Switch FORGE runtime only' --warningyesno \
+        "Switch from $(basename "$current") to verified last-known-good $(basename "$target") without changing FORGE-OS system configuration? The runtime switch is reversible." || continue
+      open_terminal_action 'FORGE Runtime Rollback' "/usr/local/bin/forge-runtime-rollback; status=\$?; printf '\\nRuntime rollback exit status: %s\\n' \"\$status\"; exec fish"
       ;;
     console)
       recovery="$repo/scripts/disable-graphical-login.sh"
