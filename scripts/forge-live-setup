@@ -24,8 +24,6 @@ if ! id "$live_user" >/dev/null 2>&1; then
 else
   usermod --append --groups "$group_csv" --shell /usr/bin/fish "$live_user"
 fi
-# greetd initial_session enters this account without password authentication.
-# Keep the password locked; explicit live-only sudo below is the privilege path.
 passwd --lock "$live_user" >/dev/null
 
 install -d -o "$live_user" -g "$live_user" -m 0700 "$live_home/.local/state/forge"
@@ -40,7 +38,6 @@ if [[ -r /opt/forge/current/resources/ollama/skills.json ]]; then
   [[ ! -r /opt/forge/current/resources/ollama/skills/local-model-tooling/agents/openai.yaml ]] || install -o "$live_user" -g "$live_user" -m 0644 /opt/forge/current/resources/ollama/skills/local-model-tooling/agents/openai.yaml "$live_home/.config/ollama/skills/local-model-tooling/agents/openai.yaml"
 fi
 
-# Passwordless elevation is deliberately scoped to the ephemeral live account.
 install -d -o root -g root -m 0750 /etc/sudoers.d
 printf '%s ALL=(ALL:ALL) NOPASSWD: ALL\n' "$live_user" >/etc/sudoers.d/10-forge-live
 chmod 0440 /etc/sudoers.d/10-forge-live
@@ -50,20 +47,25 @@ for required in \
   "$repo/config/forge-live-greetd.toml" \
   "$repo/scripts/forge-live-install" \
   "$repo/scripts/forge-live-select-installer" \
+  "$repo/scripts/forge-clean-install" \
   "$repo/session/forge-live-root-shell.desktop" \
-  "$repo/session/forge-live-installer.desktop"; do
+  "$repo/session/forge-live-installer.desktop" \
+  "$repo/session/forge-live-clean-install.desktop"; do
   [[ -r "$required" ]] || { echo "Live recovery payload is missing: $required" >&2; exit 1; }
 done
 
 install -o root -g root -m 0644 "$repo/config/forge-live-greetd.toml" /etc/greetd/config.toml
 install -o root -g root -m 0755 "$repo/scripts/forge-live-install" /usr/local/libexec/forge-live-install
 install -o root -g root -m 0755 "$repo/scripts/forge-live-select-installer" /usr/local/bin/forge-live-select-installer
+install -o root -g root -m 0755 "$repo/scripts/forge-clean-install" /usr/local/bin/forge-clean-install
 install -o root -g root -m 0644 "$repo/session/forge-live-root-shell.desktop" /usr/share/applications/forge-live-root-shell.desktop
 install -o root -g root -m 0644 "$repo/session/forge-live-installer.desktop" /usr/share/applications/forge-live-installer.desktop
+install -o root -g root -m 0644 "$repo/session/forge-live-clean-install.desktop" /usr/share/applications/forge-live-clean-install.desktop
 bash -n /usr/local/libexec/forge-live-install
 bash -n /usr/local/bin/forge-live-select-installer
+bash -n /usr/local/bin/forge-clean-install
 
 grep -Fq 'FORGE_LIVE_RECOVERY=1' /etc/greetd/config.toml || { echo 'Live recovery environment flag is missing from greetd.' >&2; exit 1; }
 grep -Fq '/usr/local/bin/forge-wayland-session' /etc/greetd/config.toml || { echo 'Live recovery greetd does not use the installed FORGE Wayland session.' >&2; exit 1; }
 
-echo 'FORGE live recovery account, privileged shell boundary, bundle installer, and GUI session are ready.'
+echo 'FORGE live recovery account, root shell, clean-install path, bundle installer, and GUI session are ready.'
