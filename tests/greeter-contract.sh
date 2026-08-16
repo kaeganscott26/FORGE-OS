@@ -42,16 +42,7 @@ PY
 
 option_supported() {
   local option="$1"
-  grep -Fq -- "$option" <<<"$help_text" && return 0
-
-  case "$option" in
-    --kb-command|--kb-sessions|--kb-power)
-      grep -Fq -- '--kb-[command|sessions|power]' <<<"$help_text"
-      ;;
-    *)
-      return 1
-      ;;
-  esac
+  grep -Fq -- "$option" <<<"$help_text"
 }
 
 for config in "$root/config/greetd-config.toml" "$root/config/forge-recovery-greetd.toml"; do
@@ -61,13 +52,18 @@ for config in "$root/config/greetd-config.toml" "$root/config/forge-recovery-gre
   done < <(extract_flags "$config")
 done
 
-grep -Fq -- "--cmd 'startplasma-wayland forge-wayland-session forge-wayland-client'" "$root/config/greetd-config.toml" || \
-  fail 'production greeter lost the canonical FORGE Wayland chain.'
+grep -Fq -- "--cmd '/usr/local/bin/forge-wayland-session'" "$root/config/greetd-config.toml" || \
+  fail 'production greeter does not hand off directly to the installed FORGE Wayland session.'
 
-grep -Fq -- '--background matrix' "$root/config/greetd-config.toml" || \
-  fail 'production greeter lost the persistent Matrix background.'
+if grep -Eq -- '--background([ =]|$)|--background-fps|--matrix-|--kb-background' "$root/config/greetd-config.toml"; then
+  fail 'production greeter has persistent background customization; the last-good login profile must remain unchanged.'
+fi
+
+if grep -Fq -- '--remember-session' "$root/config/greetd-config.toml"; then
+  fail 'production greeter changed the last-good session-selection behavior.'
+fi
 
 grep -Fq -- "--cmd '/usr/local/bin/forge-recovery-session'" "$root/config/forge-recovery-greetd.toml" || \
   fail 'recovery greeter lost the recovery session command.'
 
-echo "PASS: greetd configuration matches $(tuigreet --version 2>&1 | head -n1)."
+echo "PASS: greetd configuration matches the last-good login profile and $(tuigreet --version 2>&1 | head -n1)."
