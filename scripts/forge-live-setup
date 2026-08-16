@@ -24,7 +24,9 @@ if ! id "$live_user" >/dev/null 2>&1; then
 else
   usermod --append --groups "$group_csv" --shell /usr/bin/fish "$live_user"
 fi
-passwd --delete "$live_user" >/dev/null
+# greetd initial_session enters this account without password authentication.
+# Keep the password locked; explicit live-only sudo below is the privilege path.
+passwd --lock "$live_user" >/dev/null
 
 install -d -o "$live_user" -g "$live_user" -m 0700 "$live_home/.local/state/forge"
 install -d -o "$live_user" -g "$live_user" -m 0755 "$live_home/.config/fish/conf.d"
@@ -34,16 +36,11 @@ fi
 if [[ -r /opt/forge/current/resources/ollama/skills.json ]]; then
   install -d -o "$live_user" -g "$live_user" -m 0700 "$live_home/.config/ollama/skills/local-model-tooling/agents"
   install -o "$live_user" -g "$live_user" -m 0644 /opt/forge/current/resources/ollama/skills.json "$live_home/.config/ollama/skills.json"
-  if [[ -r /opt/forge/current/resources/ollama/skills/local-model-tooling/SKILL.md ]]; then
-    install -o "$live_user" -g "$live_user" -m 0644 /opt/forge/current/resources/ollama/skills/local-model-tooling/SKILL.md "$live_home/.config/ollama/skills/local-model-tooling/SKILL.md"
-  fi
-  if [[ -r /opt/forge/current/resources/ollama/skills/local-model-tooling/agents/openai.yaml ]]; then
-    install -o "$live_user" -g "$live_user" -m 0644 /opt/forge/current/resources/ollama/skills/local-model-tooling/agents/openai.yaml "$live_home/.config/ollama/skills/local-model-tooling/agents/openai.yaml"
-  fi
+  [[ ! -r /opt/forge/current/resources/ollama/skills/local-model-tooling/SKILL.md ]] || install -o "$live_user" -g "$live_user" -m 0644 /opt/forge/current/resources/ollama/skills/local-model-tooling/SKILL.md "$live_home/.config/ollama/skills/local-model-tooling/SKILL.md"
+  [[ ! -r /opt/forge/current/resources/ollama/skills/local-model-tooling/agents/openai.yaml ]] || install -o "$live_user" -g "$live_user" -m 0644 /opt/forge/current/resources/ollama/skills/local-model-tooling/agents/openai.yaml "$live_home/.config/ollama/skills/local-model-tooling/agents/openai.yaml"
 fi
 
 # Passwordless elevation is deliberately scoped to the ephemeral live account.
-# This file is never written by this service on an installed system.
 install -d -o root -g root -m 0750 /etc/sudoers.d
 printf '%s ALL=(ALL:ALL) NOPASSWD: ALL\n' "$live_user" >/etc/sudoers.d/10-forge-live
 chmod 0440 /etc/sudoers.d/10-forge-live
@@ -66,9 +63,6 @@ install -o root -g root -m 0644 "$repo/session/forge-live-installer.desktop" /us
 bash -n /usr/local/libexec/forge-live-install
 bash -n /usr/local/bin/forge-live-select-installer
 
-# The initial live session enters the same tested Wayland stack as an installed
-# system, but FORGE_LIVE_RECOVERY/FORGE_RECOVERY_MODE cause the application to
-# expose the recovery/provisioning GUI instead of the ordinary shell surface.
 grep -Fq 'FORGE_LIVE_RECOVERY=1' /etc/greetd/config.toml || { echo 'Live recovery environment flag is missing from greetd.' >&2; exit 1; }
 grep -Fq '/usr/local/bin/forge-wayland-session' /etc/greetd/config.toml || { echo 'Live recovery greetd does not use the installed FORGE Wayland session.' >&2; exit 1; }
 
