@@ -15,7 +15,7 @@ overlay_hash() {
 }
 
 "$root/tests/session-dispatcher.sh" && pass 'compatibility dispatcher tests pass' || fail 'compatibility dispatcher tests failed'
-"$root/tests/greeter-contract.sh" && pass 'Matrix-capable greeter contract passes' || fail 'greeter contract failed'
+"$root/tests/greeter-contract.sh" && pass 'canonical Matrix-capable greeter contract passes' || fail 'greeter contract failed'
 
 source /etc/os-release 2>/dev/null || true
 [[ "${ID:-}" == arch ]] && pass 'platform is Arch Linux' || fail 'platform is not Arch Linux'
@@ -24,15 +24,21 @@ for command in node npm git codex kwin_wayland plasmashell qdbus6 krunner kdialo
 [[ "$(node --version 2>/dev/null)" == v22.* ]] && pass 'Node major version is 22' || fail "Node 22 is required; found $(node --version 2>/dev/null || echo missing)"
 
 while IFS= read -r package; do check /usr/bin/pacman -Q "$package"; done < <(sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$root/manifests/arch-packages.txt")
-for package in xorg-server xorg-xinit openbox kwin-x11 thunar thunar-volman dunst xclip polkit-gnome greetd-tuigreet greetd-tuigreet-fork-bin; do
+for package in xorg-server xorg-xinit openbox kwin-x11 thunar thunar-volman dunst xclip polkit-gnome greetd-tuigreet greetd-tuigreet-fork-bin greetd-tuigreet-fork-git; do
   /usr/bin/pacman -Q "$package" >/dev/null 2>&1 && fail "retired/stale package remains installed: $package" || pass "retired/stale package absent: $package"
 done
-/usr/bin/pacman -Q greetd-tuigreet-fork-git >/dev/null 2>&1 && pass 'rolling maintained tuigreet fork package is installed' || fail 'rolling maintained tuigreet fork package is missing'
 for repository in core extra multilib chaotic-aur; do /usr/bin/pacman-conf --repo-list | grep -Fxq "$repository" && pass "repository enabled: $repository" || fail "repository disabled: $repository"; done
 
 grep -q '^Server = https://' /etc/pacman.d/mirrorlist && pass 'official mirrorlist contains HTTPS servers' || fail 'official mirrorlist is invalid'
 [[ -r /etc/xdg/reflector/reflector.conf ]] && pass 'reflector policy is installed' || fail 'reflector policy is missing'
-
+[[ -r /usr/share/forge-os/tuigreet-source.env ]] || fail 'canonical tuigreet source provenance is missing'
+if [[ -r /usr/share/forge-os/tuigreet-source.env ]]; then
+  grep -Fqx 'repository=https://github.com/tuigreet/tuigreet.git' /usr/share/forge-os/tuigreet-source.env && pass 'tuigreet canonical repository recorded' || fail 'tuigreet repository provenance is wrong'
+  grep -Fqx 'version=0.11.0' /usr/share/forge-os/tuigreet-source.env && pass 'tuigreet version 0.11.0 recorded' || fail 'tuigreet version provenance is wrong'
+  grep -Fqx 'commit=6fb15fffb794c6bd357164347d8b6d9e0aa92bbc' /usr/share/forge-os/tuigreet-source.env && pass 'tuigreet release commit recorded' || fail 'tuigreet commit provenance is wrong'
+fi
+version_text="$(/usr/local/bin/tuigreet --version 2>&1 | head -n1 || true)"
+grep -Fq '0.11.0' <<<"$version_text" && pass 'canonical tuigreet 0.11.0 is installed' || fail "unexpected tuigreet version: $version_text"
 help_text="$(/usr/local/bin/tuigreet --help 2>&1 || true)"
 for option in --background --kb-background --doom-height --matrix-length; do grep -Fq -- "$option" <<<"$help_text" && pass "tuigreet supports $option" || fail "tuigreet missing $option"; done
 
@@ -94,16 +100,12 @@ grep -Fq 'Exec=/usr/local/bin/forge-wayland-session' /usr/share/forge-os/wayland
 grep -Fq 'function pacman' "$HOME/.config/fish/conf.d/forge-dr460nized.fish" && pass 'interactive pacman wrapper is installed' || fail 'interactive pacman wrapper is missing'
 grep -Fq '/usr/local/bin/forge-install-pkg --backend arch' "$HOME/.config/fish/conf.d/forge-dr460nized.fish" && pass 'interactive pacman routes through forge-install-pkg' || fail 'interactive pacman routing is wrong'
 
-for unit in NetworkManager.service bluetooth.service irqbalance.service systemd-timesyncd.service cups.service ollama.service; do
+for unit in NetworkManager.service bluetooth.service firewalld.service irqbalance.service systemd-timesyncd.service cups.service ollama.service; do
   systemctl is-enabled "$unit" >/dev/null 2>&1 && pass "$unit enabled" || fail "$unit is not enabled"
   systemctl is-active "$unit" >/dev/null 2>&1 && pass "$unit active" || warn "$unit is enabled but not currently active"
 done
-for timer in fstrim.timer reflector.timer; do
-  systemctl is-enabled "$timer" >/dev/null 2>&1 && pass "$timer enabled" || fail "$timer is not enabled"
-done
-for unit in pipewire.socket pipewire-pulse.socket wireplumber.service; do
-  systemctl --global is-enabled "$unit" >/dev/null 2>&1 && pass "$unit globally enabled" || fail "$unit is not globally enabled"
-done
+for timer in fstrim.timer reflector.timer; do systemctl is-enabled "$timer" >/dev/null 2>&1 && pass "$timer enabled" || fail "$timer is not enabled"; done
+for unit in pipewire.socket pipewire-pulse.socket wireplumber.service; do systemctl --global is-enabled "$unit" >/dev/null 2>&1 && pass "$unit globally enabled" || fail "$unit is not globally enabled"; done
 systemctl is-enabled greetd.service >/dev/null 2>&1 && pass 'greetd enabled' || fail 'greetd not enabled'
 [[ "$(systemctl get-default 2>/dev/null)" == graphical.target ]] && pass 'default target is graphical.target' || fail 'default target is not graphical.target'
 [[ -L /etc/systemd/system/autovt@tty2.service && "$(readlink -f /etc/systemd/system/autovt@tty2.service)" == /etc/systemd/system/forge-recovery.service ]] && pass 'tty2 recovery alias is installed' || fail 'tty2 recovery alias is missing'
