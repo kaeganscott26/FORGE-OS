@@ -38,19 +38,28 @@ if [[ "$kind" == iso ]]; then
   mounted=true
 else
   command -v bsdtar >/dev/null || { echo 'bsdtar is required to load ZIP archives.' >&2; exit 69; }
+  while IFS= read -r entry; do
+    case "$entry" in
+      /*|../*|*/../*|*/..) echo "Unsafe archive path rejected: $entry" >&2; exit 65 ;;
+    esac
+  done < <(bsdtar -tf "$bundle")
   bsdtar -xf "$bundle" -C "$source_dir"
   chmod -R a+rX "$source_dir"
 fi
 
 find_installer() {
-  local candidate
+  local candidate resolved
   for candidate in \
     "$source_dir/forge-install.sh" \
     "$source_dir/install.sh" \
     "$source_dir/scripts/forge-install.sh" \
     "$source_dir/scripts/install.sh" \
     "$source_dir/scripts/install-forge-linux.sh"; do
-    [[ -f "$candidate" ]] && { printf '%s\n' "$candidate"; return 0; }
+    [[ -f "$candidate" ]] || continue
+    resolved="$(readlink -f -- "$candidate")"
+    [[ "$resolved" == "$source_dir"/* ]] || { echo "Installer escapes staged bundle: $candidate" >&2; return 65; }
+    printf '%s\n' "$resolved"
+    return 0
   done
   return 1
 }
@@ -86,9 +95,13 @@ read -r confirmation
 
 installer_dir="$(dirname "$installer")"
 installer_name="$(basename "$installer")"
-exec runuser -u forge -- env \
+set +e
+runuser -u forge -- env \
   HOME=/home/forge \
   USER=forge \
   LOGNAME=forge \
   PATH=/usr/local/sbin:/usr/local/bin:/usr/bin \
-  bash -lc "cd \"$installer_dir\" && exec bash \"./$installer_name\""
+  bash -c 'cd -- "$1" && exec bash "./$2"' bash "$installer_dir" "$installer_name"
+status=$?
+set -e
+exit "$status"
