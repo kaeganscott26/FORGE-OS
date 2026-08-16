@@ -1,6 +1,6 @@
 # 📦 FORGE-OS Release Checklist
 
-Use this checklist as the release gate for any ISO described as stable. A successful local build is not enough; the boot/login/session/recovery chain must survive real hardware validation.
+Use this checklist as the release gate for any ISO described as stable. A successful local build is not enough; package bootstrap, boot/login/session/recovery, and real hardware behavior must all be validated.
 
 The canonical stable target is the direct FORGE-owned Wayland profile documented in [`session/README.md`](../session/README.md).
 
@@ -14,9 +14,22 @@ The canonical stable target is the direct FORGE-owned Wayland profile documented
 - [ ] [`VERSION`](../VERSION) matches the intended release channel.
 - [ ] [`session/README.md`](../session/README.md), [`BUILD_STATE.md`](../BUILD_STATE.md), and the user/session docs agree on the canonical runtime path.
 
+## 📦 Package/bootstrap readiness
+
+The current `0.2.1-alpha` tree does **not** pass this section yet because `scripts/bootstrap-arch.sh` expects `manifests/arch-packages.txt`, which is currently absent.
+
+Before release:
+
+- [ ] Restore a valid `manifests/arch-packages.txt` **or** intentionally change bootstrap/ISO/tests/docs together to a new authoritative manifest format.
+- [ ] Confirm the package manifest used by `bootstrap-arch.sh` is the same source of truth used by ISO tooling and release documentation.
+- [ ] Run a clean package bootstrap on Arch without `--skip-packages`.
+- [ ] Confirm all packages required by `tests/verify.sh` are installed from that manifest.
+- [ ] Confirm the stale/non-authoritative `manifests/arch-packages.sh` does not conflict with or misrepresent the actual bootstrap contract.
+- [ ] Confirm a clean fresh install can complete from dependency bootstrap through final verification.
+
 ## 🖥️ Physical-machine candidate
 
-- [ ] Run `./scripts/install-forge-linux.sh` without bypassing verifier failures.
+- [ ] Run `./scripts/install-forge-linux.sh` without bypassing package bootstrap or verifier failures.
 - [ ] Confirm `./tests/verify.sh` reports **zero failures**.
 - [ ] Cold reboot the reference machine.
 - [ ] Confirm the FORGE-branded login appears without an Arch tty1 login or manual `startx`.
@@ -46,8 +59,6 @@ The canonical stable target is the direct FORGE-owned Wayland profile documented
 
 ## 🧪 Alternate-profile validation
 
-Alternate profiles are useful for development and compatibility but must not weaken the canonical stable path.
-
 - [ ] If testing the Plasma-hosted F2 override, verify whether Plasma/KWin is already running before FORGE handoff.
 - [ ] Do not ship the current nested `startplasma-wayland ... forge-wayland-session` wrapper as the stable default while both layers can attempt KWin/session ownership.
 - [ ] A future first-class Plasma-hosted profile must launch FORGE inside an already-owned host session without starting a second compositor.
@@ -56,11 +67,11 @@ Alternate profiles are useful for development and compatibility but must not wea
 
 ## 💿 ISO release candidate
 
-- [ ] Build the image with `./scripts/build-iso.sh` only after the physical-machine candidate passes.
+- [ ] Build the image with `./scripts/build-iso.sh` only after package/bootstrap and physical-machine gates pass.
 - [ ] Confirm `build/iso/SHA256SUMS` exists and matches the final artifact.
 - [ ] Boot the ISO on the reference machine.
 - [ ] Boot the ISO on at least one additional machine or VM with different graphics/network hardware.
-- [ ] Repeat login, session, terminal-environment, application-launch, package/install-discovery, networking, audio, portal, logout/relogin, and tty2 recovery checks from the ISO.
+- [ ] Repeat package-bootstrap, login, session, terminal-environment, application-launch, install/discovery, networking, audio, portal, logout/relogin, and tty2 recovery checks from the ISO.
 - [ ] Verify the ISO runtime identity under `/opt/forge/current`.
 - [ ] Verify `chrome-sandbox` is root-owned mode `4755`.
 - [ ] Record minimum requirements and known hardware limitations.
@@ -83,4 +94,4 @@ Alternate profiles are useful for development and compatibility but must not wea
 - [ ] The tag/version reflects the actual validation level (`alpha`, `beta`, `rc`, or stable).
 - [ ] Only after every stable gate above passes should the ISO be described as a stable release.
 
-See the [Runtime & Session Architecture](../session/README.md), [Documentation Hub](README.md), [Recovery Guide](RECOVERY.md), and [Architecture](../ARCHITECTURE.md) for supporting details.
+See the [Runtime & Session Architecture](../session/README.md), [Current Build State](../BUILD_STATE.md), [Implementation Gaps](IMPLEMENTATION_GAPS.md), [Recovery Guide](RECOVERY.md), and [Architecture](../ARCHITECTURE.md).
