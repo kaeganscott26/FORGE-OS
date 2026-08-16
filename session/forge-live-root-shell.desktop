@@ -6,4 +6,3 @@ Exec=konsole --hold -e sudo -i
 Icon=utilities-terminal
 Terminal=false
 Categories=System;Utility;
-NoDisplay=true
