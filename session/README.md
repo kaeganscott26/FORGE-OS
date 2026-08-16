@@ -2,84 +2,77 @@
 
 ## Normal authenticated profile
 
-The normal greetd profile is intentionally back on the last-good pre-Matrix behavior. After authentication, tuigreet executes:
+The normal authenticated command is one installed path:
 
 ```text
 /usr/local/bin/forge-wayland-session
 ```
 
-The installer copies that command from `session/forge-wayland-session`. It starts the FORGE-owned KWin Wayland session and then `/usr/local/libexec/forge-wayland-client`.
+Both the greeter F2 default and the visible F3 FORGE desktop entry use that path. The installer copies it from `session/forge-wayland-session`; historical X11/session-client entries are removed from production installation.
 
-The desktop/session-selector compatibility entry still uses:
-
-```text
-startplasma-wayland forge-wayland-session forge-wayland-client
-```
-
-The installed paths remain:
-
-- `/usr/local/bin/startplasma-wayland`
-- `/usr/local/bin/forge-wayland-session`
-- `/usr/local/libexec/forge-wayland-client`
-
-`/usr/local/bin/startplasma-wayland` is a narrow FORGE dispatcher. With exactly `forge-wayland-session forge-wayland-client`, it exports `FORGE_RUNTIME_CHAIN` and executes the same installed `forge-wayland-session`. Every other invocation executes the unchanged `/usr/bin/startplasma-wayland` vendor command.
+A compatibility dispatcher remains at `/usr/local/bin/startplasma-wayland` for old FORGE command chains and vendor Plasma calls, but it is not the normal user-visible login path.
 
 ## Ownership and process tree
 
-Exactly one component owns KWin in the normal login path:
+Exactly one component owns KWin:
 
 ```text
 greetd
-  -> packaged tuigreet
+  -> /usr/local/bin/tuigreet
   -> /usr/local/bin/forge-wayland-session
   -> dbus-run-session kwin_wayland --xwayland --exit-with-session
   -> /usr/local/libexec/forge-wayland-client
-  -> kded6 + krunner --daemon + PolicyKit agent + plasmashell --no-respawn
+  -> kded6 + krunner + PolicyKit agent + plasmashell
   -> /usr/local/bin/forge-session
   -> /opt/forge/current/<recorded executable>
 ```
 
-Plasma is the visual/service layer, not a second desktop owner. The one-time initializer removes only the stock Plasma panel; user-created Plasma panels remain configurable.
+Plasma remains the visual/service layer under FORGE rather than a second desktop owner. `forge-wayland-session` exports FORGE desktop/session identity, and `forge-wayland-client` imports Wayland, D-Bus, FORGE, and recovery flags into the user service environment.
 
-The session exports `XDG_CURRENT_DESKTOP=FORGE`, `XDG_SESSION_DESKTOP=FORGE`, `XDG_SESSION_TYPE=wayland`, `FORGE_OS_SESSION=1`, `FORGE_SHELL_MODE=1`, `FORGE_OS_VERSION`, and the live Wayland/D-Bus environment. `forge-wayland-client` imports those values plus recovery/live-recovery flags into D-Bus and the systemd user manager.
+## Login UI
 
-`FORGE_USE_XWAYLAND=1` changes Electron rendering only. KWin still owns a Wayland session.
+FORGE-OS uses the rolling maintained NotAShelf tuigreet fork while the background feature set remains ahead of the latest tagged binary release. The required contract is validated from the installed binary itself before greetd is enabled.
 
-## Login controls and greeter compatibility
+- **Matrix is the default background.**
+- **F2** edits the command, defaulting to `/usr/local/bin/forge-wayland-session`.
+- **F3** opens the isolated FORGE Wayland session list; the FORGE entry resolves to the same installed path.
+- **F4** opens live background selection, including Matrix, None, and the classic DOOM fire effect.
+- **F5** opens the configured power menu.
 
-The production greeter keeps the previous simple behavior: issue text, clock, remembered user, password asterisks, power actions, FORGE-only session discovery, and direct Wayland handoff. Persistent Matrix/background flags and remembered-session changes are intentionally excluded from the normal boot-critical profile.
+The config remembers the last username but does not use `--remember-session`, so an old experimental command cannot persistently replace the canonical runtime. The installer also clears stale tuigreet cache files before re-enabling the login path.
 
-`manifests/arch-packages.txt` declares Arch's `greetd-tuigreet` package. `tests/greeter-contract.sh` parses the normal, installed-recovery, and live-recovery TOML commands and compares every configured long option with the actual packaged `tuigreet --help` output. This prevents a cosmetic greeter option from taking down authentication again.
+## FORGE shell layout and controls
 
-Historical Xorg/Openbox/KWin-X11 commands are not installed production profiles. Their implementation history remains in Git and the changelog.
+FORGE-OS reserves a dedicated strip above the ordinary FORGE application header. The normal Releases, GitHub, Settings, workspace, and window controls therefore remain unobstructed.
 
-## Standalone and host-integrated FORGE
+Applications and System remain at the left of the OS strip. Responsive quick actions launch Network, Audio, Display, Power, Applications, Storage, Appearance, Updates, Security, Recovery, and Advanced surfaces. The center strip scrolls horizontally when necessary instead of overlapping modules. Time and Session remain on the right.
 
-macOS, Windows, ordinary Linux desktop, and FORGE-OS packages share the same renderer, workspace, Explorer, intelligence, agent-tool, recovery-panel, and task behavior. Linux-only shell integration is gated by `FORGE_OS_SESSION`/`FORGE_SHELL_MODE`. A normal call to the vendor Plasma launcher remains host-owned and never enters the FORGE dispatcher branch.
+Session operations use detached fixed OS helpers. Lock uses `loginctl`; logout terminates the active login session/user; restart and shutdown use non-blocking systemd actions with PolicyKit fallback. This avoids losing the Electron IPC reply when the requested operation itself terminates FORGE or its session.
 
-## Installed-system recovery profile
+## Package and service environment
 
-Ctrl+Alt+F2 requests the graphical recovery unit through the `autovt@tty2.service` alias. It has a separate greetd socket, D-Bus session, KWin compositor, log, and `FORGE_RECOVERY_MODE=1` UI. It is not pulled in by `graphical.target` during normal boot.
+Interactive `pacman` commands in the FORGE Fish profile route through `forge-install-pkg`. Program installation routes through `forge-install-program -> forge-app-install -> forge-install-pkg`. Installer internals use absolute `/usr/bin/pacman` to avoid wrapper recursion.
 
-If the graphical greeter path is unhealthy, use an available text console such as Ctrl+Alt+F3, log in, and run `~/FORGE-OS/scripts/disable-graphical-login.sh`. That break-glass path disables graphical login, selects `multi-user.target`, and restores tty gettys while preserving FORGE runtimes and user data.
+The bootstrap enables multilib, tracked/Reflector-managed Arch mirrors, Chaotic-AUR, `yay`, and the rolling maintained tuigreet fork. Network, audio, Bluetooth, printing, time, power, Ollama, trim, and mirror-refresh services/timers are enabled persistently as appropriate.
 
-Recovery rollback re-verifies executable and `app.asar` hashes inside the privileged helper; PolicyKit is required only for pointer/removal mutation.
+## Installed-system recovery
 
-## Live ISO recovery profile
+Ctrl+Alt+F2 requests the graphical recovery unit through the on-demand `autovt@tty2.service` alias. It has its own greetd socket/session and sets `FORGE_RECOVERY_MODE=1`; it is not pulled into every normal graphical boot.
 
-The ISO uses `forge-live-setup.service` before greetd. Only after live-media detection succeeds does it install the live profile and ephemeral privilege policy. The live greetd profile has an initial session:
+If the graphical stack itself is unhealthy, use an available text console such as Ctrl+Alt+F3 and run `~/FORGE-OS/scripts/disable-graphical-login.sh` to restore console-first access without deleting FORGE runtimes or user data.
+
+## Live ISO recovery
+
+The ISO runs `forge-live-setup.service` before greetd. Live-media detection must succeed before the ephemeral `forge` account, live-only sudo rule, or live greeter profile is installed. The live account password remains locked; greetd enters it via `initial_session` and privileged actions use the live-only sudo policy.
+
+The initial session sets:
 
 ```text
-env FORGE_LIVE_RECOVERY=1 FORGE_RECOVERY_MODE=1 /usr/local/bin/forge-wayland-session
+FORGE_LIVE_RECOVERY=1 FORGE_RECOVERY_MODE=1 /usr/local/bin/forge-wayland-session
 ```
 
-The same KWin/FORGE runtime therefore boots with a different application mode instead of a second compositor implementation. FORGE sees the live-recovery flags and covers the ordinary shell with its **FORGE Live Recovery** GUI. The GUI launches two live-only desktop actions:
-
-- `forge-live-root-shell.desktop` -> `konsole --hold -e sudo -i`
-- `forge-live-installer.desktop` -> local ISO/ZIP chooser -> `forge-live-install`
-
-`forge-live-install` mounts ISO files read-only or safely extracts ZIP files, rejects archive path traversal, recognizes explicit installer entry points, and asks for the literal confirmation `INSTALL` before executing one as the ephemeral `forge` user. Passwordless sudo is written only for that live account and is never installed by `forge-live-setup` on a normal installed system.
+FORGE then presents the dedicated full-screen recovery GUI with a privileged root shell and local ISO/ZIP installer workflow. ISO images are mounted read-only, ZIP paths are validated before extraction, and recognized installers require an explicit `INSTALL` confirmation.
 
 ## Verification
 
-`tests/session-dispatcher.sh` is isolated and non-graphical. `tests/greeter-contract.sh` protects the package/CLI boundary. `tests/source-verify.sh` checks scripts, TOML, desktop entries, units, dependencies, the live recovery UI contract, FORGE tests/build, and both repository diffs. `tests/verify.sh` checks installed files, services, runtime/payload hashes, sandbox mode, package state, and recovery state. Physical GPU, focus, portals, suspend, logout, recovery switching, and ISO boot remain hardware acceptance gates.
+`tests/session-dispatcher.sh` covers the compatibility dispatcher without launching a compositor. `tests/greeter-contract.sh` checks the actual tuigreet CLI. `tests/source-verify.sh` checks login, top-bar, package-routing, mirror/repository, service, recovery, FORGE typecheck/lint/tests/build, and source diffs. `tests/verify.sh` checks the installed machine. GPU, suspend, portal behavior, session transitions, recovery switching, and ISO boot remain physical/VM acceptance gates.
