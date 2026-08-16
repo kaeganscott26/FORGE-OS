@@ -4,6 +4,12 @@ set -euo pipefail
 [[ "${FORGE_OS_SESSION:-0}" == 1 ]] || { echo 'FORGE system surfaces are available only inside FORGE-OS.' >&2; exit 77; }
 surface="${1:-}"
 
+# All native settings surfaces are ordinary KDE/Qt windows managed by the
+# existing KWin Wayland compositor. They inherit the system FORGE Dark KDE
+# palette from /etc/xdg/kdeglobals instead of creating a second UI stack.
+export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland}"
+export KDE_SESSION_VERSION="${KDE_SESSION_VERSION:-6}"
+
 kcm_available() {
   command -v kcmshell6 >/dev/null 2>&1 || return 1
   kcmshell6 --list 2>/dev/null | grep -Fq -- "$1"
@@ -39,6 +45,6 @@ case "$surface" in
     command -v konsole >/dev/null 2>&1 || { echo 'Konsole is unavailable.' >&2; exit 69; }
     exec konsole --hold -e bash -lc 'printf "FORGE Recovery\n\nCtrl+Alt+F2 opens the dedicated graphical recovery profile.\nRollback command: forge-runtime-rollback\nDisable graphical login: ~/FORGE-OS/scripts/disable-graphical-login.sh\n\n"; exec fish'
     ;;
-  advanced) exec /usr/local/bin/forge-service-manager ;;
+  advanced) exec /usr/local/bin/forge-maintenance-center ;;
   *) echo 'Usage: forge-system-surface network|audio|display|power|applications|storage|appearance|updates|security|recovery|advanced' >&2; exit 64 ;;
 esac
