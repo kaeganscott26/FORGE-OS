@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=FORGE Clean Install
+Comment=Install FORGE-OS to a manually partitioned and mounted target
+Exec=konsole --hold -e sudo /usr/local/bin/forge-clean-install
+Terminal=false
+NoDisplay=true
