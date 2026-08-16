@@ -13,7 +13,8 @@ grep -Fq 'https://github.com/tuigreet/tuigreet.git' "$root/scripts/configure-aur
 tuigreet_bin="${TUIGREET_BIN:-/usr/local/bin/tuigreet}"
 [[ -x "$tuigreet_bin" ]] || tuigreet_bin="$(command -v tuigreet 2>/dev/null || true)"
 [[ -n "$tuigreet_bin" && -x "$tuigreet_bin" ]] || fail 'canonical tuigreet binary is not installed.'
-version_text="$("$tuigreet_bin" --version 2>&1 | head -n1 || true)"
+version_text="$("$tuigreet_bin" --version 2>&1 || true)"
+[[ -n "$version_text" ]] || fail 'canonical tuigreet --version returned no text.'
 grep -Fq '0.11.0' <<<"$version_text" || fail "expected canonical tuigreet 0.11.0, found: $version_text"
 help_text="$("$tuigreet_bin" --help 2>&1 || true)"
 for option in --background --background-fps --kb-background --doom-height --doom-spread --doom-colors --matrix-length --matrix-speed --matrix-colors; do
