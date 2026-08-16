@@ -26,5 +26,7 @@ jobs:
           path: FORGE
       - name: Install locked FORGE dependencies
         run: npm --prefix FORGE ci
+      - name: Verify greeter package contract
+        run: bash ./FORGE-OS/tests/greeter-contract.sh
       - name: Verify complete source contract
         run: FORGE_SOURCE="$GITHUB_WORKSPACE/FORGE" ./FORGE-OS/tests/source-verify.sh
