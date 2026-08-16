@@ -11,6 +11,7 @@ nodejs-lts-jod
 fish
 starship
 reflector
+sudo
 wayland
 xorg-xwayland
 kwin
