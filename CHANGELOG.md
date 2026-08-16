@@ -6,6 +6,16 @@ All notable FORGE-OS changes are recorded here. Active documentation describes o
 
 - Prevented unavailable `power-profiles-daemon` hardware support or a transient `powerprofilesctl` DBus failure from aborting an otherwise valid FORGE-OS update.
 
+### 🧭 Runtime/session configuration map
+
+- Added a front-page runtime matrix to `README.md` so the supported FORGE presentation modes and their FORGE-OS session generations are visible without digging through historical notes.
+- Documented the standalone FORGE application runtime as distinct from FORGE-OS shell mode: macOS, Windows, and ordinary Linux desktop sessions do not expose `FORGE_OS_SESSION` / `FORGE_SHELL_MODE` OS surfaces.
+- Recorded the `0.1.1-alpha` X11/Openbox session line as historical: greetd authenticated into `/usr/bin/xinit /usr/local/libexec/forge-session-client` with Openbox as the lightweight window-management substrate.
+- Recorded the `0.1.2-alpha`–`0.1.3-alpha` Plasma 6 / KWin X11 bridge as historical: Plasma/KWin supplied richer desktop services while the verified X11/xinit chain and Openbox fallback remained in place.
+- Recorded `0.2.0-alpha` onward as the native KWin Wayland FORGE shell generation; current `0.2.1-alpha` uses greetd → `forge-wayland-session` → KWin Wayland → Plasma services → `forge-session` → the content-addressed FORGE runtime.
+- Documented `FORGE_USE_XWAYLAND=1` as the current `0.2.x` compatibility option for launching the packaged Electron FORGE window through XWayland while retaining the native KWin Wayland FORGE-OS session.
+- Clarified that `forge-panel-manager [edge]` changes the visible Plasma panel configuration without creating a different session generation; the initial `0.2.x` shell remains panel-free unless the user opts into a Plasma panel.
+
 ### 🔄 Integrated FORGE-OS updates
 
 - Bumped the development version to `0.2.1-alpha`.
