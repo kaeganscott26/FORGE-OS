@@ -38,7 +38,7 @@ while IFS='|' read -r scope unit policy risk label description; do
       fi
       ;;
     global)
-      if ! systemctl --global cat "$unit" >/dev/null 2>&1 && ! systemctl --user cat "$unit" >/dev/null 2>&1; then
+      if [[ ! -e "/usr/lib/systemd/user/$unit" && ! -e "/etc/systemd/user/$unit" && ! -e "/usr/local/lib/systemd/user/$unit" ]]; then
         if [[ "$policy" == required ]]; then
           echo "Required user unit is missing: $unit" >&2
           exit 1
