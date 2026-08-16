@@ -31,7 +31,8 @@ grep -Fq 'ln -sfn "releases/$(basename "$target")" "$runtime_root/current"' "$ro
 grep -Fq 'ln -sfn "releases/$(basename "$current")" "$runtime_root/last-known-good"' "$root/scripts/forge-runtime-rollback-activate" || fail 'runtime rollback does not preserve the previous current runtime.'
 if grep -Fq 'rm -rf -- "$current"' "$root/scripts/forge-runtime-rollback-activate"; then fail 'runtime rollback still deletes the build it is leaving.'; fi
 
-grep -Fq '/var/lib/forge-os/checkpoints/previous' "$root/scripts/forge-system-checkpoint" || fail 'system checkpoint does not use the fixed root-owned checkpoint path.'
+grep -Fq 'checkpoint_root=/var/lib/forge-os/checkpoints' "$root/scripts/forge-system-checkpoint" && grep -Fq 'checkpoint="$checkpoint_root/previous"' "$root/scripts/forge-system-checkpoint" || fail 'system checkpoint does not resolve to the fixed root-owned /var/lib/forge-os/checkpoints/previous path.'
+grep -Fq 'install -d -o root -g root -m 0700 "$checkpoint_root"' "$root/scripts/forge-system-checkpoint" || fail 'system checkpoint directory is not root-owned and private.'
 grep -Fq 'SHA256SUMS' "$root/scripts/forge-system-checkpoint" && grep -Fq 'SYMLINKS' "$root/scripts/forge-system-checkpoint" || fail 'system checkpoint lacks file/symlink integrity manifests.'
 grep -Fq '/etc/greetd/config.toml' "$root/scripts/forge-system-checkpoint" && grep -Fq '/usr/share/forge-os' "$root/scripts/forge-system-checkpoint" || fail 'system checkpoint omits boot-critical FORGE integration.'
 grep -Fq 'sha256sum -c' "$root/scripts/forge-system-rollback-apply" && grep -Fq 'cmp -s "$current_links"' "$root/scripts/forge-system-rollback-apply" || fail 'system rollback does not verify checkpoint integrity before restore.'
