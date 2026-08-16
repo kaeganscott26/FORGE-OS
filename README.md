@@ -21,7 +21,7 @@ greetd on tty1
 
 F2 defaults to `/usr/local/bin/forge-wayland-session`, and the visible F3 FORGE session entry points to that same installed path. Old X11/session-client paths are removed from the installed production profile, while the historical `startplasma-wayland` dispatcher remains only as compatibility implementation.
 
-The login UI uses the actively maintained NotAShelf tuigreet rolling fork because its current development line contains the background API required by FORGE-OS. Matrix is the default background; F4 opens the live background selector, including the classic DOOM fire effect. The installer deliberately does not enable session remembering, so an experimental old command cannot silently replace the canonical F2 path. `tests/greeter-contract.sh` validates every configured greeter option against the actual installed binary before greetd is enabled.
+The login UI uses canonical `tuigreet/tuigreet` **0.11.0**, pinned to its signed release commit and built with Cargo's lockfile. That stable release includes Matrix and DOOM fire backgrounds. Matrix is the default; F4 opens the live background selector. The installer deliberately does not enable session remembering, so an experimental old command cannot silently replace the canonical F2 path. `tests/greeter-contract.sh` validates every configured greeter option against the actual installed binary before greetd is enabled.
 
 ## Install and update
 
@@ -39,7 +39,7 @@ cd ~/FORGE-OS
 ./update.sh
 ```
 
-The bootstrap/build/runtime scripts are intentionally retained because `scripts/install-forge-linux.sh` executes them as explicit stages. A normal install provisions official Arch packages, multilib, the reviewed mirror baseline, Reflector, Chaotic-AUR, `yay`, the rolling maintained tuigreet fork, hardware/services, the FORGE runtime, Wayland/greetd/recovery files, user configuration, and final installed-machine verification. Required system services and user audio services are enabled persistently across reboot.
+The bootstrap/build/runtime scripts are intentionally retained because `scripts/install-forge-linux.sh` executes them as explicit stages. A normal install provisions official Arch packages, multilib, the reviewed mirror baseline, Reflector, Chaotic-AUR, `yay`, canonical tuigreet 0.11.0, hardware/services, the FORGE runtime, Wayland/greetd/recovery files, user configuration, and final installed-machine verification. Required system services and user audio services are enabled persistently across reboot.
 
 ## Packages and repositories
 
@@ -53,7 +53,7 @@ forge-install-pkg -Ss package-name
 forge-install-pkg -Rns package-name
 ```
 
-Official Arch repositories remain the system package base. `multilib` is enabled explicitly. Chaotic-AUR is added as a binary community repository, and `yay` provides the ordinary AUR workflow. Apt/Ubuntu and Kali remain isolated in rootless Distrobox/Podman containers; Nix uses its own store and profile.
+Official Arch repositories remain the system package base. `multilib` is enabled explicitly. Chaotic-AUR is added as a binary community repository, and `yay` provides the ordinary AUR workflow. Tuigreet itself is a separate pinned canonical source build so the boot-critical greeter is not dependent on a stale distro/AUR package. Apt/Ubuntu and Kali remain isolated in rootless Distrobox/Podman containers; Nix uses its own store and profile.
 
 The installer first establishes the tracked HTTPS Arch mirror list, then Reflector ranks current HTTPS mirrors. `reflector.timer` keeps the official Arch mirror list fresh after reboot; third-party repositories retain their own mirrorlist packages.
 
@@ -67,7 +67,7 @@ Session actions are detached OS helpers rather than fragile synchronous Electron
 
 ## Persistent services
 
-The installer enables the required system services and maintenance timers, including NetworkManager, Bluetooth, irqbalance, time sync, CUPS, Ollama, power-profile support where available, fstrim, and Reflector. PipeWire, PipeWire Pulse, and WirePlumber are globally enabled for user sessions and started immediately when a user systemd manager is available.
+The installer enables the required system services and maintenance timers, including NetworkManager, Bluetooth, firewalld, irqbalance, time sync, CUPS, Ollama, power-profile support where available, fstrim, and Reflector. PipeWire, PipeWire Pulse, and WirePlumber are globally enabled for user sessions and started immediately when a user systemd manager is available.
 
 ## Installed-system recovery
 
