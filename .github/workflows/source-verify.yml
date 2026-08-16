@@ -20,11 +20,13 @@ jobs:
           pacman -Syu --noconfirm git nodejs-lts-jod npm python rust systemd desktop-file-utils pacman-contrib greetd sudo
           sed -i '/^#\[multilib\]$/,/^#Include = \/etc\/pacman.d\/mirrorlist$/ { s/^#\[multilib\]$/[multilib]/; s|^#Include = /etc/pacman.d/mirrorlist$|Include = /etc/pacman.d/mirrorlist|; }' /etc/pacman.conf
           pacman -Sy --noconfirm
-      - name: Build rolling maintained tuigreet fork
+      - name: Build canonical tuigreet 0.11.0
         run: |
-          git clone --depth 1 https://github.com/NotAShelf/tuigreet.git /tmp/tuigreet
+          git clone --branch 0.11.0 --depth 1 https://github.com/tuigreet/tuigreet.git /tmp/tuigreet
+          test "$(git -C /tmp/tuigreet rev-parse HEAD)" = 6fb15fffb794c6bd357164347d8b6d9e0aa92bbc
           cargo build --locked --release --manifest-path /tmp/tuigreet/Cargo.toml -p tuigreet
           install -Dm755 /tmp/tuigreet/target/release/tuigreet /usr/local/bin/tuigreet
+          /usr/local/bin/tuigreet --version 2>&1 | grep -F -- '0.11.0'
           /usr/local/bin/tuigreet --help 2>&1 | grep -F -- '--background'
           /usr/local/bin/tuigreet --help 2>&1 | grep -F -- '--kb-background'
           /usr/local/bin/tuigreet --help 2>&1 | grep -F -- '--doom-height'
