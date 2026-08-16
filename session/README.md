@@ -2,7 +2,7 @@
 
 ## Stable FORGE-owned profile
 
-The canonical greetd command is exactly:
+The canonical authenticated session command is exactly:
 
 ```text
 startplasma-wayland forge-wayland-session forge-wayland-client
@@ -21,7 +21,8 @@ The first path is a narrow FORGE dispatcher. With exactly `forge-wayland-session
 Exactly one component owns KWin:
 
 ```text
-tuigreet
+greetd
+  -> packaged tuigreet
   -> FORGE startplasma-wayland dispatcher
   -> forge-wayland-session
   -> dbus-run-session kwin_wayland --xwayland --exit-with-session
@@ -37,12 +38,13 @@ The session exports `XDG_CURRENT_DESKTOP=FORGE`, `XDG_SESSION_DESKTOP=FORGE`, `X
 
 `FORGE_USE_XWAYLAND=1` changes Electron rendering only. KWin still owns a Wayland session.
 
-## Login controls
+## Login controls and greeter compatibility
 
 - F2 selects or edits the full command for one login. The default remains the exact canonical string above.
 - F3 selects the isolated FORGE Wayland desktop entry.
-- F4 switches tuigreet background animations; matrix is persistent by default.
 - F5 opens shutdown/restart controls.
+
+`manifests/arch-packages.txt` currently declares Arch's `greetd-tuigreet` package. Production and recovery greetd configuration must therefore use only options supported by that packaged implementation. Matrix/DOOM background animation options belong to a separate maintained tuigreet fork and are not allowed in the boot-critical static configuration unless FORGE-OS deliberately changes and validates its packaged greeter. `tests/greeter-contract.sh` enforces that boundary.
 
 Historical Xorg/Openbox/KWin-X11 commands are not installed production profiles. Their implementation history remains in Git and the changelog.
 
@@ -52,10 +54,12 @@ macOS, Windows, ordinary Linux desktop, and FORGE-OS packages share the same ren
 
 ## Recovery profile
 
-Ctrl+Alt+F2 activates `/etc/systemd/system/autovt@tty2.service`, an alias for `forge-recovery.service`. It has a separate greetd socket, D-Bus session, KWin compositor, log, and `FORGE_RECOVERY_MODE=1` UI. It does not compete with the normal compositor until tty2 is requested.
+The current graphical recovery profile has a separate greetd socket, D-Bus session, KWin compositor, log, and `FORGE_RECOVERY_MODE=1` UI on tty2. Its tuigreet configuration follows the same packaged-greeter compatibility rule as the normal login.
 
-Recovery is pre-authenticated for diagnostics. The terminal runs as the desktop user. Rollback re-verifies executable and `app.asar` hashes inside the privileged helper; PolicyKit is required only for pointer/removal mutation.
+If the graphical greeter path is unhealthy, recovery must not depend on repeatedly retrying the same broken command. Use an available text console such as Ctrl+Alt+F3, log in, and run `~/FORGE-OS/scripts/disable-graphical-login.sh`. That break-glass path disables greetd/recovery services, selects `multi-user.target`, and restores tty1/tty2 gettys while preserving FORGE runtimes and user data.
+
+Recovery rollback re-verifies executable and `app.asar` hashes inside the privileged helper; PolicyKit is required only for pointer/removal mutation.
 
 ## Verification
 
-`tests/session-dispatcher.sh` is isolated and non-graphical. `tests/source-verify.sh` checks scripts, TOML, desktop entries, units, dependencies, FORGE tests/build, and both repository diffs. `tests/verify.sh` checks installed files, services, runtime/payload hashes, sandbox mode, package state, and the recovery autovt. Physical GPU, focus, portals, suspend, logout, recovery switching, and ISO boot remain hardware acceptance gates.
+`tests/session-dispatcher.sh` is isolated and non-graphical. `tests/greeter-contract.sh` protects the package/CLI boundary that can otherwise make greetd restart a failed greeter indefinitely. `tests/source-verify.sh` checks scripts, TOML, desktop entries, units, dependencies, FORGE tests/build, and both repository diffs. `tests/verify.sh` checks installed files, services, runtime/payload hashes, sandbox mode, package state, and recovery state. Physical GPU, focus, portals, suspend, logout, recovery switching, and ISO boot remain hardware acceptance gates.
