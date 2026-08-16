@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Load or Install ISO / ZIP
+Comment=Choose a local ISO or ZIP recovery or installation bundle
+Exec=/usr/local/bin/forge-live-select-installer
+Icon=drive-removable-media
+Terminal=false
+Categories=System;Utility;
+NoDisplay=true
