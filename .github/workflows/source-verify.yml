@@ -16,7 +16,7 @@ jobs:
       image: archlinux:base-devel
     steps:
       - name: Install validation dependencies
-        run: pacman -Syu --noconfirm git nodejs-lts-jod npm python systemd desktop-file-utils pacman-contrib
+        run: pacman -Syu --noconfirm git nodejs-lts-jod npm python systemd desktop-file-utils pacman-contrib greetd-tuigreet
       - uses: actions/checkout@v7
         with:
           path: FORGE-OS
