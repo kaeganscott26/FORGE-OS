@@ -1,6 +1,6 @@
 # 👤 FORGE-OS User Manual
 
-This guide covers the supported update, startup, and recovery workflow for a FORGE-OS development or reference installation.
+This guide covers the supported update, startup, runtime selection, and recovery workflow for a FORGE-OS development or reference installation.
 
 ## 🚀 Update and install
 
@@ -38,6 +38,40 @@ A healthy installation boots directly to the FORGE-branded login on VT1.
 4. The FORGE desktop/session becomes the visible environment.
 
 No tty1 shell login, manual `startx`, `.xinitrc`, acceptance marker, shell-profile autostart, or autologin is part of the supported production path.
+
+## ⌨️ Choosing a runtime from the login screen
+
+FORGE-OS intentionally preserves manual session selection for development, recovery, compatibility testing, and desktop personalization.
+
+At the FORGE-branded login screen:
+
+1. Press **F2** to edit/select the session command.
+2. Type or paste the complete executable command for the runtime configuration you want.
+3. Return to the credential prompt and authenticate normally.
+4. greetd starts the selected graphical session command.
+
+Known configurations include:
+
+```bash
+# Historical X11/Openbox and Plasma/KWin X11 session generations
+/usr/bin/xinit /usr/local/libexec/forge-session-client
+```
+
+```bash
+# Current repository-owned native KWin Wayland FORGE shell
+/usr/local/bin/forge-wayland-session
+```
+
+```bash
+# Current reference-machine full Plasma Wayland wrapper + FORGE handoff
+/usr/lib/plasma-dbus-run session-if-needed /usr/bin/startplasma-wayland /usr/local/bin/forge-wayland-session
+```
+
+The Plasma wrapper establishes the fuller Plasma Wayland session/service environment before handing control to FORGE. The direct `forge-wayland-session` path remains the repository-owned FORGE shell entry point.
+
+These commands select how the same installed FORGE runtime is hosted; they are not separate FORGE application builds. The standalone FORGE application profile is normally launched from an already-running macOS, Windows, or Linux desktop rather than from the FORGE-OS greeter.
+
+Always use exact absolute executable paths that exist on the machine. If an entered session command fails, the graphical session may return to the greeter. `Ctrl+Alt+F2` remains the independent recovery console.
 
 ## 🖥️ Desktop behavior
 
