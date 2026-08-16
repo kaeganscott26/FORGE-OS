@@ -20,6 +20,33 @@ jobs:
           pacman -Syu --noconfirm git nodejs-lts-jod npm python rust systemd desktop-file-utils pacman-contrib greetd sudo
           sed -i '/^#\[multilib\]$/,/^#Include = \/etc\/pacman.d\/mirrorlist$/ { s/^#\[multilib\]$/[multilib]/; s|^#Include = /etc/pacman.d/mirrorlist$|Include = /etc/pacman.d/mirrorlist|; }' /etc/pacman.conf
           pacman -Sy --noconfirm
+
+      - uses: actions/checkout@v7
+        with:
+          path: FORGE-OS
+
+      - name: Resolve pinned FORGE source
+        id: forge-ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="$(tr -d '[:space:]' < FORGE-OS/FORGE_REF)"
+          [[ "$ref" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid FORGE_REF: $ref" >&2; exit 1; }
+          echo "sha=$ref" >> "$GITHUB_OUTPUT"
+          echo "FORGE source pinned to $ref"
+
+      - uses: actions/checkout@v7
+        with:
+          repository: kaeganscott26/FORGE
+          ref: ${{ steps.forge-ref.outputs.sha }}
+          path: FORGE
+
+      - name: Verify pinned FORGE checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C FORGE rev-parse HEAD)" = "${{ steps.forge-ref.outputs.sha }}"
+
       - name: Build canonical tuigreet 0.11.0
         run: |
           git clone --branch 0.11.0 --depth 1 https://github.com/tuigreet/tuigreet.git /tmp/tuigreet
@@ -31,18 +58,18 @@ jobs:
           /usr/local/bin/tuigreet --help 2>&1 | grep -F -- '--kb-background'
           /usr/local/bin/tuigreet --help 2>&1 | grep -F -- '--doom-height'
           /usr/local/bin/tuigreet --help 2>&1 | grep -F -- '--matrix-length'
-      - uses: actions/checkout@v7
-        with:
-          path: FORGE-OS
-      - uses: actions/checkout@v7
-        with:
-          repository: kaeganscott26/FORGE
-          path: FORGE
+
       - name: Install locked FORGE dependencies
         run: npm --prefix FORGE ci
+
       - name: Verify greeter package contract
         run: TUIGREET_BIN=/usr/local/bin/tuigreet bash ./FORGE-OS/tests/greeter-contract.sh
-      - name: Verify clean install safety contract
+
+      - name: Verify live setup and clean install contract
         run: FORGE_SOURCE="$GITHUB_WORKSPACE/FORGE" bash ./FORGE-OS/tests/clean-install-contract.sh
+
+      - name: Verify Advanced maintenance and rollback contract
+        run: FORGE_SOURCE="$GITHUB_WORKSPACE/FORGE" bash ./FORGE-OS/tests/maintenance-contract.sh
+
       - name: Verify complete source contract
         run: FORGE_SOURCE="$GITHUB_WORKSPACE/FORGE" TUIGREET_BIN=/usr/local/bin/tuigreet ./FORGE-OS/tests/source-verify.sh
