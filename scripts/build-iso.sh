@@ -65,7 +65,8 @@ mv "$pacman_config_staged" "$profile/pacman.conf"
   exit 1
 }
 for repository in core extra multilib; do
-  /usr/bin/pacman-conf --config "$profile/pacman.conf" --repo "$repository" Server | grep -q '^https://' || {
+  repository_servers="$(/usr/bin/pacman-conf --config "$profile/pacman.conf" --repo "$repository" Server)"
+  grep -q '^https://' <<<"$repository_servers" || {
     echo "The ISO pacman configuration has no tracked HTTPS server for [$repository]." >&2
     exit 1
   }
