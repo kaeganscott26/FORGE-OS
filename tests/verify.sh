@@ -24,10 +24,10 @@ for command in node npm git codex kwin_wayland plasmashell qdbus6 krunner kdialo
 [[ "$(node --version 2>/dev/null)" == v22.* ]] && pass 'Node major version is 22' || fail "Node 22 is required; found $(node --version 2>/dev/null || echo missing)"
 
 while IFS= read -r package; do check /usr/bin/pacman -Q "$package"; done < <(sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$root/manifests/arch-packages.txt")
-for package in xorg-server xorg-xinit openbox kwin-x11 thunar thunar-volman dunst xclip polkit-gnome greetd-tuigreet; do
-  /usr/bin/pacman -Q "$package" >/dev/null 2>&1 && fail "retired package remains installed: $package" || pass "retired package absent: $package"
+for package in xorg-server xorg-xinit openbox kwin-x11 thunar thunar-volman dunst xclip polkit-gnome greetd-tuigreet greetd-tuigreet-fork-bin; do
+  /usr/bin/pacman -Q "$package" >/dev/null 2>&1 && fail "retired/stale package remains installed: $package" || pass "retired/stale package absent: $package"
 done
-/usr/bin/pacman -Q greetd-tuigreet-fork-bin >/dev/null 2>&1 && pass 'maintained tuigreet fork package is installed' || fail 'maintained tuigreet fork package is missing'
+/usr/bin/pacman -Q greetd-tuigreet-fork-git >/dev/null 2>&1 && pass 'rolling maintained tuigreet fork package is installed' || fail 'rolling maintained tuigreet fork package is missing'
 for repository in core extra multilib chaotic-aur; do /usr/bin/pacman-conf --repo-list | grep -Fxq "$repository" && pass "repository enabled: $repository" || fail "repository disabled: $repository"; done
 
 grep -q '^Server = https://' /etc/pacman.d/mirrorlist && pass 'official mirrorlist contains HTTPS servers' || fail 'official mirrorlist is invalid'
@@ -91,11 +91,9 @@ grep -Fq -- '--kb-background 4' /etc/greetd/config.toml && pass 'F4 background s
 if grep -Fq -- '--remember-session' /etc/greetd/config.toml; then fail 'remembered session can override canonical path'; else pass 'session cache cannot override canonical path'; fi
 grep -Fq 'Exec=/usr/local/bin/forge-wayland-session' /usr/share/forge-os/wayland-sessions/forge.desktop && pass 'F3 FORGE entry uses canonical path' || fail 'F3 FORGE entry uses old path'
 
-# Package command routing.
 grep -Fq 'function pacman' "$HOME/.config/fish/conf.d/forge-dr460nized.fish" && pass 'interactive pacman wrapper is installed' || fail 'interactive pacman wrapper is missing'
 grep -Fq '/usr/local/bin/forge-install-pkg --backend arch' "$HOME/.config/fish/conf.d/forge-dr460nized.fish" && pass 'interactive pacman routes through forge-install-pkg' || fail 'interactive pacman routing is wrong'
 
-# Persistent service state.
 for unit in NetworkManager.service bluetooth.service irqbalance.service systemd-timesyncd.service cups.service ollama.service; do
   systemctl is-enabled "$unit" >/dev/null 2>&1 && pass "$unit enabled" || fail "$unit is not enabled"
   systemctl is-active "$unit" >/dev/null 2>&1 && pass "$unit active" || warn "$unit is enabled but not currently active"
