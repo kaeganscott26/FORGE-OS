@@ -7,10 +7,11 @@ source /etc/os-release
 manifest="$root/manifests/system-services.tsv"
 [[ -r "$manifest" ]] || { echo 'FORGE-OS service manifest is missing.' >&2; exit 1; }
 
-# Install the same manifest and allowlisted controller used by the Advanced UI.
+# Install the same manifest and allowlisted controllers used by the Advanced UI.
 sudo install -d -o root -g root -m 0755 /usr/share/forge-os /usr/local/bin /usr/local/libexec /etc/xdg/reflector
 sudo install -o root -g root -m 0644 "$manifest" /usr/share/forge-os/system-services.tsv
 sudo install -o root -g root -m 0755 "$root/scripts/forge-service-manager" /usr/local/bin/forge-service-manager
+sudo install -o root -g root -m 0755 "$root/scripts/forge-maintenance-center" /usr/local/bin/forge-maintenance-center
 sudo install -o root -g root -m 0755 "$root/scripts/forge-service-control" /usr/local/libexec/forge-service-control
 sudo install -o root -g root -m 0644 "$root/config/reflector.conf" /etc/xdg/reflector/reflector.conf
 
@@ -54,18 +55,14 @@ while IFS='|' read -r scope unit policy risk label description; do
   esac
 done <"$manifest"
 
-# Start per-user media services immediately when the current user manager is
-# reachable. Global enablement above is what guarantees persistence on reboot.
 if [[ -n "${XDG_RUNTIME_DIR:-}" ]] && systemctl --user show-environment >/dev/null 2>&1; then
   systemctl --user start pipewire.socket pipewire-pulse.socket wireplumber.service || {
     echo 'Warning: audio user services could not be started immediately; global enablement remains installed.' >&2
   }
 fi
 
-# Power profile selection is a preference, not an install gate; some firmware
-# exposes no performance profile even when the service itself is healthy.
 if command -v powerprofilesctl >/dev/null 2>&1 && systemctl is-active --quiet power-profiles-daemon.service; then
   powerprofilesctl set performance || echo 'Warning: unable to select performance power profile.' >&2
 fi
 
-echo 'FORGE-OS services are enabled from the authoritative manifest; Advanced can manage them without terminal systemctl commands.'
+echo 'FORGE-OS services are enabled from the authoritative manifest; Advanced exposes services, root maintenance, verification, repair, update, and reversible rollback.'
