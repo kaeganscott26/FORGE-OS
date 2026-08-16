@@ -1,158 +1,116 @@
-# FORGE-OS Updates
+# ⚒️ FORGE-OS Updates
 
 ## Current status
 
-The current development version is `0.2.1-alpha`.
+The current development version is **`0.2.1-alpha`**.
 
-FORGE-OS now implements a custom native KWin Wayland session. Plasma supplies composition, styles, animations, wallpaper, portals, and optional panels beneath FORGE; FORGE remains the visible user interface.
+FORGE-OS now has a canonical FORGE-owned KWin Wayland shell plus documented alternate presentation profiles around the same installed FORGE runtime.
 
-## Newest updates
+The authoritative runtime/session guide is [`session/README.md`](../session/README.md).
 
-Recent additions include:
-
-- KWin Wayland as the compositor, with XWayland only for legacy applications.
-- A FORGE-owned session launcher rather than a conventional Plasma desktop session.
-- An initially panel-free Plasma layer and a FORGE Panel Manager for opt-in panels.
-- Removal of the retired XFCE/X11 shell utilities, with Dolphin and KDE services supplying background desktop integration.
-- Breeze Dark and Kvantum visual defaults.
-- Plasma System Settings integration.
-- A searchable application launcher.
-- A workspace-constrained file runner.
-- A PolicyKit-authenticated Arch package installer.
-- KDE portal integration with a GTK fallback.
-- Stronger content-addressed runtime identity verification.
-- Independent FORGE and FORGE-OS version and commit recording.
-- Lockfile, overlay, executable, `app.asar`, and complete runtime payload hashes.
-- Protection against activating stale builds produced from another FORGE-OS revision.
-- A refreshed zero-fuzz compatibility overlay for current FORGE source.
-- A FORGE-OS-aware **Check for updates** action that opens the visible authenticated updater, fast-forwards both trusted repositories, and runs the authoritative installer.
-
-## Using the new features
-
-Open the searchable Plasma application launcher from FORGE:
-
-```bash
-forge-app-launcher
-```
-
-Choose a file from the active FORGE workspace and open or execute it:
-
-```bash
-forge-workspace-runner
-```
-
-Install a validated package from the Arch repositories through PolicyKit:
-
-```bash
-forge-install-program PACKAGE
-```
-
-For example:
-
-```bash
-forge-install-program firefox
-```
-
-Open Plasma System Settings:
-
-```bash
-systemsettings
-```
-
-The package installer validates package names and requests PolicyKit authorization. FORGE itself continues to run as the authenticated normal user rather than as root.
-
-## Install or update FORGE-OS
-
-From FORGE, select **Check for updates** and follow the visible update terminal. The updater pins the official repository origins, refuses dirty, divergent, untrusted, missing, or non-`main` checkouts, and never reboots automatically.
-
-Keep both repositories current and use the authoritative installer:
-
-```bash
-git -C ~/FORGE pull --ff-only
-git -C ~/FORGE-OS pull --ff-only
-cd ~/FORGE-OS
-./scripts/install-forge-linux.sh
-sudo reboot
-```
-
-After installation, verify the production invariants:
-
-```bash
-cd ~/FORGE-OS
-./tests/verify.sh
-```
-
-## Wayland session status
-
-The repository session default is now native Wayland:
-
-The production path is:
+## Canonical production path
 
 ```text
-greetd
+greetd / tuigreet
   -> /usr/local/bin/forge-wayland-session
-  -> KWin Wayland with XWayland compatibility
-  -> Plasma visual/panel services beneath FORGE
-  -> FORGE
+  -> KWin Wayland (+ XWayland compatibility)
+  -> KDE/Plasma visual and service layer beneath FORGE
+  -> /usr/local/bin/forge-session
+  -> content-addressed FORGE runtime
 ```
 
-The launcher deliberately does not use `startplasma-wayland`: that would impose the conventional Plasma desktop. It starts KWin directly, runs `plasmashell` only as the wallpaper/panel service layer, removes the stock panel once, and launches FORGE natively.
+FORGE owns the visible shell. Arch/systemd/KWin/Plasma/PolicyKit/pacman/NetworkManager/PipeWire remain the underlying system infrastructure.
 
-Confirm the supported session type from a FORGE terminal:
+## Runtime/session profiles
+
+Current documentation distinguishes:
+
+- standalone FORGE application mode on macOS, Windows, or an ordinary Linux desktop;
+- canonical native FORGE-OS KWin Wayland shell mode;
+- native KWin Wayland with Electron rendered through XWayland using `FORGE_USE_XWAYLAND=1`;
+- Plasma-hosted FORGE as a development/reference-machine profile;
+- historical `0.1.x` X11/Openbox and KWin X11 profiles;
+- tty2 recovery.
+
+### Session ownership rule
+
+Exactly one top-level component should own the compositor/session lifecycle.
+
+The direct canonical command:
 
 ```bash
-echo "$XDG_SESSION_TYPE"
+/usr/local/bin/forge-wayland-session
 ```
 
-Expected output:
+starts and owns KWin.
 
-```text
-wayland
-```
-
-### Wayland acceptance requirements
-
-A stable release still requires physical validation of:
-
-1. The dedicated FORGE Wayland client operating without a required `DISPLAY`.
-2. The FORGE-owned Wayland desktop entry and greetd default.
-3. KWin Wayland startup without a conventional Plasma desktop layout.
-4. Correct live session variables, including:
-   - `XDG_SESSION_TYPE=wayland`
-   - `WAYLAND_DISPLAY`
-   - `XDG_CURRENT_DESKTOP=FORGE`
-   - `XDG_SESSION_DESKTOP=FORGE`
-   - `FORGE_OS_SESSION=1`
-   - `FORGE_SHELL_MODE=1`
-5. Electron native-Wayland testing, with XWayland fallback where appropriate.
-6. KDE portal and PipeWire validation.
-7. Logout, compositor-crash, and tty2 recovery testing.
-8. Separate Wayland verification and physical acceptance tests.
-9. tty2 recovery when the Wayland compositor cannot start.
-10. Updated documentation and release gates.
-
-The architecture is implemented; items involving actual GPU/session behavior remain physical release gates.
-
-## Recovery and diagnostics
-
-The independent recovery console remains available at:
-
-```text
-Ctrl+Alt+F2
-```
-
-Useful diagnostics are:
+The reference machine has also used:
 
 ```bash
-systemctl status greetd.service
-journalctl -u greetd.service -b --no-pager -n 200
-tail -n 200 ~/.local/state/forge/session.log
-cd ~/FORGE-OS
-./tests/verify.sh
+/usr/lib/plasma-dbus-run session-if-needed /usr/bin/startplasma-wayland /usr/local/bin/forge-wayland-session
 ```
 
-A permission error while scanning this root-owned ArchISO staging path does not by itself indicate a FORGE-OS runtime failure:
+This remains a useful **development override**, not the stable default, because `startplasma-wayland` and `forge-wayland-session` can both attempt KWin/session ownership. A dedicated Plasma-hosted launcher should eventually run FORGE inside an already-owned Plasma session without starting KWin twice.
 
-```text
-build/archiso-work/x86_64/airootfs/root
-```
+## Login-screen switching
+
+At the FORGE `tuigreet` login screen:
+
+1. press **F2**;
+2. enter the full session command;
+3. return to credentials;
+4. authenticate normally.
+
+The selected command affects how FORGE is hosted for that login; it does not create a different FORGE application build.
+
+## Current user-facing features
+
+- native KWin Wayland shell with XWayland compatibility;
+- Plasma wallpaper/effects/decoration infrastructure beneath FORGE;
+- optional persistent Plasma panels through `forge-panel-manager`;
+- FORGE Applications surfaces;
+- workspace-constrained file launching;
+- PolicyKit-backed Arch repository package installation;
+- System Settings integration;
+- content-addressed runtime identity and payload verification;
+- independent FORGE and FORGE-OS version/commit recording;
+- source-based **Check for updates** path using trusted fast-forward-only repositories;
+- tty2 recovery;
+- ArchISO build tooling.
+
+## Active UX work
+
+Current polish priorities are:
+
+1. create a first-class Plasma-hosted FORGE launcher with unambiguous session ownership;
+2. integrate package installation into FORGE rather than opening an external helper terminal/window;
+3. refresh/watch XDG application discovery after installs so newly installed apps immediately appear in FORGE Applications;
+4. move toward a stable `forge install ...` user-facing command namespace while leaving pacman as the backend package authority;
+5. make shell-only UI explicitly runtime-profile aware;
+6. finish theming, panels, settings, notifications, portals, launcher, and external-window polish.
+
+See [`knownUxBugs.md`](knownUxBugs.md) and [`docs/IMPLEMENTATION_GAPS.md`](../docs/IMPLEMENTATION_GAPS.md).
+
+## Updates
+
+Inside native FORGE-OS shell mode, **Check for updates** launches `/usr/local/bin/forge-os-update` in Konsole. It validates trusted origins, clean `main` checkouts, and fast-forward-only history before invoking the authoritative installer. It never discards local work or reboots automatically.
+
+Standalone FORGE retains its normal Electron updater outside the FORGE-OS shell contract.
+
+## Validation
+
+A stable release still requires all physical/ISO gates in [`docs/RELEASE_CHECKLIST.md`](../docs/RELEASE_CHECKLIST.md), including:
+
+- direct canonical login without an F2 override;
+- real GPU/compositor behavior;
+- native Electron and Electron-XWayland compatibility;
+- portal/PipeWire behavior;
+- panel/wallpaper persistence;
+- application install + FORGE launcher refresh;
+- logout/relogin and compositor-failure recovery;
+- tty2 recovery;
+- multi-hardware/VM ISO validation.
+
+## Documentation rule
+
+Active documentation must describe the current architecture and clearly label development/historical profiles. Superseded scripts and stale crash-status notes should be removed rather than left as instructions for future agents or users.
