@@ -45,7 +45,10 @@ option_supported() {
   grep -Fq -- "$option" <<<"$help_text"
 }
 
-for config in "$root/config/greetd-config.toml" "$root/config/forge-recovery-greetd.toml"; do
+for config in \
+  "$root/config/greetd-config.toml" \
+  "$root/config/forge-recovery-greetd.toml" \
+  "$root/config/forge-live-greetd.toml"; do
   while IFS= read -r option; do
     option_supported "$option" || \
       fail "$config uses unsupported option $option for $(tuigreet --version 2>&1 | head -n1)."
@@ -65,5 +68,9 @@ fi
 
 grep -Fq -- "--cmd '/usr/local/bin/forge-recovery-session'" "$root/config/forge-recovery-greetd.toml" || \
   fail 'recovery greeter lost the recovery session command.'
+grep -Fq 'FORGE_LIVE_RECOVERY=1' "$root/config/forge-live-greetd.toml" || \
+  fail 'live greeter does not enter FORGE Live Recovery mode.'
+grep -Fq "/usr/local/bin/forge-wayland-session" "$root/config/forge-live-greetd.toml" || \
+  fail 'live greeter does not use the installed FORGE Wayland session.'
 
-echo "PASS: greetd configuration matches the last-good login profile and $(tuigreet --version 2>&1 | head -n1)."
+echo "PASS: normal, installed-recovery, and live-recovery greetd profiles match $(tuigreet --version 2>&1 | head -n1)."
