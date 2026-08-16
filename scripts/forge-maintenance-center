@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "${FORGE_OS_SESSION:-0}" == 1 || "${FORGE_RECOVERY_MODE:-0}" == 1 ]] || {
+  echo 'FORGE Maintenance Center is available only inside FORGE-OS.' >&2
+  exit 77
+}
+command -v kdialog >/dev/null 2>&1 || { echo 'kdialog is required.' >&2; exit 69; }
+command -v konsole >/dev/null 2>&1 || { echo 'Konsole is required.' >&2; exit 69; }
+
+repo="$HOME/FORGE-OS"
+
+open_terminal_action() {
+  local title="$1" command="$2"
+  konsole --hold -p tabtitle="$title" -e bash -lc "$command" >/dev/null 2>&1 &
+}
+
+while true; do
+  choice="$(kdialog --title 'FORGE Advanced · Maintenance Center' --menu \
+    'Administrator and recovery controls. Root access is explicit and authenticated; normal FORGE applications keep their standard permissions.' \
+    services 'Services — enable, disable, start, and persist system/user daemons' \
+    root-shell 'Administrator shell — authenticated root shell with unrestricted system control' \
+    verify 'Verify installed build — hashes, runtime, services, greeter, recovery, sandbox' \
+    repair 'Repair current checkout — rebuild/reinstall the current verified FORGE + FORGE-OS source' \
+    update 'Update + reinstall — fast-forward trusted main branches and install the new verified build' \
+    rollback 'Roll back runtime — switch to the verified last-known-good build' \
+    console 'Console recovery — disable graphical login and boot to text mode' \
+    close 'Close' 2>/dev/null || true)"
+
+  case "$choice" in
+    services)
+      /usr/local/bin/forge-service-manager || true
+      ;;
+    root-shell)
+      kdialog --title 'Administrator shell' --warningyesno \
+        'This opens a real root shell. Commands run there can modify or delete any file, service, boot configuration, account, or disk visible to the OS. Continue?' || continue
+      konsole --hold -p tabtitle='FORGE ROOT' -e sudo -i >/dev/null 2>&1 &
+      ;;
+    verify)
+      if [[ ! -x "$repo/tests/verify.sh" ]]; then
+        kdialog --error "Verification script is unavailable at $repo/tests/verify.sh"
+        continue
+      fi
+      open_terminal_action 'FORGE Verify' "cd \"$repo\" && ./tests/verify.sh; status=\$?; printf '\\nVerifier exit status: %s\\n' \"\$status\"; exec fish"
+      ;;
+    repair)
+      if [[ ! -x "$repo/install.sh" ]]; then
+        kdialog --error "Installer is unavailable at $repo/install.sh"
+        continue
+      fi
+      kdialog --title 'Repair current build' --warningyesno \
+        'Rebuild and reinstall the current clean FORGE/FORGE-OS checkout, reapply canonical session files, service enablement, package policy, hashes, and runtime metadata? This does not repartition disks or erase user data.' || continue
+      open_terminal_action 'FORGE Repair' "cd \"$repo\" && ./install.sh; status=\$?; printf '\\nInstaller exit status: %s\\n' \"\$status\"; exec fish"
+      ;;
+    update)
+      if [[ ! -x "$repo/update.sh" ]]; then
+        kdialog --error "Updater is unavailable at $repo/update.sh"
+        continue
+      fi
+      kdialog --title 'Update and reinstall' --warningyesno \
+        'Fast-forward the trusted FORGE and FORGE-OS main branches and run the authoritative installer? The updater rolls source checkouts back if installation fails.' || continue
+      open_terminal_action 'FORGE Update' "cd \"$repo\" && ./update.sh; status=\$?; printf '\\nUpdater exit status: %s\\n' \"\$status\"; exec fish"
+      ;;
+    rollback)
+      target="$(readlink -f /opt/forge/last-known-good 2>/dev/null || true)"
+      current="$(readlink -f /opt/forge/current 2>/dev/null || true)"
+      if [[ -z "$target" || ! -d "$target" || "$target" == "$current" ]]; then
+        kdialog --sorry 'No distinct verified last-known-good runtime is available.'
+        continue
+      fi
+      kdialog --title 'Roll back FORGE runtime' --warningyesno \
+        "Switch from $(basename "$current") to verified last-known-good $(basename "$target")? The current runtime is retained as the alternate rollback target, so the switch is reversible." || continue
+      open_terminal_action 'FORGE Rollback' "/usr/local/bin/forge-runtime-rollback; status=\$?; printf '\\nRollback exit status: %s\\n' \"\$status\"; exec fish"
+      ;;
+    console)
+      recovery="$repo/scripts/disable-graphical-login.sh"
+      [[ -x "$recovery" ]] || { kdialog --error "Console recovery script is unavailable: $recovery"; continue; }
+      kdialog --title 'Console recovery' --warningyesno \
+        'Disable graphical login and switch the next boot to the console recovery target? Your FORGE runtimes and user files are preserved.' || continue
+      open_terminal_action 'FORGE Console Recovery' "cd \"$repo\" && sudo ./scripts/disable-graphical-login.sh; status=\$?; printf '\\nRecovery exit status: %s\\n' \"\$status\"; exec fish"
+      ;;
+    close|'') exit 0 ;;
+    *) exit 0 ;;
+  esac
+done
