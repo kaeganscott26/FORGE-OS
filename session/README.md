@@ -42,9 +42,10 @@ The session exports `XDG_CURRENT_DESKTOP=FORGE`, `XDG_SESSION_DESKTOP=FORGE`, `X
 
 - F2 selects or edits the full command for one login. The default remains the exact canonical string above.
 - F3 selects the isolated FORGE Wayland desktop entry.
+- F4 selects the supported background animation; Matrix is persistent in the normal profile.
 - F5 opens shutdown/restart controls.
 
-`manifests/arch-packages.txt` currently declares Arch's `greetd-tuigreet` package. Production and recovery greetd configuration must therefore use only options supported by that packaged implementation. Matrix/DOOM background animation options belong to a separate maintained tuigreet fork and are not allowed in the boot-critical static configuration unless FORGE-OS deliberately changes and validates its packaged greeter. `tests/greeter-contract.sh` enforces that boundary.
+`manifests/arch-packages.txt` declares Arch's `greetd-tuigreet` package. The currently packaged maintained implementation supports Matrix/DOOM backgrounds, background FPS/tuning, and the F4 background selector. Boot-critical config must still match the exact installed CLI: unsupported `--battery`/`--custom-title` options and mutually-exclusive `--issue` + `--greeting` combinations previously caused the greeter to exit and greetd to relaunch it. `tests/greeter-contract.sh` now runs against the packaged `tuigreet --help` contract and rejects that drift in CI.
 
 Historical Xorg/Openbox/KWin-X11 commands are not installed production profiles. Their implementation history remains in Git and the changelog.
 
@@ -54,9 +55,11 @@ macOS, Windows, ordinary Linux desktop, and FORGE-OS packages share the same ren
 
 ## Recovery profile
 
-The current graphical recovery profile has a separate greetd socket, D-Bus session, KWin compositor, log, and `FORGE_RECOVERY_MODE=1` UI on tty2. Its tuigreet configuration follows the same packaged-greeter compatibility rule as the normal login.
+Ctrl+Alt+F2 requests the graphical recovery unit through the `autovt@tty2.service` alias. It has a separate greetd socket, D-Bus session, KWin compositor, log, and `FORGE_RECOVERY_MODE=1` UI. It is no longer pulled in by `graphical.target` during every normal boot.
 
-If the graphical greeter path is unhealthy, recovery must not depend on repeatedly retrying the same broken command. Use an available text console such as Ctrl+Alt+F3, log in, and run `~/FORGE-OS/scripts/disable-graphical-login.sh`. That break-glass path disables greetd/recovery services, selects `multi-user.target`, and restores tty1/tty2 gettys while preserving FORGE runtimes and user data.
+The recovery tuigreet profile uses a recovery-specific greeting rather than `/etc/issue`, avoiding the mutually-exclusive option pair that can make tuigreet refuse to start.
+
+If the graphical greeter path is unhealthy, use an available text console such as Ctrl+Alt+F3, log in, and run `~/FORGE-OS/scripts/disable-graphical-login.sh`. That break-glass path disables greetd/recovery services, selects `multi-user.target`, and restores tty1/tty2 gettys while preserving FORGE runtimes and user data.
 
 Recovery rollback re-verifies executable and `app.asar` hashes inside the privileged helper; PolicyKit is required only for pointer/removal mutation.
 
