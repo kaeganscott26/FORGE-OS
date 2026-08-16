@@ -17,7 +17,7 @@ done
 grep -Fq 'advanced) exec /usr/local/bin/forge-maintenance-center' "$root/scripts/forge-system-surface" || fail 'Advanced does not open the maintenance center.'
 grep -Fq 'QT_QPA_PLATFORM' "$root/scripts/forge-system-surface" && grep -Fq 'KDE_SESSION_VERSION' "$root/scripts/forge-system-surface" || fail 'native surfaces are not constrained to KDE/Wayland.'
 grep -Fq "root-shell 'Administrator shell" "$root/scripts/forge-maintenance-center" || fail 'Advanced root shell action is missing.'
-grep -Fq "-e sudo -i" "$root/scripts/forge-maintenance-center" || fail 'Administrator shell is not a real authenticated root shell.'
+grep -Fq -- '-e sudo -i' "$root/scripts/forge-maintenance-center" || fail 'Administrator shell is not a real authenticated root shell.'
 grep -Fq './install.sh' "$root/scripts/forge-maintenance-center" || fail 'Advanced repair action is missing.'
 grep -Fq './update.sh' "$root/scripts/forge-maintenance-center" || fail 'Advanced update/reinstall action is missing.'
 grep -Fq 'forge-runtime-rollback' "$root/scripts/forge-maintenance-center" || fail 'Advanced rollback action is missing.'
