@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Login and maintenance hardening
+
+- Fixed the greetd boot loop caused by configuring Matrix/background, battery, custom-title, and background-key options from an enhanced tuigreet fork while the authoritative Arch manifest installs stock `greetd-tuigreet`.
+- Quoted the semicolon-delimited tuigreet theme as one command argument in normal and recovery greeter configuration.
+- Added `tests/greeter-contract.sh` and CI coverage so fork-only greeter options cannot silently re-enter boot-critical configuration while the stock Arch package remains authoritative.
+- Changed graphical recovery from an always-enabled `graphical.target` service to the intended on-demand `autovt@tty2.service` alias, aligning physical installs with the ISO/session documentation.
+- Added executable top-level `./install.sh` and `./update.sh` entry points. Normal users no longer need to choose among bootstrap/build/runtime helper scripts.
+
 ## 0.2.2 — 2026-08-16
 
 ### Runtime, login, and desktop
@@ -7,7 +17,7 @@
 - Made `startplasma-wayland forge-wayland-session forge-wayland-client` the exact canonical greetd/F2/desktop command without changing the three installed command paths.
 - Added the narrow FORGE `startplasma-wayland` dispatcher and isolated tests; non-FORGE calls retain vendor Plasma behavior.
 - Enforced a one-KWin FORGE-owned Wayland process tree, imported D-Bus/systemd session state, and started KRunner/KDE/PolicyKit/Plasma services beneath FORGE.
-- Added persistent matrix login animation, F2 command, F3 sessions, F4 animation choices, F5 power, a code-native FORGE splash, and KWin focus/placement/blur/translucency/animation polish.
+- Added the experimental enhanced-tuigreet Matrix login design, F2 command, F3 sessions, F4 animation choices, F5 power, a code-native FORGE splash, and KWin focus/placement/blur/translucency/animation polish. The animation flags were later removed from the boot-critical stock-tuigreet configuration until that fork is deliberately packaged.
 - Made Fish the configured shell and added a Dr460nized-inspired Fish/Starship palette.
 
 ### Runtime identity, update, and recovery
