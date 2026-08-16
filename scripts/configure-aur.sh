@@ -5,6 +5,10 @@ source /etc/os-release
 [[ "${ID:-}" == arch ]] || { echo 'Arch Linux is required.' >&2; exit 1; }
 [[ "$EUID" -ne 0 ]] || { echo 'Run configure-aur.sh as the desktop user; sudo is used only for system changes.' >&2; exit 77; }
 
+TUIGREET_VERSION=0.11.0
+TUIGREET_COMMIT=6fb15fffb794c6bd357164347d8b6d9e0aa92bbc
+TUIGREET_REPOSITORY=https://github.com/tuigreet/tuigreet.git
+
 install_aur_package() {
   local package="$1" temporary
   temporary="$(mktemp -d)"
@@ -38,6 +42,46 @@ enable_chaotic_aur() {
   sudo /usr/bin/pacman -Sy --noconfirm
 }
 
+install_canonical_tuigreet() {
+  local help_text current_version temporary head
+  if [[ -x /usr/local/bin/tuigreet ]]; then
+    help_text="$(/usr/local/bin/tuigreet --help 2>&1 || true)"
+    current_version="$(/usr/local/bin/tuigreet --version 2>&1 | head -n1 || true)"
+    if grep -Fq "$TUIGREET_VERSION" <<<"$current_version" && \
+       grep -Fq -- '--background' <<<"$help_text" && \
+       grep -Fq -- '--kb-background' <<<"$help_text" && \
+       grep -Fq -- '--doom-height' <<<"$help_text" && \
+       grep -Fq -- '--matrix-length' <<<"$help_text"; then
+      echo "Canonical tuigreet $TUIGREET_VERSION is already installed."
+      return
+    fi
+  fi
+
+  command -v cargo >/dev/null 2>&1 || { echo 'Rust/cargo is required to build canonical tuigreet.' >&2; exit 69; }
+  temporary="$(mktemp -d)"
+  trap 'rm -rf -- "$temporary"' RETURN
+  git clone --branch "$TUIGREET_VERSION" --depth 1 "$TUIGREET_REPOSITORY" "$temporary/tuigreet"
+  head="$(git -C "$temporary/tuigreet" rev-parse HEAD)"
+  [[ "$head" == "$TUIGREET_COMMIT" ]] || {
+    echo "Refusing unexpected tuigreet source commit: $head" >&2
+    exit 1
+  }
+  cargo build --locked --release --manifest-path "$temporary/tuigreet/Cargo.toml" -p tuigreet
+  sudo install -o root -g root -m 0755 "$temporary/tuigreet/target/release/tuigreet" /usr/local/bin/tuigreet
+  sudo install -d -o root -g root -m 0755 /usr/share/forge-os
+  printf 'repository=%s\nversion=%s\ncommit=%s\n' "$TUIGREET_REPOSITORY" "$TUIGREET_VERSION" "$TUIGREET_COMMIT" | \
+    sudo tee /usr/share/forge-os/tuigreet-source.env >/dev/null
+  sudo chmod 0644 /usr/share/forge-os/tuigreet-source.env
+  rm -rf -- "$temporary"
+  trap - RETURN
+
+  help_text="$(/usr/local/bin/tuigreet --help 2>&1 || true)"
+  for option in --background --background-fps --kb-background --doom-height --doom-spread --doom-colors --matrix-length --matrix-speed --matrix-colors; do
+    grep -Fq -- "$option" <<<"$help_text" || { echo "Canonical tuigreet is missing required option: $option" >&2; exit 1; }
+  done
+  /usr/local/bin/tuigreet --version 2>&1 | grep -Fq "$TUIGREET_VERSION" || { echo 'Canonical tuigreet version verification failed.' >&2; exit 1; }
+}
+
 if [[ "${FORGE_DISABLE_CHAOTIC_AUR:-0}" != 1 ]]; then
   enable_chaotic_aur
 else
@@ -49,37 +93,20 @@ if ! command -v yay >/dev/null 2>&1; then
   install_aur_package yay-bin
 fi
 
-# Matrix/DOOM backgrounds currently live on the maintained fork's rolling
-# master (0.11.x development). The tagged 0.10.2 -bin package predates those
-# flags, so FORGE-OS deliberately installs the -git package until a tagged
-# release containing the background API is published.
-fork_ready=false
-if command -v /usr/bin/tuigreet >/dev/null 2>&1; then
-  help_text="$(/usr/bin/tuigreet --help 2>&1 || true)"
-  if grep -Fq -- '--background' <<<"$help_text" && grep -Fq -- '--kb-background' <<<"$help_text" && grep -Fq -- '--doom-height' <<<"$help_text" && grep -Fq -- '--matrix-length' <<<"$help_text"; then
-    fork_ready=true
-  fi
-fi
-
-if [[ "$fork_ready" != true ]]; then
-  # Remove stale tagged fork packages first so the rolling package can own the
-  # same binary without an interactive conflict prompt.
-  stale=()
-  for package in greetd-tuigreet-fork-bin greetd-tuigreet-fork-bin-debug greetd-tuigreet; do
-    /usr/bin/pacman -Q "$package" >/dev/null 2>&1 && stale+=("$package")
-  done
-  if (( ${#stale[@]} > 0 )); then
-    sudo /usr/bin/pacman -Rns --noconfirm "${stale[@]}"
-  fi
-  echo 'Installing rolling greetd-tuigreet-fork-git for Matrix/F4/DOOM support.'
-  install_aur_package greetd-tuigreet-fork-git
-fi
-
-help_text="$(/usr/bin/tuigreet --help 2>&1 || true)"
-for option in --background --background-fps --kb-background --doom-height --doom-spread --doom-colors --matrix-length --matrix-speed --matrix-colors; do
-  grep -Fq -- "$option" <<<"$help_text" || { echo "Installed tuigreet is missing required rolling-fork option: $option" >&2; exit 1; }
+# Remove obsolete distro/AUR tuigreet packages so the canonical pinned binary
+# has one unambiguous owner in /usr/local/bin and cannot be shadowed by /usr/bin.
+stale=()
+for package in greetd-tuigreet greetd-tuigreet-fork-bin greetd-tuigreet-fork-bin-debug greetd-tuigreet-fork-git; do
+  /usr/bin/pacman -Q "$package" >/dev/null 2>&1 && stale+=("$package")
 done
-sudo ln -sfn /usr/bin/tuigreet /usr/local/bin/tuigreet
+if (( ${#stale[@]} > 0 )); then
+  sudo /usr/bin/pacman -Rns --noconfirm "${stale[@]}"
+fi
+
+install_canonical_tuigreet
 getent passwd greeter >/dev/null || { echo 'The greetd greeter account is missing.' >&2; exit 1; }
 sudo install -d -o greeter -g greeter -m 0755 /var/cache/tuigreet
-printf 'AUR tooling ready: yay=%s; tuigreet=%s\n' "$(command -v yay)" "$(/usr/local/bin/tuigreet --version 2>&1 | head -n1)"
+printf 'Community repositories ready: chaotic-aur=%s; yay=%s; tuigreet=%s\n' \
+  "$(/usr/bin/pacman-conf --repo-list | grep -Fx chaotic-aur || printf disabled)" \
+  "$(command -v yay)" \
+  "$(/usr/local/bin/tuigreet --version 2>&1 | head -n1)"
