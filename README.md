@@ -22,6 +22,29 @@ The current shell is also **panel-configurable**: the stock Plasma panel is remo
 
 The production session contract exports `FORGE_OS_SESSION=1` and `FORGE_SHELL_MODE=1`. Outside that contract, FORGE behaves as the standalone application and does not expose FORGE-OS-only system surfaces.
 
+### ⌨️ Switching runtime/session from the login screen
+
+The FORGE-branded greetd/tuigreet login can also be used as a manual runtime selector. This is useful for development, recovery, compatibility testing, or intentionally choosing a different FORGE presentation without rebuilding the runtime.
+
+1. Boot to the FORGE login screen.
+2. Press **F2** to edit/select the session command.
+3. Enter the complete executable command for the runtime you want to start.
+4. Return to the credential prompt, authenticate normally, and greetd launches that command for the session.
+
+Known session commands/configurations:
+
+| Configuration | Login-screen command |
+| --- | --- |
+| Historical X11/Openbox / Plasma-KWin X11 chain (`0.1.1`–`0.1.3`) | `/usr/bin/xinit /usr/local/libexec/forge-session-client` |
+| Native FORGE KWin Wayland shell (`0.2.x` repository default) | `/usr/local/bin/forge-wayland-session` |
+| Full Plasma Wayland wrapper with FORGE session handoff (current reference-machine configuration) | `/usr/lib/plasma-dbus-run session-if-needed /usr/bin/startplasma-wayland /usr/local/bin/forge-wayland-session` |
+
+The full Plasma Wayland wrapper is useful when the desired configuration should establish the conventional Plasma Wayland service/session environment first and then hand control to FORGE. The direct `forge-wayland-session` command remains the repository-owned native FORGE shell path.
+
+These commands are **session selectors, not separate FORGE builds**. They change how the same installed FORGE runtime is hosted by the Linux graphical stack. The standalone FORGE application profile is normally launched from an existing host desktop rather than from the FORGE-OS greeter.
+
+> When entering a manual command at login, use the exact absolute executable paths available on the installed machine. A typo or unavailable compositor/session executable will cause the graphical session to fail and return to the greeter. `Ctrl+Alt+F2` remains the recovery console.
+
 ## 🚀 Quick start
 
 Keep both repositories current, then run the authoritative installer from the normal desktop user account:
