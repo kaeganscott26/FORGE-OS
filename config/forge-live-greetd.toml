@@ -9,5 +9,5 @@ command = "env FORGE_LIVE_RECOVERY=1 FORGE_RECOVERY_MODE=1 /usr/local/bin/forge-
 user = "forge"
 
 [default_session]
-command = "tuigreet --issue --time --remember --asterisks --width 72 --theme 'border=green;text=white;prompt=green;time=cyan;action=green;button=green;container=black;input=white' --power-shutdown 'systemctl poweroff' --power-reboot 'systemctl reboot' --sessions /usr/share/forge-os/wayland-sessions --xsessions /usr/share/forge-os/disabled-xsessions --no-xsession-wrapper --cmd '/usr/local/bin/forge-wayland-session'"
+command = "/usr/local/bin/tuigreet --issue --time --remember --asterisks --width 72 --theme 'border=green;text=white;prompt=green;time=cyan;action=green;button=green;container=black;input=white' --background matrix --background-fps 30 --matrix-colors white,green,black --matrix-length 8,24 --matrix-speed 0.25,0.85 --doom-height 7 --doom-spread 2 --doom-colors red,yellow,white --kb-command 2 --kb-sessions 3 --kb-background 4 --kb-power 5 --power-shutdown 'systemctl poweroff' --power-reboot 'systemctl reboot' --sessions /usr/share/forge-os/wayland-sessions --xsessions /usr/share/forge-os/disabled-xsessions --no-xsession-wrapper --cmd '/usr/local/bin/forge-wayland-session'"
 user = "greeter"
