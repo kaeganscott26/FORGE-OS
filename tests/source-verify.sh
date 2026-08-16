@@ -38,15 +38,17 @@ fi
 for required in rust fish starship reflector pacman-contrib sudo partitionmanager plasma-firewall firewalld distrobox podman nix ollama ollama-vulkan gamescope gamemode mangohud wine-staging; do
   grep -Fqx "$required" "$root/manifests/arch-packages.txt" && pass "manifest declares $required" || fail "manifest is missing $required"
 done
-if grep -Fqx greetd-tuigreet "$root/manifests/arch-packages.txt"; then fail 'inactive official tuigreet package remains in official manifest'; else pass 'official manifest defers tuigreet to maintained AUR fork'; fi
-grep -Fq 'greetd-tuigreet-fork-git' "$root/scripts/configure-aur.sh" && pass 'AUR bootstrap installs rolling maintained tuigreet fork' || fail 'rolling maintained tuigreet fork is not provisioned'
-grep -Fq 'greetd-tuigreet-fork-bin' "$root/scripts/configure-aur.sh" && pass 'bootstrap explicitly removes stale tagged fork package when needed' || fail 'stale tagged fork migration is missing'
-grep -Fq 'chaotic-aur' "$root/scripts/configure-aur.sh" && grep -Fq '3056513887B78AEB' "$root/scripts/configure-aur.sh" && pass 'Chaotic-AUR repository bootstrap is explicit and pinned to primary key' || fail 'Chaotic-AUR bootstrap is incomplete'
+if grep -Fqx greetd-tuigreet "$root/manifests/arch-packages.txt"; then fail 'legacy official tuigreet package remains in official manifest'; else pass 'tuigreet is managed as a pinned canonical source build'; fi
+grep -Fq 'TUIGREET_VERSION=0.11.0' "$root/scripts/configure-aur.sh" && grep -Fq 'TUIGREET_COMMIT=6fb15fffb794c6bd357164347d8b6d9e0aa92bbc' "$root/scripts/configure-aur.sh" && pass 'canonical tuigreet release and commit are pinned' || fail 'canonical tuigreet pin is incomplete'
+grep -Fq 'https://github.com/tuigreet/tuigreet.git' "$root/scripts/configure-aur.sh" && pass 'canonical tuigreet upstream is configured' || fail 'tuigreet still references obsolete fork upstream'
+grep -Fq 'cargo build --locked --release' "$root/scripts/configure-aur.sh" && pass 'canonical tuigreet uses a locked source build' || fail 'tuigreet source build is not locked'
+grep -Fq 'greetd-tuigreet-fork-git' "$root/scripts/configure-aur.sh" && grep -Fq 'greetd-tuigreet-fork-bin' "$root/scripts/configure-aur.sh" && pass 'obsolete fork packages are removed during migration' || fail 'obsolete tuigreet package migration is incomplete'
+grep -Fq 'chaotic-aur' "$root/scripts/configure-aur.sh" && grep -Fq '3056513887B78AEB' "$root/scripts/configure-aur.sh" && pass 'Chaotic-AUR bootstrap is explicit and pinned to primary key' || fail 'Chaotic-AUR bootstrap is incomplete'
 grep -Fq 'yay-bin' "$root/scripts/configure-aur.sh" && pass 'AUR helper is provisioned' || fail 'AUR helper is missing'
 grep -Fq 'install_reference_mirrors' "$root/scripts/bootstrap-forgeos.sh" && grep -Fq 'refresh_ranked_mirrors' "$root/scripts/bootstrap-forgeos.sh" && pass 'bootstrap uses tracked mirror baseline plus reflector ranking' || fail 'mirror bootstrap is incomplete'
 grep -Fq 'reflector.timer' "$root/scripts/configure-hardware.sh" && grep -Fq '/etc/xdg/reflector/reflector.conf' "$root/scripts/configure-hardware.sh" && pass 'reflector refresh persists after reboot' || fail 'persistent mirror refresh is missing'
 
-for unit in NetworkManager.service bluetooth.service irqbalance.service systemd-timesyncd.service cups.service; do
+for unit in NetworkManager.service bluetooth.service firewalld.service irqbalance.service systemd-timesyncd.service cups.service; do
   grep -Fq "$unit" "$root/scripts/configure-hardware.sh" && pass "service policy includes $unit" || fail "service policy missing $unit"
 done
 for unit in pipewire.socket pipewire-pulse.socket wireplumber.service; do
@@ -65,7 +67,7 @@ done
 grep -Fq 'forge-system-surface' "$root/scripts/install-forge-linux.sh" && grep -Fq 'forge-session-control' "$root/scripts/install-forge-linux.sh" && pass 'installer deploys system/session helpers' || fail 'installer omits system/session helpers'
 grep -Fq 'forge-internal-' "$root/scripts/install-forge-linux.sh" && pass 'installer deploys hidden internal launcher contract' || fail 'internal launcher deployment is missing'
 grep -Fq 'find /var/cache/tuigreet' "$root/scripts/install-forge-linux.sh" && pass 'installer clears stale greeter command/session cache' || fail 'stale greeter paths can survive install'
-grep -Fq 'readlink -f /usr/local/bin/tuigreet' "$root/scripts/build-iso.sh" && pass 'ISO embeds verified maintained tuigreet binary' || fail 'ISO can package wrong tuigreet binary'
+grep -Fq 'readlink -f /usr/local/bin/tuigreet' "$root/scripts/build-iso.sh" && pass 'ISO embeds verified canonical tuigreet binary' || fail 'ISO can package wrong tuigreet binary'
 grep -Fq 'record_overlay_executable_permissions' "$root/scripts/build-iso.sh" && grep -Fq 'verify_squashfs_executables' "$root/scripts/build-iso.sh" && pass 'ISO preserves and verifies executable modes' || fail 'ISO executable verification is incomplete'
 
 grep -Fq "['Network', 'network']" "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && grep -Fq "['Advanced', 'advanced']" "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && pass 'top bar declares complete quick system surface range' || fail 'top bar system surface range is incomplete'
