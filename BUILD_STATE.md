@@ -6,7 +6,8 @@ Source version: `0.2.2` (stable candidate worktree; not yet published)
 ## Implemented
 
 - Exact canonical login chain: `startplasma-wayland forge-wayland-session forge-wayland-client`.
-- One FORGE-owned KWin Wayland compositor, XWayland compatibility, D-Bus import, KRunner daemon, Plasma service layer, persistent matrix login effect, and F2/F3/F4/F5 controls.
+- One FORGE-owned KWin Wayland compositor, XWayland compatibility, D-Bus import, KRunner daemon, Plasma service layer, and F2/F3/F5 login controls.
+- Boot-critical greetd configuration constrained to the stock Arch `greetd-tuigreet` package contract, with CI protection against reintroducing unsupported enhanced-fork animation flags.
 - Commit-tolerant, content-addressed runtime identity with commit retained only as provenance; immutable current/last-known-good releases and integrity-checked rollback.
 - Authoritative, resolver-tested Arch package manifest; Fish/Starship theme; Wayland/gaming stack; reflector; Flatpak; rootless apt/Kali containers; Nix.
 - `forge-app-install` and `forge-install-pkg` commands with familiar operations and native package paths.
@@ -14,6 +15,7 @@ Source version: `0.2.2` (stable candidate worktree; not yet published)
 - Native FORGE Explorer inspection, copy/paste, create/rename/delete, executable/package handling, and explicit user/administrator launch boundary. FORGE Explorer is the configured file manager.
 - Workspace Intelligence in the FORGE-OS top bar, automatic context/memory reindexing, chat-only right panel, audited release capability profile, and packaged/Ollama-local skill parity.
 - Native recovery panel on every platform plus on-demand graphical tty2 recovery on FORGE-OS.
+- Canonical `./install.sh` and `./update.sh` entry points for normal system maintenance; bootstrap/build/runtime helpers remain internal or advanced operations.
 - Code-native splash, KWin translucency/focus/placement polish, deterministic build provenance, shared runtime hashes, and Linux/Windows/macOS package workflows.
 
 ## Verified in source
@@ -26,6 +28,7 @@ Source version: `0.2.2` (stable candidate worktree; not yet published)
 
 ## Still required before stable publication
 
+- Re-run the complete source/CI contract after the greetd package-compatibility repair.
 - Build the new immutable FORGE runtime from the final clean commit.
 - Build and inspect AppImage/DEB/ISO artifacts and checksums.
 - Boot the ISO in a VM and physical/reference target; exercise GPU, network, audio, portals, external windows, package installation, logout/relogin, suspend/resume, tty2 recovery, rollback, and updater refusal/success paths.
