@@ -32,6 +32,14 @@ command -v mkarchiso >/dev/null || { echo 'Install archiso first.' >&2; exit 1; 
 
 rm -rf -- "$profile" "$work"
 cp -a /usr/share/archiso/configs/releng "$profile"
+sed -i '/^#\[multilib\]$/,/^#Include = \/etc\/pacman.d\/mirrorlist$/ {
+  s/^#\[multilib\]$/[multilib]/
+  s|^#Include = /etc/pacman.d/mirrorlist$|Include = /etc/pacman.d/mirrorlist|
+}' "$profile/pacman.conf"
+/usr/bin/pacman-conf --config "$profile/pacman.conf" --repo-list | grep -Fxq multilib || {
+  echo 'The ISO pacman configuration does not expose [multilib].' >&2
+  exit 1
+}
 release="$profile/airootfs/opt/forge/releases/$FORGE_RUNTIME_ID"
 install -d \
   "$release" \
