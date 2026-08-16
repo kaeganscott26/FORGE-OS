@@ -9,5 +9,5 @@ command = "/usr/local/bin/forge-recovery-session"
 user = "@USER@"
 
 [default_session]
-command = "tuigreet --issue --time --width 72 --custom-title 'FORGE RECOVERY' --greeting 'Diagnostics are available before authentication; mutations require authorization' --theme border=green;text=white;prompt=green;time=cyan;action=green;button=green;container=black;input=white --cmd '/usr/local/bin/forge-recovery-session'"
+command = "tuigreet --issue --time --width 72 --greeting 'FORGE Recovery - diagnostics before mutation' --theme border=green;text=white;prompt=green;time=cyan;action=green;button=green;container=black;input=white --cmd '/usr/local/bin/forge-recovery-session'"
 user = "greeter"
