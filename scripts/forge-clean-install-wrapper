@@ -22,13 +22,17 @@ mountpoint -q "$target" || { echo "Installed target is no longer mounted: $targe
 
 install -d -m 0755 \
   "$target/usr/local/bin" "$target/usr/local/libexec" "$target/usr/share/forge-os" \
-  "$target/etc/systemd/system" "$target/etc/forge-os" "$target/var/lib/forge-os"
+  "$target/etc/systemd/system" "$target/etc/forge-os" "$target/var/lib/forge-os/checkpoints"
 install -m 0755 "$repo/scripts/forge-service-manager" "$target/usr/local/bin/forge-service-manager"
 install -m 0755 "$repo/scripts/forge-maintenance-center" "$target/usr/local/bin/forge-maintenance-center"
+install -m 0755 "$repo/scripts/forge-system-rollback" "$target/usr/local/bin/forge-system-rollback"
 install -m 0755 "$repo/scripts/forge-service-control" "$target/usr/local/libexec/forge-service-control"
+install -m 0755 "$repo/scripts/forge-system-checkpoint" "$target/usr/local/libexec/forge-system-checkpoint"
+install -m 0755 "$repo/scripts/forge-system-rollback-apply" "$target/usr/local/libexec/forge-system-rollback-apply"
 install -m 0755 "$repo/scripts/forge-first-boot" "$target/usr/local/libexec/forge-first-boot"
 install -m 0644 "$repo/manifests/system-services.tsv" "$target/usr/share/forge-os/system-services.tsv"
 install -m 0644 "$repo/config/forge-first-boot.service" "$target/etc/systemd/system/forge-first-boot.service"
+chmod 0700 "$target/var/lib/forge-os/checkpoints"
 
 if [[ ! -r "$target/etc/forge-os/features.conf" ]]; then
   printf 'FORGE_FEATURES=%q\n' 'bluetooth,printing,local-ai,power-profiles,firmware' >"$target/etc/forge-os/features.conf"
@@ -39,4 +43,4 @@ systemctl --root="$target" enable forge-first-boot.service >/dev/null
 # sudo rule is copied into the installed target.
 rm -f -- "$target/etc/sudoers.d/10-forge-live" "$target/etc/sudoers.d/20-forge-install-temp"
 
-echo 'FORGE-OS clean-install finalization complete: Advanced maintenance, service manifest, and first-boot verification are installed.'
+echo 'FORGE-OS clean-install finalization complete: Advanced maintenance, full pre-update checkpoint recovery, service manifest, and first-boot verification are installed.'
