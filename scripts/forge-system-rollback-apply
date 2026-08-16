@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "$EUID" -eq 0 && $# -eq 0 ]] || { echo 'This helper is invoked through PolicyKit by forge-system-rollback.' >&2; exit 77; }
+checkpoint=/var/lib/forge-os/checkpoints/previous
+rootfs="$checkpoint/rootfs"
+[[ -d "$rootfs" && -r "$checkpoint/metadata.env" && -r "$checkpoint/SHA256SUMS" && -r "$checkpoint/SYMLINKS" ]] || {
+  echo 'No complete FORGE-OS system checkpoint is available.' >&2
+  exit 69
+}
+[[ "$(stat -c '%U:%G' "$checkpoint")" == root:root ]] || { echo 'Checkpoint ownership is invalid.' >&2; exit 74; }
+
+(
+  cd "$rootfs"
+  sha256sum -c "$checkpoint/SHA256SUMS" >/dev/null
+  current_links="$(mktemp)"
+  trap 'rm -f -- "$current_links"' EXIT
+  find . -type l -printf '%p -> %l\n' | LC_ALL=C sort >"$current_links"
+  cmp -s "$current_links" "$checkpoint/SYMLINKS" || { echo 'Checkpoint symlink integrity check failed.' >&2; exit 74; }
+)
+
+# shellcheck disable=SC1090
+source "$checkpoint/metadata.env"
+for commit in "${FORGE_CHECKPOINT_FORGE_COMMIT:-}" "${FORGE_CHECKPOINT_OS_COMMIT:-}"; do
+  [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || { echo 'Checkpoint Git provenance is malformed.' >&2; exit 74; }
+done
+runtime_name="${FORGE_CHECKPOINT_RUNTIME:-}"
+[[ "$runtime_name" =~ ^[A-Za-z0-9._+-]+$ ]] || { echo 'Checkpoint runtime identity is malformed.' >&2; exit 74; }
+target_runtime="/opt/forge/releases/$runtime_name"
+current_runtime="$(readlink -f /opt/forge/current 2>/dev/null || true)"
+[[ -d "$target_runtime" && -r "$target_runtime/.forge-runtime.env" ]] || { echo 'Checkpoint runtime is no longer present in the immutable release store.' >&2; exit 69; }
+[[ "$current_runtime" == /opt/forge/releases/* && -d "$current_runtime" && -r "$current_runtime/.forge-runtime.env" ]] || { echo 'Current runtime is not a valid immutable release.' >&2; exit 74; }
+
+verify_runtime() {
+  local release="$1" binary asar
+  # shellcheck disable=SC1090
+  source "$release/.forge-runtime.env"
+  binary="$release/${FORGE_EXECUTABLE_RELATIVE_PATH:-missing}"
+  asar="$release/resources/app.asar"
+  [[ "$(sha256sum "$binary" | awk '{print $1}')" == "${FORGE_EXECUTABLE_SHA256:-}" ]] || { echo "Runtime executable verification failed: $release" >&2; return 74; }
+  [[ "$(sha256sum "$asar" | awk '{print $1}')" == "${FORGE_APP_ASAR_SHA256:-}" ]] || { echo "Runtime app archive verification failed: $release" >&2; return 74; }
+}
+verify_runtime "$target_runtime"
+verify_runtime "$current_runtime"
+
+# Restore the root-owned FORGE integration snapshot atomically per file while
+# leaving user homes, projects, package databases, and unrelated OS files alone.
+cp -a "$rootfs/." /
+
+# Restore the checkpoint runtime and retain the build we are leaving as the
+# alternate rollback target. A second rollback can therefore switch back.
+ln -sfn "releases/$runtime_name" /opt/forge/current
+if [[ "$current_runtime" != "$target_runtime" ]]; then
+  ln -sfn "releases/$(basename "$current_runtime")" /opt/forge/last-known-good
+fi
+
+systemctl daemon-reload
+systemctl enable greetd.service >/dev/null
+ln -sfn /usr/lib/systemd/system/greetd.service /etc/systemd/system/display-manager.service
+if [[ -r /etc/systemd/system/forge-recovery.service ]]; then
+  systemctl enable --force forge-recovery.service >/dev/null 2>&1 || true
+fi
+systemctl set-default graphical.target >/dev/null
+
+if [[ -r /usr/share/forge-os/system-services.tsv ]]; then
+  while IFS='|' read -r scope unit policy risk label description; do
+    [[ -n "$scope" && "$scope" != \#* && "$policy" == required ]] || continue
+    case "$scope" in
+      system) systemctl enable "$unit" >/dev/null ;;
+      global) systemctl --global enable "$unit" >/dev/null ;;
+    esac
+  done </usr/share/forge-os/system-services.tsv
+fi
+
+cat <<EOF
+Restored FORGE-OS checkpoint from ${FORGE_CHECKPOINT_CREATED:-unknown time}.
+FORGE source provenance: ${FORGE_CHECKPOINT_FORGE_COMMIT}
+FORGE-OS source provenance: ${FORGE_CHECKPOINT_OS_COMMIT}
+Runtime: $runtime_name
+The build that was active before rollback remains available as last-known-good.
+Reboot or log out when ready to enter the restored session stack.
+EOF
