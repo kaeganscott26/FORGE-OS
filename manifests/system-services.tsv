@@ -12,5 +12,5 @@ system|fstrim.timer|required|standard|SSD Trim|Periodic discard/TRIM for support
 system|reflector.timer|required|standard|Mirror Refresh|Periodically refreshes ranked Arch package mirrors
 system|fwupd-refresh.timer|optional|standard|Firmware Metadata|Refreshes firmware update metadata when supported
 global|pipewire.socket|required|critical|PipeWire|Primary per-user audio/media socket
- global|pipewire-pulse.socket|required|critical|PipeWire Pulse|PulseAudio compatibility socket for applications
+global|pipewire-pulse.socket|required|critical|PipeWire Pulse|PulseAudio compatibility socket for applications
 global|wireplumber.service|required|critical|WirePlumber|Per-user PipeWire session and device policy manager
