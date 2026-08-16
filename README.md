@@ -2,7 +2,7 @@
 
 FORGE-OS is the Arch-based integration layer that makes FORGE the visible workspace, desktop, Explorer, settings, recovery, and update experience. Arch, systemd, KWin, Plasma services, NetworkManager, PipeWire, PolicyKit, pacman, and the native package databases remain the operating-system substrate; they do not become the primary UI.
 
-Current stable candidate: `0.2.2`. Publication remains gated by [release acceptance](docs/RELEASE_CHECKLIST.md).
+Current test build: **`0.2.3-test.1`**. This build is intentionally published only as a prerelease/test ISO and is **not** marked stable. Stable publication remains gated by [release acceptance](docs/RELEASE_CHECKLIST.md).
 
 ## Login contract
 
@@ -80,28 +80,34 @@ cd ~/FORGE-OS
 
 That restores console-first access while preserving installed runtimes and user/project data.
 
-## Live ISO recovery and provisioning
+## Live ISO recovery and clean installation
 
 The ISO has a separate live-only profile. `forge-live-setup.service` detects ArchISO before making privileged live changes. It creates the ephemeral `forge` account with its password locked, grants passwordless sudo only inside that live environment, enters the same Wayland runtime with live-recovery flags, and opens FORGE's full-screen **Live Recovery** GUI.
 
-Live Recovery exposes **Recovery Root Shell** and **Load / Install ISO or ZIP**. ISO files are mounted read-only; ZIP paths are checked before extraction; only recognized installer entry points are eligible for automatic execution; and the user must type `INSTALL` before a bundle installer runs.
+Live Recovery exposes **Recovery Root Shell**, **Install FORGE-OS to mounted disk**, and **Load / Install ISO or ZIP**. The clean-install path intentionally does **not** partition or format disks. You partition, format, and mount the target yourself; the installer then verifies the mount points, requires an explicit `INSTALL` confirmation, installs the authoritative package manifest, reproduces the exact FORGE runtime embedded in the ISO, enables repositories/services, and installs the UEFI boot path.
+
+See [Clean install from the test ISO](docs/CLEAN_INSTALL.md) before writing the image to USB.
 
 ## Build and validate
 
 ```bash
 ./tests/greeter-contract.sh
+FORGE_SOURCE=~/FORGE ./tests/clean-install-contract.sh
 ./tests/source-verify.sh
 ./scripts/build-forge.sh ~/FORGE
 ./scripts/build-iso.sh
 ```
 
-Source verification checks the current greeter, top-bar, session-control, package-routing, mirror/repository, service, live-recovery, FORGE typecheck/lint/test/build, and runtime contracts. `tests/verify.sh` validates the installed machine. ISO publication additionally requires VM/physical hardware acceptance and artifact provenance from [the release checklist](docs/RELEASE_CHECKLIST.md).
+Source verification checks the current greeter, top-bar, session-control, package-routing, mirror/repository, service, live-recovery, FORGE typecheck/lint/test/build, and runtime contracts. The separate clean-install contract guarantees the test installer remains mount-targeted and never gains partition/format commands. `tests/verify.sh` validates an installed machine.
+
+GitHub Actions publishes the test ISO only after the complete source contract passes. The downloadable release is a GitHub **prerelease**, not a stable release, and contains one versioned x86_64 ISO.
 
 ## Documentation
 
 - [Architecture](ARCHITECTURE.md)
 - [Runtime/session contract](session/README.md)
 - [User manual](docs/USER_MANUAL.md)
+- [Clean install](docs/CLEAN_INSTALL.md)
 - [Recovery](docs/RECOVERY.md)
 - [Security model](docs/SECURITY_MODEL.md)
 - [Release checklist](docs/RELEASE_CHECKLIST.md)
