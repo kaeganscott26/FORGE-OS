@@ -6,4 +6,3 @@ Exec=/usr/local/bin/forge-live-select-installer
 Icon=drive-removable-media
 Terminal=false
 Categories=System;Utility;
-NoDisplay=true
