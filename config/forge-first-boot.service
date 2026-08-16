@@ -1,0 +1,13 @@
+[Unit]
+Description=Finalize FORGE-OS required services on first installed boot
+After=local-fs.target
+Before=greetd.service
+ConditionPathExists=!/var/lib/forge-os/first-boot-complete
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/forge-first-boot
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target
