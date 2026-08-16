@@ -15,7 +15,7 @@ set -euo pipefail
    
 # Update the package manager and install common utilities 
    
-sudo forge-install-package ${pkg_name}
+sudo forge-install-program $pkg_name
      
    
    

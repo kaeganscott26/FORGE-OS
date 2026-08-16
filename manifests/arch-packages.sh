@@ -61,7 +61,6 @@ dbus-broker \
 greetd \
 greetd-tuigreet 
 
-/''''
-"Enjoy This Release of FORGE-OS for linux."
 
-''''
+#"Enjoy This Release of FORGE-OS for linux."
+
