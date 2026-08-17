@@ -1,31 +1,35 @@
 # Clean install from the FORGE-OS test ISO
 
-This flow is for the **0.2.3-test.1** test image. It is intentionally not a stable-release installer.
+This flow is for **`0.2.3-test.1`**. It is a test image, not a stable release.
 
-The live installer does **not** partition or format disks. You own those steps. That boundary is deliberate: the test installer will only operate on a root filesystem that you explicitly mounted.
+The installer deliberately does **not** partition or format disks. You own the disk layout; FORGE Setup takes over once the target filesystems are mounted.
 
-## 1. Boot the USB
+## 1. Boot the USB in UEFI mode
 
-Boot the FORGE-OS ISO in UEFI mode. The live environment enters FORGE Live Recovery using the same Wayland runtime packaged into the image.
+The live image starts the same FORGE/KWin Wayland stack used by the installed OS. After KWin, Plasma services, PolicyKit, and FORGE are up, **FORGE-OS Setup opens automatically as a normal KDE/Qt window**. The live FORGE desktop remains available underneath.
+
+The ephemeral live account is `forge`. Its password is locked. Passwordless sudo exists only for this disposable live environment and is removed from every installed target.
 
 ## 2. Connect to the network
 
-Use the Network control in the FORGE-OS top bar or NetworkManager from the recovery shell. A clean install needs network access for current Arch packages, Chaotic-AUR setup, `yay`, and the exact source checkouts recorded in the ISO.
+Choose **Network** in FORGE-OS Setup. The clean installer needs network access for the current Arch package set and repository bootstrap.
 
-## 3. Partition and format the target yourself
+## 3. Partition and format the disk
 
-Use the disk tools you prefer from the recovery root shell. The ISO contains standard Arch partitioning/formatting tools, including GPT and FAT utilities.
+Choose **Partition Disks** to open KDE Partition Manager, or open the Advanced Root Shell and use standard Arch tools.
 
-For a simple UEFI install, create at minimum:
+For a simple UEFI installation create at minimum:
 
 - an EFI System Partition formatted FAT32;
 - a Linux root filesystem.
 
-The exact device names are hardware-specific. Verify them with `lsblk -f` before making changes.
+Device names are hardware-specific. Verify the target with `lsblk -f` before changing anything.
 
 ## 4. Mount the target
 
-Example only — replace the devices with the partitions you actually created:
+The default setup path expects the root filesystem at `/mnt` and the EFI System Partition at `/mnt/boot`.
+
+Example only — replace these with the partitions you actually created:
 
 ```bash
 mount /dev/nvme0n1p2 /mnt
@@ -33,7 +37,7 @@ mkdir -p /mnt/boot
 mount /dev/nvme0n1p1 /mnt/boot
 ```
 
-Confirm them before installing:
+Confirm them:
 
 ```bash
 findmnt /mnt
@@ -41,41 +45,76 @@ findmnt /mnt/boot
 lsblk -f
 ```
 
-## 5. Run the guarded installer
+## 5. Run Guided Install
 
-From FORGE Live Recovery, choose **Install FORGE-OS to mounted disk**, or run:
+Choose **Guided Install** in FORGE-OS Setup. It collects:
+
+- mounted target root;
+- primary administrator username;
+- hostname;
+- timezone;
+- optional-service checkboxes for Bluetooth, printing, Ollama local AI, power profiles, and firmware refresh.
+
+Required networking, firewall, time sync, PipeWire/WirePlumber, trim, mirror maintenance, greetd, recovery, and Wayland services are not optional.
+
+After the GUI summary, the installation opens in a Konsole window. Two deliberate confirmations remain there:
+
+1. set the new installed user's password;
+2. type the literal word `INSTALL` before target mutation begins.
+
+The direct advanced equivalent is:
 
 ```bash
 sudo forge-clean-install --target /mnt --user YOUR_USER --hostname forge-linux
 ```
 
-The installer prints the resolved target device, FORGE-OS version, username, hostname, and timezone, then requires you to type `INSTALL` before it mutates the mounted target.
+The direct path receives the same finalization pass as Guided Install: Advanced maintenance tools, service manifest, first-boot verification, checkpoint recovery, and live-sudo cleanup are installed either way.
 
-It will:
+## What the installer does
 
-- install the authoritative Arch package manifest with `pacstrap`;
-- generate a UUID-based `fstab`;
-- install the exact FORGE runtime embedded in the ISO;
-- install the canonical Wayland/greetd session and Matrix/F4 greeter configuration;
-- enable multilib, Chaotic-AUR, `yay`, mirrors, Reflector, and package routing;
-- enable the required system and user services persistently;
-- create the requested desktop user and prompt for its password;
-- clone FORGE and FORGE-OS at the commits recorded in the ISO while leaving `main` attached to `origin/main` for later `git pull --ff-only` updates;
-- install systemd-boot automatically when the live machine is booted in UEFI mode.
+After confirmation it:
 
-The installer **never calls `mkfs`, `fdisk`, `cfdisk`, `parted`, `sgdisk`, or `wipefs`**. If the root filesystem or EFI partition is not mounted where expected, it stops.
+- verifies the explicit mounted target and UEFI boot mount;
+- installs the authoritative Arch package manifest with `pacstrap`;
+- generates a UUID-based `fstab`;
+- installs the exact FORGE runtime embedded and hash-recorded in the ISO;
+- installs canonical `greetd -> /usr/local/bin/tuigreet -> /usr/local/bin/forge-wayland-session`;
+- installs Matrix-default/F4-background greeter configuration using pinned canonical tuigreet 0.11.0;
+- enables multilib, Chaotic-AUR, `yay`, tracked HTTPS mirrors and Reflector policy;
+- installs the authoritative system-service manifest;
+- enables required system/timer/global-user services persistently;
+- applies Guided Setup's selected optional-service policy;
+- installs Advanced service/admin/verify/repair/update controls;
+- installs reversible runtime rollback and full pre-update FORGE-OS checkpoint recovery;
+- installs the tty2 graphical recovery path and console break-glass recovery;
+- creates the requested wheel administrator and prompts for its password;
+- installs systemd-boot automatically when the live system is booted in UEFI mode;
+- enables `forge-first-boot.service` so the installed machine verifies/starts all required services before normal graphical use;
+- removes the live environment's passwordless-sudo rules from the target.
 
-## 6. Reboot
+The installer **never calls `mkfs`, `fdisk`, `cfdisk`, `parted`, `sgdisk`, or `wipefs`**. If the target mounts are missing or wrong, it stops instead of guessing.
 
-After the installer finishes, inspect the target if desired, then unmount and reboot:
+## 6. Reboot into the installed system
+
+After Guided Setup reports completion, use its **Restart** control. If you are working from the root shell instead:
 
 ```bash
 umount -R /mnt
-reboot
+systemctl reboot
 ```
 
-Remove the USB when the firmware begins the reboot.
+Remove the USB when firmware begins the reboot.
 
 ## Expected first boot
 
-The installed machine should boot through greetd into the FORGE login screen with Matrix as the default background, F4 background selection, the canonical `/usr/local/bin/forge-wayland-session` path, and the **0.2.3-test.1** FORGE-OS runtime. This is still a test image; report hardware/session/install failures before any stable release is cut.
+The first installed boot runs the one-shot required-service verifier and then enters the normal graphical path:
+
+```text
+greetd
+  -> canonical tuigreet 0.11.0 (Matrix default; F4 background selector)
+  -> /usr/local/bin/forge-wayland-session
+  -> KWin Wayland
+  -> FORGE-OS
+```
+
+This remains **`0.2.3-test.1`** until physical USB boot, clean installation, services, UI scaling, power/session controls, recovery, update, and rollback have been exercised on real hardware. Report those results before any stable release is cut.
