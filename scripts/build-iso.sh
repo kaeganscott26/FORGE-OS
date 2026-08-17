@@ -36,7 +36,17 @@ verify_squashfs_executables() {
     usr/local/libexec/forge-wayland-client
     usr/local/libexec/forge-live-setup
     usr/local/libexec/forge-live-install
+    usr/local/libexec/forge-clean-install-core
+    usr/local/bin/forge-clean-install
+    usr/local/bin/forge-live-guided-install
+    usr/local/bin/forge-live-setup-ui
     usr/local/bin/forge-live-select-installer
+    usr/local/bin/forge-maintenance-center
+    usr/local/bin/forge-service-manager
+    usr/local/bin/forge-system-rollback
+    usr/local/libexec/forge-service-control
+    usr/local/libexec/forge-system-checkpoint
+    usr/local/libexec/forge-system-rollback-apply
     usr/local/bin/forge-system-surface
     usr/local/bin/forge-session-control
     usr/local/bin/forge-app-install
@@ -83,6 +93,8 @@ done
 sudo rm -rf -- "$profile" "$work"
 cp -a /usr/share/archiso/configs/releng "$profile"
 
+# Keep Arch repositories native and deterministic for the image build. The
+# installed OS enables the reviewed community repository during setup.
 sed -i '/^#\[multilib\]$/,/^#Include = \/etc\/pacman.d\/mirrorlist$/ { s/^#\[multilib\]$/[multilib]/; s|^#Include = /etc/pacman.d/mirrorlist$|Include = /etc/pacman.d/mirrorlist|; }' "$profile/pacman.conf"
 pacman_config_staged="$profile/pacman.conf.staged"
 awk -v mirror_file="$root/config/mirrorlist" '
@@ -107,7 +119,8 @@ install -d \
   "$profile/airootfs/etc/greetd" "$profile/airootfs/etc/systemd/system/greetd.service.d" "$profile/airootfs/etc/systemd/system/forge-recovery.service.d" \
   "$profile/airootfs/usr/share/forge-os/wayland-sessions" "$profile/airootfs/etc/systemd/system/graphical.target.wants" \
   "$profile/airootfs/etc/systemd/system/getty.target.wants" "$profile/airootfs/etc/systemd/system/multi-user.target.wants" \
-  "$profile/airootfs/etc/systemd/system/timers.target.wants"
+  "$profile/airootfs/etc/systemd/system/timers.target.wants" "$profile/airootfs/etc/systemd/user/sockets.target.wants" \
+  "$profile/airootfs/etc/systemd/user/default.target.wants"
 
 cp -a "$runtime/." "$release/"
 ln -s "releases/$FORGE_RUNTIME_ID" "$profile/airootfs/opt/forge/current"
@@ -121,25 +134,37 @@ install -m 0755 "$root/session/forge-session" "$profile/airootfs/usr/local/bin/f
 install -m 0755 "$root/session/forge-wayland-client" "$profile/airootfs/usr/local/libexec/forge-wayland-client"
 install -m 0755 "$root/session/forge-recovery-session" "$profile/airootfs/usr/local/bin/forge-recovery-session"
 install -m 0755 "$root/session/forge-recovery-client" "$profile/airootfs/usr/local/libexec/forge-recovery-client"
-install -m 0755 "$root/scripts/forge-runtime-rollback-activate" "$profile/airootfs/usr/local/libexec/forge-runtime-rollback-activate"
 install -m 0755 "$root/session/forge-plasma-initialize" "$profile/airootfs/usr/local/libexec/forge-plasma-initialize"
+install -m 0755 "$root/scripts/forge-runtime-rollback-activate" "$profile/airootfs/usr/local/libexec/forge-runtime-rollback-activate"
 
-for tool in forge-app-launcher forge-open forge-workspace-runner forge-install-program forge-app-install forge-install-pkg forge-panel-manager forge-os-update forge-runtime-rollback forge-workspace-bootstrap forge-refresh-mirrors install-wayland-stacks.sh forge-system-surface forge-session-control; do
-  tool_source="$root/scripts/$tool"; [[ "$tool" == forge-workspace-bootstrap ]] && tool_source="$root/scripts/forge-workspace-bootstrap.sh"
+for tool in forge-app-launcher forge-open forge-workspace-runner forge-install-program forge-app-install forge-install-pkg forge-panel-manager forge-os-update forge-runtime-rollback forge-workspace-bootstrap forge-refresh-mirrors install-wayland-stacks.sh forge-system-surface forge-session-control forge-service-manager forge-maintenance-center forge-system-rollback; do
+  tool_source="$root/scripts/$tool"
+  [[ "$tool" == forge-workspace-bootstrap ]] && tool_source="$root/scripts/forge-workspace-bootstrap.sh"
   install -m 0755 "$tool_source" "$profile/airootfs/usr/local/bin/$tool"
 done
+for helper in forge-service-control forge-system-checkpoint forge-system-rollback-apply; do
+  install -m 0755 "$root/scripts/$helper" "$profile/airootfs/usr/local/libexec/$helper"
+done
+
 install -m 0755 "$root/scripts/forge-live-setup" "$profile/airootfs/usr/local/libexec/forge-live-setup"
 install -m 0755 "$root/scripts/forge-live-install" "$profile/airootfs/usr/local/libexec/forge-live-install"
+install -m 0755 "$root/scripts/forge-clean-install" "$profile/airootfs/usr/local/libexec/forge-clean-install-core"
+install -m 0755 "$root/scripts/forge-clean-install-wrapper" "$profile/airootfs/usr/local/bin/forge-clean-install"
+install -m 0755 "$root/scripts/forge-live-guided-install" "$profile/airootfs/usr/local/bin/forge-live-guided-install"
+install -m 0755 "$root/scripts/forge-live-setup-ui" "$profile/airootfs/usr/local/bin/forge-live-setup-ui"
 install -m 0755 "$root/scripts/forge-live-select-installer" "$profile/airootfs/usr/local/bin/forge-live-select-installer"
 
 install -m 0644 "$root/config/kwinrc" "$profile/airootfs/etc/xdg/kwinrc"
 install -m 0644 "$root/config/kdeglobals" "$profile/airootfs/etc/xdg/kdeglobals"
 install -m 0644 "$root/config/reflector.conf" "$profile/airootfs/etc/xdg/reflector/reflector.conf"
 install -m 0644 "$root/config/forge-portals.conf" "$profile/airootfs/usr/share/xdg-desktop-portal/forge-portals.conf"
-for desktop in forge-app-launcher.desktop forge-explorer.desktop forge-system-settings.desktop forge-workspace-runner.desktop forge-install-program.desktop forge-panel-manager.desktop forge-live-root-shell.desktop forge-live-installer.desktop; do
+install -m 0644 "$root/manifests/system-services.tsv" "$profile/airootfs/usr/share/forge-os/system-services.tsv"
+for desktop in forge-app-launcher.desktop forge-explorer.desktop forge-system-settings.desktop forge-workspace-runner.desktop forge-install-program.desktop forge-panel-manager.desktop forge-live-root-shell.desktop forge-live-installer.desktop forge-live-clean-install.desktop forge-live-setup.desktop; do
   install -m 0644 "$root/session/$desktop" "$profile/airootfs/usr/share/applications/$desktop"
 done
-for desktop in "$root"/session/forge-internal-*.desktop; do install -m 0644 "$desktop" "$profile/airootfs/usr/share/applications/$(basename "$desktop")"; done
+for desktop in "$root"/session/forge-internal-*.desktop; do
+  install -m 0644 "$desktop" "$profile/airootfs/usr/share/applications/$(basename "$desktop")"
+done
 install -m 0644 "$root/session/forge.desktop" "$profile/airootfs/usr/share/forge-os/wayland-sessions/forge.desktop"
 install -m 0644 "$root/config/greetd-config.toml" "$profile/airootfs/etc/greetd/config.toml"
 sed 's/@USER@/forge/g' "$root/config/forge-recovery-greetd.toml" >"$profile/airootfs/etc/greetd/forge-recovery.toml"
@@ -158,7 +183,9 @@ record_overlay_executable_permissions
 
 sed -i 's/^iso_name=.*/iso_name="forge-os"/' "$profile/profiledef.sh"
 sed -i 's/^iso_label=.*/iso_label="FORGE_OS"/' "$profile/profiledef.sh"
-while IFS= read -r package; do grep -qxF "$package" "$profile/packages.x86_64" || printf '%s\n' "$package" >>"$profile/packages.x86_64"; done < <(sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$root/manifests/arch-packages.txt")
+while IFS= read -r package; do
+  grep -qxF "$package" "$profile/packages.x86_64" || printf '%s\n' "$package" >>"$profile/packages.x86_64"
+done < <(sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$root/manifests/arch-packages.txt")
 
 ln -sf /usr/lib/systemd/system/greetd.service "$profile/airootfs/etc/systemd/system/graphical.target.wants/greetd.service"
 ln -sf /etc/systemd/system/forge-recovery.service "$profile/airootfs/etc/systemd/system/autovt@tty2.service"
@@ -167,7 +194,12 @@ ln -sf /etc/systemd/system/forge-live-setup.service "$profile/airootfs/etc/syste
 for service in NetworkManager.service bluetooth.service firewalld.service irqbalance.service systemd-timesyncd.service cups.service power-profiles-daemon.service ollama.service; do
   ln -sf "/usr/lib/systemd/system/$service" "$profile/airootfs/etc/systemd/system/multi-user.target.wants/$service"
 done
-for timer in fstrim.timer reflector.timer fwupd-refresh.timer; do ln -sf "/usr/lib/systemd/system/$timer" "$profile/airootfs/etc/systemd/system/timers.target.wants/$timer"; done
+for timer in fstrim.timer reflector.timer fwupd-refresh.timer; do
+  ln -sf "/usr/lib/systemd/system/$timer" "$profile/airootfs/etc/systemd/system/timers.target.wants/$timer"
+done
+ln -sf /usr/lib/systemd/user/pipewire.socket "$profile/airootfs/etc/systemd/user/sockets.target.wants/pipewire.socket"
+ln -sf /usr/lib/systemd/user/pipewire-pulse.socket "$profile/airootfs/etc/systemd/user/sockets.target.wants/pipewire-pulse.socket"
+ln -sf /usr/lib/systemd/user/wireplumber.service "$profile/airootfs/etc/systemd/user/default.target.wants/wireplumber.service"
 ln -sf /usr/lib/systemd/system/graphical.target "$profile/airootfs/etc/systemd/system/default.target"
 
 sudo chown root:root "$release/chrome-sandbox"
@@ -176,4 +208,4 @@ mkdir -p "$out"
 sudo mkarchiso -v -w "$work" -o "$out" "$profile"
 verify_squashfs_executables
 sha256sum "$out"/*.iso | tee "$out/SHA256SUMS"
-echo "Built FORGE-OS ISO from FORGE $FORGE_SOURCE_COMMIT runtime $FORGE_RUNTIME_ID with canonical tuigreet 0.11.0."
+echo "Built FORGE-OS ISO $FORGE_OS_VERSION from FORGE $FORGE_SOURCE_COMMIT runtime $FORGE_RUNTIME_ID with canonical tuigreet 0.11.0, Guided Setup, Advanced maintenance, and recovery tools verified in SquashFS."
