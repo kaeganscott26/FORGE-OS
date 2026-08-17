@@ -101,7 +101,7 @@ jobs:
               set -euo pipefail
               pacman -Syu --noconfirm \
                 git nodejs-lts-jod npm python rust systemd desktop-file-utils \
-                pacman-contrib greetd sudo archiso squashfs-tools
+                pacman-contrib greetd sudo archiso squashfs-tools libxcrypt-compat
 
               git config --global --add safe.directory /work/FORGE-OS
               git config --global --add safe.directory /work/FORGE
