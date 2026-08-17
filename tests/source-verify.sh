@@ -14,9 +14,22 @@ check bash -n "$root/update.sh"
 check "$root/tests/session-dispatcher.sh"
 check "$root/tests/update-transaction.sh"
 check "$root/tests/greeter-contract.sh"
+check "$root/tests/clean-install-contract.sh"
+check "$root/tests/maintenance-contract.sh"
 check python -c 'import tomllib,sys; [tomllib.load(open(p, "rb")) for p in sys.argv[1:]]' "$root/config/greetd-config.toml" "$root/config/forge-recovery-greetd.toml" "$root/config/forge-live-greetd.toml"
 check systemd-analyze verify "$root/config/forge-recovery.service"
-check systemd-analyze verify "$root/config/forge-live-setup.service"
+
+# systemd-analyze also resolves ExecStart binaries. The live helper is staged
+# into /usr/local/libexec only by the ISO/installer, so validate the source unit
+# syntax with a temporary /usr/bin/true ExecStart and separately assert the real
+# path plus script contract. This avoids pretending a CI container is an
+# installed FORGE-OS root while still checking both halves of the unit.
+live_unit_tmp="$(mktemp --suffix=.service)"
+trap 'rm -f -- "$live_unit_tmp"' EXIT
+sed 's#^ExecStart=.*#ExecStart=/usr/bin/true#' "$root/config/forge-live-setup.service" >"$live_unit_tmp"
+check systemd-analyze verify "$live_unit_tmp"
+grep -Fqx 'ExecStart=/usr/local/libexec/forge-live-setup' "$root/config/forge-live-setup.service" && pass 'live setup unit points at packaged helper' || fail 'live setup unit ExecStart is wrong'
+check bash -n "$root/scripts/forge-live-setup"
 
 grep -Fq -- "--cmd '/usr/local/bin/forge-wayland-session'" "$root/config/greetd-config.toml" && pass 'F2/default command is canonical Wayland path' || fail 'F2/default command is wrong'
 grep -Fq -- '--background matrix' "$root/config/greetd-config.toml" && grep -Fq -- '--kb-background 4' "$root/config/greetd-config.toml" && pass 'Matrix default and F4 background selector are configured' || fail 'Matrix/F4 greeter behavior is incomplete'
@@ -27,15 +40,15 @@ grep -Fq 'exec "$forge_session"' "$root/session/startplasma-wayland" && pass 'le
 
 grep -Fqx 'Alias=autovt@tty2.service' "$root/config/forge-recovery.service" && pass 'recovery is on-demand tty2 alias' || fail 'recovery alias is wrong'
 if grep -Fq 'WantedBy=graphical.target' "$root/config/forge-recovery.service"; then fail 'recovery is pulled into every graphical boot'; else pass 'recovery remains on-demand'; fi
-grep -Fq 'FORGE_LIVE_RECOVERY=1' "$root/config/forge-live-greetd.toml" && pass 'live greeter enters dedicated recovery GUI' || fail 'live recovery flag is missing'
+grep -Fq 'FORGE_LIVE_RECOVERY=1' "$root/config/forge-live-greetd.toml" && pass 'live greeter enters dedicated setup/recovery mode' || fail 'live recovery flag is missing'
 grep -Fq 'passwd --lock "$live_user"' "$root/scripts/forge-live-setup" && grep -Fq 'NOPASSWD: ALL' "$root/scripts/forge-live-setup" && pass 'live account is locked and sudo is explicitly live-scoped' || fail 'live account privilege boundary is wrong'
-grep -Fq 'forge-live-install' "$root/scripts/build-iso.sh" && grep -Fq 'forge-live-select-installer' "$root/scripts/build-iso.sh" && pass 'ISO contains live recovery bundle helpers' || fail 'ISO omits live recovery helpers'
+grep -Fq 'forge-live-setup-ui' "$root/scripts/build-iso.sh" && grep -Fq 'forge-live-guided-install' "$root/scripts/build-iso.sh" && grep -Fq 'forge-live-install' "$root/scripts/build-iso.sh" && pass 'ISO contains Guided Setup and recovery bundle helpers' || fail 'ISO omits live setup/recovery helpers'
 
 if command -v desktop-file-validate >/dev/null 2>&1; then
   while IFS= read -r desktop; do check desktop-file-validate "$desktop"; done < <(find "$root/session" -maxdepth 1 -name '*.desktop' -type f | sort)
 fi
 
-for required in rust fish starship reflector pacman-contrib sudo partitionmanager plasma-firewall firewalld distrobox podman nix ollama ollama-vulkan gamescope gamemode mangohud wine-staging; do
+for required in rust fish starship reflector pacman-contrib sudo partitionmanager plasma-firewall firewalld distrobox podman nix ollama ollama-vulkan gamescope gamemode mangohud wine-staging arch-install-scripts efibootmgr dosfstools gptfdisk; do
   grep -Fqx "$required" "$root/manifests/arch-packages.txt" && pass "manifest declares $required" || fail "manifest is missing $required"
 done
 if grep -Fqx greetd-tuigreet "$root/manifests/arch-packages.txt"; then fail 'legacy official tuigreet package remains in official manifest'; else pass 'tuigreet is managed as a pinned canonical source build'; fi
@@ -46,15 +59,23 @@ grep -Fq 'greetd-tuigreet-fork-git' "$root/scripts/configure-aur.sh" && grep -Fq
 grep -Fq 'chaotic-aur' "$root/scripts/configure-aur.sh" && grep -Fq '3056513887B78AEB' "$root/scripts/configure-aur.sh" && pass 'Chaotic-AUR bootstrap is explicit and pinned to primary key' || fail 'Chaotic-AUR bootstrap is incomplete'
 grep -Fq 'yay-bin' "$root/scripts/configure-aur.sh" && pass 'AUR helper is provisioned' || fail 'AUR helper is missing'
 grep -Fq 'install_reference_mirrors' "$root/scripts/bootstrap-forgeos.sh" && grep -Fq 'refresh_ranked_mirrors' "$root/scripts/bootstrap-forgeos.sh" && pass 'bootstrap uses tracked mirror baseline plus reflector ranking' || fail 'mirror bootstrap is incomplete'
-grep -Fq 'reflector.timer' "$root/scripts/configure-hardware.sh" && grep -Fq '/etc/xdg/reflector/reflector.conf' "$root/scripts/configure-hardware.sh" && pass 'reflector refresh persists after reboot' || fail 'persistent mirror refresh is missing'
 
-for unit in NetworkManager.service bluetooth.service firewalld.service irqbalance.service systemd-timesyncd.service cups.service; do
-  grep -Fq "$unit" "$root/scripts/configure-hardware.sh" && pass "service policy includes $unit" || fail "service policy missing $unit"
+service_manifest="$root/manifests/system-services.tsv"
+[[ -r "$service_manifest" ]] && pass 'authoritative service manifest exists' || fail 'authoritative service manifest is missing'
+grep -Fq 'manifest="$root/manifests/system-services.tsv"' "$root/scripts/configure-hardware.sh" && pass 'hardware/service stage consumes authoritative manifest' || fail 'configure-hardware does not consume service manifest'
+grep -Fq '/etc/xdg/reflector/reflector.conf' "$root/scripts/configure-hardware.sh" && grep -Fq 'system|required|reflector.timer|' "$service_manifest" && pass 'Reflector policy and persistent timer are authoritative' || fail 'persistent mirror refresh policy is missing'
+
+for unit in NetworkManager.service firewalld.service irqbalance.service systemd-timesyncd.service fstrim.timer reflector.timer; do
+  grep -Fq "system|required|$unit|" "$service_manifest" && pass "required service policy includes $unit" || fail "required service policy missing $unit"
+done
+for unit in bluetooth.service cups.service ollama.service power-profiles-daemon.service fwupd-refresh.timer; do
+  grep -Fq "system|optional|$unit|" "$service_manifest" && pass "optional service policy includes $unit" || fail "optional service policy missing $unit"
 done
 for unit in pipewire.socket pipewire-pulse.socket wireplumber.service; do
-  grep -Fq "$unit" "$root/scripts/configure-hardware.sh" && pass "user service policy includes $unit" || fail "user service policy missing $unit"
+  grep -Fq "global|required|$unit|" "$service_manifest" && pass "required global user service policy includes $unit" || fail "global user service policy missing $unit"
 done
 grep -Fq 'systemctl --global enable' "$root/scripts/configure-hardware.sh" && pass 'user audio service enablement persists across sessions' || fail 'global user service enablement is missing'
+grep -Fq 'forge-first-boot.service' "$root/scripts/forge-clean-install-wrapper" && grep -Fq 'required_units=' "$root/scripts/forge-first-boot" && pass 'clean install enables first-boot required-service verification' || fail 'first-boot service verification is incomplete'
 
 grep -Fq 'function pacman' "$root/config/forge-dr460nized.fish" && grep -Fq '/usr/local/bin/forge-install-pkg --backend arch' "$root/config/forge-dr460nized.fish" && pass 'interactive pacman routes through FORGE' || fail 'interactive pacman bypasses FORGE wrapper'
 grep -Fq 'exec /usr/local/bin/forge-app-install -S' "$root/scripts/forge-install-program" && pass 'program install routes through forge-app-install' || fail 'program install routing is broken'
@@ -69,15 +90,25 @@ grep -Fq 'forge-internal-' "$root/scripts/install-forge-linux.sh" && pass 'insta
 grep -Fq 'find /var/cache/tuigreet' "$root/scripts/install-forge-linux.sh" && pass 'installer clears stale greeter command/session cache' || fail 'stale greeter paths can survive install'
 grep -Fq 'readlink -f /usr/local/bin/tuigreet' "$root/scripts/build-iso.sh" && pass 'ISO embeds verified canonical tuigreet binary' || fail 'ISO can package wrong tuigreet binary'
 grep -Fq 'record_overlay_executable_permissions' "$root/scripts/build-iso.sh" && grep -Fq 'verify_squashfs_executables' "$root/scripts/build-iso.sh" && pass 'ISO preserves and verifies executable modes' || fail 'ISO executable verification is incomplete'
+grep -Fq 'usr/local/bin/forge-live-setup-ui' "$root/scripts/build-iso.sh" && grep -Fq 'usr/local/bin/forge-maintenance-center' "$root/scripts/build-iso.sh" && pass 'ISO verifies setup and Advanced helpers inside SquashFS' || fail 'ISO does not verify setup/Advanced executable staging'
 
 grep -Fq "['Network', 'network']" "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && grep -Fq "['Advanced', 'advanced']" "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && pass 'top bar declares complete quick system surface range' || fail 'top bar system surface range is incomplete'
 grep -Fq 'forge-internal-session-logout.desktop' "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && grep -Fq 'forge-internal-session-shutdown.desktop' "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && pass 'session UI uses detached OS helpers' || fail 'session UI still depends on fragile synchronous power IPC'
 grep -Fq 'forge-os-shell-active' "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && grep -Fq 'margin-top: 50px' "$forge_source/apps/desktop/src/renderer/src/styles/forge-os.css" && pass 'FORGE OS top bar reserves layout space instead of covering app header' || fail 'top bar can overlap application controls'
 grep -Fq 'overflow-x: auto' "$forge_source/apps/desktop/src/renderer/src/styles/forge-os.css" && grep -Fq 'font-size: clamp' "$forge_source/apps/desktop/src/renderer/src/styles/forge-os.css" && pass 'top bar scales fonts and scrolls instead of overlapping' || fail 'top bar responsive scaling is incomplete'
 grep -Fq 'trustedInternalApplication' "$forge_source/packages/os-integration/src/index.ts" && pass 'hidden fixed launchers have a trusted system-only bypass' || fail 'internal system launcher trust boundary is missing'
-grep -Fq 'liveRecoveryMode' "$forge_source/packages/os-integration/src/index.ts" && grep -Fq 'FORGE Live Recovery' "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && pass 'dedicated live recovery GUI remains present' || fail 'live recovery GUI is missing'
+grep -Fq 'liveRecoveryMode' "$forge_source/packages/os-integration/src/index.ts" && grep -Fq 'Setup & Recovery' "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && grep -Fq 'forge-live-setup.desktop' "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && pass 'live Setup & Recovery GUI remains present' || fail 'live setup/recovery GUI is missing'
+
+grep -Fq 'forge-maintenance-center' "$root/scripts/forge-system-surface" && grep -Fq 'forge-system-rollback' "$root/scripts/forge-maintenance-center" && pass 'Advanced routes to maintenance and full-system rollback' || fail 'Advanced maintenance routing is incomplete'
+grep -Fq '/var/lib/forge-os/checkpoints' "$root/scripts/forge-system-checkpoint" && grep -Fq 'sha256sum -c' "$root/scripts/forge-system-rollback-apply" && pass 'pre-update system checkpoint is integrity verified' || fail 'system checkpoint/rollback integrity contract is incomplete'
 
 [[ -r "$root/config/forge-starship.toml" ]] && grep -Fq 'STARSHIP_CONFIG /usr/share/forge-os/forge-starship.toml' "$root/config/forge-dr460nized.fish" && pass 'Fish/Starship theme wiring is complete' || fail 'Fish/Starship theme wiring is incomplete'
+grep -Fq '[Colors:Selection]' "$root/config/kdeglobals" && grep -Fq 'DecorationFocus=55,220,125' "$root/config/kdeglobals" && pass 'native KDE windows use FORGE dark/green palette' || fail 'native KDE theme bridge is incomplete'
+
+[[ "$(tr -d '[:space:]' < "$root/VERSION")" =~ ^[0-9]+\.[0-9]+\.[0-9]+-test\.[0-9]+$ ]] && pass 'current VERSION is explicitly test-only' || fail 'test ISO candidate VERSION is not a test prerelease identifier'
+forge_ref="$(tr -d '[:space:]' < "$root/FORGE_REF" 2>/dev/null || true)"
+[[ "$forge_ref" =~ ^[0-9a-f]{40}$ ]] && [[ "$(git -C "$forge_source" rev-parse HEAD 2>/dev/null)" == "$forge_ref" ]] && pass 'FORGE_REF pins the exact verified FORGE checkout' || fail 'FORGE_REF does not match the verified FORGE checkout'
+grep -Fq 'workflow_run:' "$root/.github/workflows/test-iso.yml" && grep -Fq -- '--prerelease' "$root/.github/workflows/test-iso.yml" && grep -Fq 'Expected exactly one ISO' "$root/.github/workflows/test-iso.yml" && pass 'test ISO publication is source-gated, single-image, and prerelease-only' || fail 'test ISO publication workflow contract is incomplete'
 
 duplicates="$(sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$root/manifests/arch-packages.txt" | sort | uniq -d)"
 [[ -z "$duplicates" ]] && pass 'official package manifest has no duplicates' || fail "manifest duplicates: $duplicates"
