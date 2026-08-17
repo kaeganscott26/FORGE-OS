@@ -14,8 +14,8 @@ check bash -n "$root/update.sh"
 check "$root/tests/session-dispatcher.sh"
 check "$root/tests/update-transaction.sh"
 check "$root/tests/greeter-contract.sh"
-check "$root/tests/clean-install-contract.sh"
-check "$root/tests/maintenance-contract.sh"
+check env FORGE_SOURCE="$forge_source" "$root/tests/clean-install-contract.sh"
+check env FORGE_SOURCE="$forge_source" "$root/tests/maintenance-contract.sh"
 check python -c 'import tomllib,sys; [tomllib.load(open(p, "rb")) for p in sys.argv[1:]]' "$root/config/greetd-config.toml" "$root/config/forge-recovery-greetd.toml" "$root/config/forge-live-greetd.toml"
 check systemd-analyze verify "$root/config/forge-recovery.service"
 
@@ -63,16 +63,16 @@ grep -Fq 'install_reference_mirrors' "$root/scripts/bootstrap-forgeos.sh" && gre
 service_manifest="$root/manifests/system-services.tsv"
 [[ -r "$service_manifest" ]] && pass 'authoritative service manifest exists' || fail 'authoritative service manifest is missing'
 grep -Fq 'manifest="$root/manifests/system-services.tsv"' "$root/scripts/configure-hardware.sh" && pass 'hardware/service stage consumes authoritative manifest' || fail 'configure-hardware does not consume service manifest'
-grep -Fq '/etc/xdg/reflector/reflector.conf' "$root/scripts/configure-hardware.sh" && grep -Fq 'system|required|reflector.timer|' "$service_manifest" && pass 'Reflector policy and persistent timer are authoritative' || fail 'persistent mirror refresh policy is missing'
+grep -Fq '/etc/xdg/reflector/reflector.conf' "$root/scripts/configure-hardware.sh" && grep -Fq 'system|reflector.timer|required|' "$service_manifest" && pass 'Reflector policy and persistent timer are authoritative' || fail 'persistent mirror refresh policy is missing'
 
 for unit in NetworkManager.service firewalld.service irqbalance.service systemd-timesyncd.service fstrim.timer reflector.timer; do
-  grep -Fq "system|required|$unit|" "$service_manifest" && pass "required service policy includes $unit" || fail "required service policy missing $unit"
+  grep -Fq "system|$unit|required|" "$service_manifest" && pass "required service policy includes $unit" || fail "required service policy missing $unit"
 done
 for unit in bluetooth.service cups.service ollama.service power-profiles-daemon.service fwupd-refresh.timer; do
-  grep -Fq "system|optional|$unit|" "$service_manifest" && pass "optional service policy includes $unit" || fail "optional service policy missing $unit"
+  grep -Fq "system|$unit|optional|" "$service_manifest" && pass "optional service policy includes $unit" || fail "optional service policy missing $unit"
 done
 for unit in pipewire.socket pipewire-pulse.socket wireplumber.service; do
-  grep -Fq "global|required|$unit|" "$service_manifest" && pass "required global user service policy includes $unit" || fail "global user service policy missing $unit"
+  grep -Fq "global|$unit|required|" "$service_manifest" && pass "required global user service policy includes $unit" || fail "global user service policy missing $unit"
 done
 grep -Fq 'systemctl --global enable' "$root/scripts/configure-hardware.sh" && pass 'user audio service enablement persists across sessions' || fail 'global user service enablement is missing'
 grep -Fq 'forge-first-boot.service' "$root/scripts/forge-clean-install-wrapper" && grep -Fq 'required_units=' "$root/scripts/forge-first-boot" && pass 'clean install enables first-boot required-service verification' || fail 'first-boot service verification is incomplete'
