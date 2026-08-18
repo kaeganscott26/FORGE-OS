@@ -1,11 +1,11 @@
 .forge/
 build/latest.env
 build/forge-dist/
-build/forge-source.*/
 build/archiso-profile/
 build/archiso-work/
 build/iso/
 build/user-desktop-backup/
+FORGE-OS_ISO_linux_x86_x64/*.iso
 UserFiles/
 *.log
 *.tmp

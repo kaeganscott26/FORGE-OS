@@ -139,7 +139,7 @@ jobs:
 
           release_dir="$GITHUB_WORKSPACE/release"
           mkdir -p "$release_dir"
-          iso_name="FORGE-OS-${version}-x86_64.iso"
+          iso_name="FORGE-OS_0.2.3_test1.ISO"
           cp -- "${built_isos[0]}" "$release_dir/$iso_name"
           (
             cd "$release_dir"
