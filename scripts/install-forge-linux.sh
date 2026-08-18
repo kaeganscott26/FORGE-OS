@@ -186,7 +186,10 @@ grep -Fq 'Exec=/usr/local/bin/forge-wayland-session' /usr/share/forge-os/wayland
 sudo systemctl daemon-reload
 sudo systemctl disable getty@tty1.service getty@tty2.service >/dev/null 2>&1 || true
 sudo systemctl enable greetd.service
-sudo systemctl enable --force forge-recovery.service
+sudo rm -f /etc/systemd/system/autovt@tty2.service
+sudo ln -sfn /etc/systemd/system/forge-recovery.service \
+  /etc/systemd/system/autovt@tty2.service
+sudo systemctl daemon-reload
 sudo ln -sfn /usr/lib/systemd/system/greetd.service /etc/systemd/system/display-manager.service
 sudo systemctl set-default graphical.target
 sudo systemctl daemon-reload

@@ -58,7 +58,10 @@ systemctl daemon-reload
 systemctl enable greetd.service >/dev/null
 ln -sfn /usr/lib/systemd/system/greetd.service /etc/systemd/system/display-manager.service
 if [[ -r /etc/systemd/system/forge-recovery.service ]]; then
-  systemctl enable --force forge-recovery.service >/dev/null 2>&1 || true
+  rm -f /etc/systemd/system/autovt@tty2.service
+  ln -sfn /etc/systemd/system/forge-recovery.service \
+    /etc/systemd/system/autovt@tty2.service
+  systemctl daemon-reload
 fi
 systemctl set-default graphical.target >/dev/null
 
