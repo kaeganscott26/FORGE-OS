@@ -25,6 +25,17 @@ The login UI uses canonical `tuigreet/tuigreet` **0.11.0**, pinned to its signed
 
 ## Two normal maintenance commands
 
+Clone FORGE and FORGE-OS as sibling directories in the same user's home directory. A fresh Arch/FORGE-OS machine uses:
+
+```bash
+git clone https://github.com/kaeganscott26/FORGE.git ~/FORGE
+git clone https://github.com/kaeganscott26/FORGE-OS.git ~/FORGE-OS
+cd ~/FORGE-OS
+./install.sh
+```
+
+The installer is an intentional Arch system mutation: review it and use a test/disposable machine until the release checklist is complete.
+
 ```bash
 cd ~/FORGE-OS
 ./install.sh
@@ -37,7 +48,7 @@ cd ~/FORGE-OS
 ./update.sh
 ```
 
-checks both trusted repositories, temporarily preserves local `.obsidian` UI state, creates a root-owned pre-update FORGE-OS system checkpoint, fast-forwards `main`, and runs the authoritative installer. Source checkouts and local `.obsidian` state are restored if installation fails.
+checks both trusted repositories, temporarily preserves local `.obsidian` UI state, creates a root-owned pre-update FORGE-OS system checkpoint, fast-forwards `main`, verifies that `FORGE_REF` pins the exact sibling FORGE commit, and runs the authoritative installer. Source checkouts and local `.obsidian` state are restored if installation fails. It refuses source edits outside `.obsidian`, untrusted origins, non-`main` branches, and divergent history.
 
 ## Packages, mirrors, and services
 
@@ -54,6 +65,14 @@ The FORGE-OS bar reserves its own shell space instead of covering the normal FOR
 Applications and System remain on the left. The responsive center strip launches **Network, Audio, Display, Power, Applications, Storage, Appearance, Updates, Security, Recovery, and Advanced**. Time and Session remain on the right. Lock, logout, restart, and shutdown use detached OS helpers so the requested action cannot kill its own Electron IPC response.
 
 Native KDE/KCM/KDialog surfaces run as ordinary windows inside the same KWin Wayland compositor. `/etc/xdg/kdeglobals` supplies the FORGE dark palette and green accent so native settings/setup windows belong visually to the same environment instead of looking like an unrelated desktop.
+
+Every shared renderer button is covered by a routing contract, and every FORGE-OS quick action maps to a fixed installed `.desktop` launcher. The goal/task `+` controls and Explorer file/folder creation use in-app dialogs rather than browser-native prompts.
+
+## Home workspace and protected directories
+
+FORGE-OS launches FORGE with `$HOME` as the default active workspace. The same shared FORGE runtime exposes a **Home** control on macOS, Windows, and standalone Linux. Filesystem and model tools remain relative to that active workspace; selecting Home does not grant access outside it.
+
+Some rootless container stores intentionally contain unreadable overlay directories. Explorer loads folders on demand; bounded memory and model `file.list`/`file.search` discovery skip `EACCES`/`EPERM` subtrees and `.local/share/containers` rather than aborting the whole workspace. The known failure at `.local/share/containers/storage/overlay/...` is therefore isolated while normal home files remain available.
 
 ## Advanced maintenance and rollback
 
@@ -125,3 +144,4 @@ A separate GitHub Actions test-ISO workflow is allowed to publish only after tha
 - [Security model](docs/SECURITY_MODEL.md)
 - [Release checklist](docs/RELEASE_CHECKLIST.md)
 - [Changelog](CHANGELOG.md)
+- [Implementation notes](Dev_Notes/Forge_updates.md)

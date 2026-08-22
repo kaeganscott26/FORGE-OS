@@ -20,13 +20,17 @@ Applications and System remain on the left. The quick system strip contains laun
 
 **Network · Audio · Display · Power · Applications · Storage · Appearance · Updates · Security · Recovery · Advanced**
 
-The strip scales button text and scrolls horizontally on narrower displays instead of overlapping labels or modules. Time and Session remain on the right.
+The strip scales button text and scrolls horizontally on narrower displays instead of overlapping labels or modules. Time and Session remain on the right. All eleven quick surfaces and four Session actions map to fixed installed `.desktop` launchers; the source contract verifies that each launcher reaches an installed helper.
 
 The Session menu uses detached operating-system helpers for Lock, Log out, Restart, and Shut down. That means the requested action can terminate FORGE or the login session without breaking its own Electron IPC response first.
 
 ## Explorer and applications
 
-FORGE Explorer is the default file workflow. Applications installed with desktop entries are discovered automatically. The Applications control launches normal installed applications; the top-bar system controls use fixed internal launchers for KDE/FORGE settings surfaces.
+FORGE Explorer is the default file workflow. FORGE-OS opens `$HOME` as the initial workspace, and the shared header's **Home** control returns to it from a narrower project workspace. **New file**, Explorer `+`, **New folder**, rename, goal/task `+`, persistent-task creation, release workflow, pause, and conversation rename use in-app dialogs routed through typed IPC. A new file opens immediately in the editor.
+
+Applications installed with desktop entries are discovered automatically. The Applications control launches normal installed applications; the top-bar system controls use fixed internal launchers for KDE/FORGE settings surfaces.
+
+Rootless container storage can expose protected overlay directories below `~/.local/share/containers`. Explorer loads folders on demand, while bounded memory discovery and model `file.list`/`file.search` skip unreadable or container-backed subtrees instead of failing the whole home workspace. A direct attempt to read a protected file still reports the operating-system permission error, and no tool may escape the active workspace.
 
 ## Install and update
 
@@ -77,7 +81,9 @@ forge-install-pkg --backend nix -S package-name
 
 ## Updates
 
-The top-bar Updates control opens the installed `forge-os-update` workflow in Konsole. It refuses source changes outside `.obsidian`, temporarily preserves local Obsidian UI state in both repositories, and never reboots automatically.
+The top-bar Updates control opens the installed `forge-os-update` workflow in Konsole. It requires trusted sibling `~/FORGE` and `~/FORGE-OS` checkouts on `main`, requires the committed `FORGE_REF` to match the exact FORGE source, refuses source changes outside `.obsidian`, temporarily preserves local Obsidian UI state in both repositories, and never reboots automatically. On install failure it restores both pre-update source commits and local `.obsidian` state.
+
+The current source does not automatically reindex workspace memory from a filesystem watcher. Use **Reindex** when you want to refresh derived workspace knowledge.
 
 ## Installed-system recovery
 

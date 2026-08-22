@@ -13,21 +13,30 @@ check bash -n "$root/install.sh"
 check bash -n "$root/update.sh"
 check "$root/tests/session-dispatcher.sh"
 check "$root/tests/update-transaction.sh"
-check "$root/tests/greeter-contract.sh"
+if [[ -n "${TUIGREET_BIN:-}" || -x /usr/local/bin/tuigreet ]] || command -v tuigreet >/dev/null 2>&1; then
+  check "$root/tests/greeter-contract.sh"
+else
+  pass 'installed tuigreet runtime contract deferred to the Arch source gate'
+fi
 check env FORGE_SOURCE="$forge_source" "$root/tests/clean-install-contract.sh"
 check env FORGE_SOURCE="$forge_source" "$root/tests/maintenance-contract.sh"
-check python -c 'import tomllib,sys; [tomllib.load(open(p, "rb")) for p in sys.argv[1:]]' "$root/config/greetd-config.toml" "$root/config/forge-recovery-greetd.toml" "$root/config/forge-live-greetd.toml"
-check systemd-analyze verify "$root/config/forge-recovery.service"
+python_bin="$(command -v python3 || command -v python || true)"
+[[ -n "$python_bin" ]] && check "$python_bin" -c 'import tomllib,sys; [tomllib.load(open(p, "rb")) for p in sys.argv[1:]]' "$root/config/greetd-config.toml" "$root/config/forge-recovery-greetd.toml" "$root/config/forge-live-greetd.toml" || fail 'Python 3 with tomllib is required for TOML validation'
+if command -v systemd-analyze >/dev/null 2>&1; then
+  check systemd-analyze verify "$root/config/forge-recovery.service"
+else
+  pass 'systemd unit verification deferred to the Linux source gate'
+fi
 
 # systemd-analyze also resolves ExecStart binaries. The live helper is staged
 # into /usr/local/libexec only by the ISO/installer, so validate the source unit
 # syntax with a temporary /usr/bin/true ExecStart and separately assert the real
 # path plus script contract. This avoids pretending a CI container is an
 # installed FORGE-OS root while still checking both halves of the unit.
-live_unit_tmp="$(mktemp --suffix=.service)"
+live_unit_tmp="$(mktemp "${TMPDIR:-/tmp}/forge-live-unit.XXXXXX")"
 trap 'rm -f -- "$live_unit_tmp"' EXIT
 sed 's#^ExecStart=.*#ExecStart=/usr/bin/true#' "$root/config/forge-live-setup.service" >"$live_unit_tmp"
-check systemd-analyze verify "$live_unit_tmp"
+if command -v systemd-analyze >/dev/null 2>&1; then check systemd-analyze verify "$live_unit_tmp"; fi
 grep -Fqx 'ExecStart=/usr/local/libexec/forge-live-setup' "$root/config/forge-live-setup.service" && pass 'live setup unit points at packaged helper' || fail 'live setup unit ExecStart is wrong'
 check bash -n "$root/scripts/forge-live-setup"
 
@@ -93,11 +102,24 @@ grep -Fq 'record_overlay_executable_permissions' "$root/scripts/build-iso.sh" &&
 grep -Fq 'usr/local/bin/forge-live-setup-ui' "$root/scripts/build-iso.sh" && grep -Fq 'usr/local/bin/forge-maintenance-center' "$root/scripts/build-iso.sh" && pass 'ISO verifies setup and Advanced helpers inside SquashFS' || fail 'ISO does not verify setup/Advanced executable staging'
 
 grep -Fq "['Network', 'network']" "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && grep -Fq "['Advanced', 'advanced']" "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && pass 'top bar declares complete quick system surface range' || fail 'top bar system surface range is incomplete'
+for surface in network audio display power applications storage appearance updates security recovery advanced; do
+  desktop="$root/session/forge-internal-$surface.desktop"
+  [[ -r "$desktop" ]] && grep -Fqx "Exec=/usr/local/bin/forge-system-surface $surface" "$desktop" && grep -Fq "  $surface)" "$root/scripts/forge-system-surface" && pass "top bar route is complete for $surface" || fail "top bar route is incomplete for $surface"
+done
+for action in lock logout restart shutdown; do
+  desktop="$root/session/forge-internal-session-$action.desktop"
+  action_pattern="  $action)"
+  [[ "$action" == restart || "$action" == shutdown ]] && action_pattern='  restart|shutdown)'
+  [[ -r "$desktop" ]] && grep -Fqx "Exec=/usr/local/bin/forge-session-control $action" "$desktop" && grep -Fq "$action_pattern" "$root/scripts/forge-session-control" && pass "session route is complete for $action" || fail "session route is incomplete for $action"
+done
 grep -Fq 'forge-internal-session-logout.desktop' "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && grep -Fq 'forge-internal-session-shutdown.desktop' "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && pass 'session UI uses detached OS helpers' || fail 'session UI still depends on fragile synchronous power IPC'
 grep -Fq 'forge-os-shell-active' "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && grep -Fq 'margin-top: 50px' "$forge_source/apps/desktop/src/renderer/src/styles/forge-os.css" && pass 'FORGE OS top bar reserves layout space instead of covering app header' || fail 'top bar can overlap application controls'
 grep -Fq 'overflow-x: auto' "$forge_source/apps/desktop/src/renderer/src/styles/forge-os.css" && grep -Fq 'font-size: clamp' "$forge_source/apps/desktop/src/renderer/src/styles/forge-os.css" && pass 'top bar scales fonts and scrolls instead of overlapping' || fail 'top bar responsive scaling is incomplete'
 grep -Fq 'trustedInternalApplication' "$forge_source/packages/os-integration/src/index.ts" && pass 'hidden fixed launchers have a trusted system-only bypass' || fail 'internal system launcher trust boundary is missing'
 grep -Fq 'liveRecoveryMode' "$forge_source/packages/os-integration/src/index.ts" && grep -Fq 'Setup & Recovery' "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && grep -Fq 'forge-live-setup.desktop' "$forge_source/apps/desktop/src/renderer/src/components/ForgeOsShell.tsx" && pass 'live Setup & Recovery GUI remains present' || fail 'live setup/recovery GUI is missing'
+if grep -R --include='*.tsx' -Fq 'window.prompt' "$forge_source/apps/desktop/src/renderer/src"; then fail 'renderer still depends on browser-native text prompts'; else pass 'renderer text creation actions use in-app dialogs'; fi
+grep -Fq "forgeInvoke('workspace.open.home'" "$forge_source/apps/desktop/src/renderer/src/App.tsx" && grep -Fq "workspaceOpenHome: 'workspace.open.home'" "$forge_source/packages/ipc/src/index.ts" && pass 'Home workspace control has typed IPC' || fail 'Home workspace control is not fully routed'
+grep -Fq '.local[/]share[/]containers' "$forge_source/packages/workspace/src/index.ts" && grep -Fq "'EACCES', 'EPERM', 'ENOENT'" "$forge_source/packages/workspace/src/index.ts" && pass 'home workspace traversal skips protected container paths' || fail 'home workspace permission recovery is missing'
 
 grep -Fq 'forge-maintenance-center' "$root/scripts/forge-system-surface" && grep -Fq 'forge-system-rollback' "$root/scripts/forge-maintenance-center" && pass 'Advanced routes to maintenance and full-system rollback' || fail 'Advanced maintenance routing is incomplete'
 grep -Fq '/var/lib/forge-os/checkpoints' "$root/scripts/forge-system-checkpoint" && grep -Fq 'sha256sum -c' "$root/scripts/forge-system-rollback-apply" && pass 'pre-update system checkpoint is integrity verified' || fail 'system checkpoint/rollback integrity contract is incomplete'

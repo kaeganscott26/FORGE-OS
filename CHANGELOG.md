@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Workspace/UI and documentation correction
+
+- Pinned the sibling FORGE runtime containing routed in-app creation dialogs, Home workspace selection, full renderer-button route coverage, and permission-tolerant home traversal. Protected rootless-container overlay directories no longer abort Explorer or model file discovery.
+- Preserved the existing typed workspace boundary: Home is the active root, not a global filesystem bypass.
+- Corrected active documentation to distinguish implemented source from old planning claims. Automatic watch reindexing, package/executable Explorer inspection, a separate top-bar Intelligence popover, packaged Ollama skill assets, and cross-platform parity workflow/script remain explicit gaps.
+- Removed the stale tracked `build/node22-bindir` temporary path and the obsolete duplicated 0.2.2 release/session runbooks.
+
 ### Login and maintenance hardening
 
 - Fixed the greetd/tuigreet restart loop caused by an invalid boot-critical command line: removed unsupported `--battery` and `--custom-title` options, removed the mutually-exclusive `--greeting` from the production profile that already uses `--issue`, and quoted the semicolon-delimited theme as one argument.

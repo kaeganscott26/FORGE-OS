@@ -1,8 +1,8 @@
 # Current build state
 
-Updated: 2026-08-16
+Updated: 2026-08-21
 Source version: `0.2.3-test.1` (test ISO candidate; not stable)
-Pinned FORGE source: `a893810bb3df42059ee48f517b2723a4a4c29ab1`
+Pinned FORGE source: `1e69e647082ab9e35b2dcf3b5331dc1994911471`
 
 ## Implemented
 
@@ -27,6 +27,8 @@ Pinned FORGE source: `a893810bb3df42059ee48f517b2723a4a4c29ab1`
 - Clean install is mount-targeted and never partitions/formats disks. It uses pacstrap, UUID fstab, the exact ISO FORGE runtime, the canonical greetd/Wayland path, systemd-boot on UEFI, Advanced/recovery helpers, and a first-boot required-service verifier.
 - The installed target never inherits the live passwordless-sudo policy.
 - FORGE source used for the ISO is pinned through `FORGE_REF`, preventing a moving FORGE `main` from changing the image after source verification.
+- The pinned shared renderer uses routed dialogs for file/folder, goal/task, persistent-task, and rename actions; every renderer button has a route contract.
+- Home is available on macOS, Windows, Linux, and as the FORGE-OS default. Explorer loads folders on demand, while bounded discovery skips unreadable/container-backed subtrees instead of aborting on `EACCES`.
 
 ## Verification gates
 

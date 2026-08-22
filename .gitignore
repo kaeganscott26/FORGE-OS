@@ -1,5 +1,6 @@
 .forge/
 build/latest.env
+build/node22-bindir
 build/forge-dist/
 build/archiso-profile/
 build/archiso-work/

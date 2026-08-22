@@ -2,7 +2,7 @@
 
 ## Login and session
 
-Normal tty1 login uses the unprivileged `greeter` account and PAM. The post-auth command is exactly `startplasma-wayland forge-wayland-session forge-wayland-client`; the narrow FORGE dispatcher owns its one-KWin branch, while unrelated calls fall through to the unchanged vendor executable. Shell profiles are not sourced.
+Normal tty1 login uses the unprivileged `greeter` account and PAM. The post-auth command is exactly `/usr/local/bin/forge-wayland-session`, which owns the one-KWin branch. The historical `/usr/local/bin/startplasma-wayland` dispatcher remains compatibility-only and falls through to the unchanged vendor executable for unrelated calls. Shell profiles are not sourced.
 
 F2 changes the complete command for one authenticated login. F3 selects the isolated FORGE session, F4 changes the visual background, and F5 exposes power actions. None grants root.
 

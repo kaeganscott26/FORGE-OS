@@ -8,7 +8,7 @@ A stable tag is allowed only when every applicable item is evidenced. Source suc
 - [ ] `VERSION`, all FORGE-owned package manifests/lock entries, release notes, changelog, and current docs name the next deliberate build/version.
 - [ ] No credentials, local databases, build directories, machine logs, stale scripts, or redundant current docs are tracked.
 - [ ] `./tests/source-verify.sh` passes after the final source change.
-- [ ] FORGE typecheck, lint, 29-file tests, production bundle, release-version verifier, and dependency audit pass.
+- [ ] FORGE typecheck, lint, complete tests, production bundle, release-version verifier, and dependency audit pass.
 
 ## Packages and runtime
 
@@ -23,10 +23,10 @@ A stable tag is allowed only when every applicable item is evidenced. Source suc
 ## Login, desktop, and recovery
 
 - [ ] Cold boot shows the matrix greetd screen on tty1.
-- [ ] Default/F2 command is exactly `startplasma-wayland forge-wayland-session forge-wayland-client`; F3/F4/F5 work.
+- [ ] Default/F2 command is exactly `/usr/local/bin/forge-wayland-session`; F3 resolves to the same path and F4/F5 work. The compatibility dispatcher remains isolated.
 - [ ] Login produces one KWin owner and correct XDG/FORGE/D-Bus environment; KRunner and portals are available.
 - [ ] FORGE remains the visible shell; stock Plasma panel is absent; optional user panels persist.
-- [ ] Applications, all nine System sections, Workspace Intelligence, chat, terminal, tasks, agent actions, and session controls work without overlap/focus traps.
+- [ ] Applications, all eleven quick System surfaces, Workspace Intelligence, chat, terminal, tasks, agent actions, and four session controls work without overlap/focus traps.
 - [ ] Explorer covers folder navigation, copy/paste, rename/delete, metadata, executable/package inspection, user/admin launch, and external app focus; it is the default file manager.
 - [ ] Network, audio, display, power profiles, notifications, portals, suspend/resume, logout/relogin, native Wayland, and XWayland applications pass.
 - [ ] Ctrl+Alt+F2 starts native recovery on demand, exposes logs/user terminal without login, and requires PolicyKit for mutation.
@@ -36,7 +36,7 @@ A stable tag is allowed only when every applicable item is evidenced. Source suc
 - [ ] Linux AppImage and DEB pass runtime metadata and native PTY verification.
 - [ ] Windows NSIS passes runtime metadata and ConPTY resource verification on a Windows runner.
 - [ ] macOS universal DMG/ZIP pass manifest, bundle, updater metadata, architecture, and native PTY verification on a macOS runner.
-- [ ] `verify-runtime-parity.mjs` confirms version, commit, deterministic build date, and `sharedRuntimeSha256` across Linux, Windows, and macOS.
+- [ ] A committed runtime-parity verifier confirms version, commit, deterministic build date, and shared runtime identity across Linux, Windows, and macOS. This verifier is not yet implemented.
 
 ## ISO and publication
 

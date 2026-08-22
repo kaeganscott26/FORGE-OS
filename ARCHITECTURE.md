@@ -7,9 +7,7 @@ FORGE-OS separates the visible FORGE workspace from the Linux substrate. FORGE o
 ```text
 systemd graphical.target
   -> greetd on tty1 / PAM
-  -> startplasma-wayland forge-wayland-session forge-wayland-client
-  -> /usr/local/bin/startplasma-wayland (exact-profile dispatcher)
-  -> forge-wayland-session
+  -> /usr/local/bin/forge-wayland-session
   -> dbus-run-session + one kwin_wayland --xwayland
   -> forge-wayland-client
   -> D-Bus/systemd environment + kded6 + krunner + PolicyKit + plasmashell
@@ -17,7 +15,7 @@ systemd graphical.target
   -> /opt/forge/current/<manifest-recorded executable>
 ```
 
-Calls outside the exact FORGE profile delegate to `/usr/bin/startplasma-wayland`. FORGE does not modify that vendor path. Normal session flags distinguish shell mode from host-integrated or standalone packages.
+The tracked `/usr/local/bin/startplasma-wayland` exact-profile dispatcher remains a compatibility implementation and delegates non-FORGE calls to `/usr/bin/startplasma-wayland`. It is not the current greetd/F2/F3 entry point. Normal session flags distinguish shell mode from host-integrated or standalone packages.
 
 ## Recovery
 
@@ -44,13 +42,13 @@ Installation copies to `/opt/forge/releases/<runtime-id>`, verifies again, updat
 - Nix: Nix daemon/store and user profile;
 - Flatpak: installed as an additional sandboxed ecosystem, not a pacman replacement.
 
-Application discovery follows XDG desktop entries and refreshes continuously. Mirror replacement is explicit through `forge-refresh-mirrors`.
+Application discovery follows XDG desktop entries when the FORGE-OS shell loads. Package helpers refresh the XDG desktop database; reopening/reloading FORGE refreshes the renderer's application list. Mirror replacement is explicit through `forge-refresh-mirrors`.
 
 ## Shared application architecture
 
 The FORGE renderer and provider-neutral workspace services are shared across Linux, macOS, Windows, standalone, and OS-integrated packages. Platform packages embed deterministic version/commit/build-date metadata plus a shared runtime hash; each native executable and package keeps its own platform-specific hash.
 
-Linux-only IPC is typed and shell-mode gated. Explorer canonicalizes workspace paths. Settings actions map enum values to fixed executable/argument arrays. Agent requests still pass through registry, policy, approval, executor, and audit even when the Release Workflow capability advertises full filesystem/requestable scope.
+Linux-only IPC is typed and shell-mode gated. Explorer canonicalizes workspace paths. Settings actions map enum values to fixed executable/argument arrays. Agent requests still pass through registry, policy, approval, executor, and audit. Selecting Home changes the active workspace boundary; it does not bypass it.
 
 ## Release boundary
 

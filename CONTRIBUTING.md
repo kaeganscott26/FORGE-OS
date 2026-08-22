@@ -4,7 +4,7 @@ Generic FORGE application work belongs in the sibling FORGE repository. Arch dep
 
 Preserve these invariants:
 
-- exact canonical command `startplasma-wayland forge-wayland-session forge-wayland-client` and unchanged installed paths;
+- exact canonical login command `/usr/local/bin/forge-wayland-session`; retain the FORGE-owned `startplasma-wayland` dispatcher only as compatibility code and do not modify the vendor `/usr/bin` path;
 - one compositor owner and normal-user FORGE execution;
 - PAM for normal login and PolicyKit/sudo only at explicit mutation boundaries;
 - content-addressed runtime verification, root-owned mode-4755 Electron sandbox, and persistent workspace/memory state;
