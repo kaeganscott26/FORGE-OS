@@ -123,6 +123,10 @@ expect_failure 65 env HOME="$temporary" FORGE_SOURCE_DIR="$forge" FORGE_OS_SOURC
 git -C "$forge" fetch --quiet origin main
 git -C "$forge" reset --quiet --hard origin/main
 
+install -d "$forge/.obsidian" "$forge_os/.obsidian"
+printf '%s\n' 'local FORGE graph state' >"$forge/.obsidian/graph.json"
+printf '%s\n' 'local FORGE-OS workspace state' >"$forge_os/.obsidian/workspace.json"
+
 publish_change "$forge_publisher" 'transaction candidate'
 publish_change "$os_publisher" 'transaction candidate'
 forge_before="$(git -C "$forge" rev-parse HEAD)"
@@ -133,11 +137,13 @@ read -r checkpoint_forge checkpoint_os <"$checkpoint_marker"
 [[ "$checkpoint_forge" == "$forge_before" && "$checkpoint_os" == "$os_before" ]] || { echo 'Checkpoint did not record both pre-update source commits.' >&2; exit 1; }
 [[ "$(git -C "$forge" rev-parse HEAD)" == "$forge_before" && "$(git -C "$forge_os" rev-parse HEAD)" == "$os_before" ]] || { echo 'Failed install did not restore both source commits.' >&2; exit 1; }
 [[ ! -e "$marker" ]] || { echo 'Failed installer unexpectedly produced its success marker.' >&2; exit 1; }
+[[ "$(<"$forge/.obsidian/graph.json")" == 'local FORGE graph state' && "$(<"$forge_os/.obsidian/workspace.json")" == 'local FORGE-OS workspace state' ]] || { echo 'Failed update did not preserve local Obsidian state.' >&2; exit 1; }
 
 rm -f "$checkpoint_marker"
 env HOME="$temporary" FORGE_SOURCE_DIR="$forge" FORGE_OS_SOURCE_DIR="$forge_os" FORGE_UPDATE_TEST_MARKER="$marker" FORGE_UPDATE_TEST_CHECKPOINT_MARKER="$checkpoint_marker" "$root/scripts/forge-os-update" >/dev/null
 [[ -s "$checkpoint_marker" ]] || { echo 'Clean update did not checkpoint the pre-update system state.' >&2; exit 1; }
 [[ -e "$marker" ]] || { echo 'Clean fast-forward update did not run the installer.' >&2; exit 1; }
 [[ "$(git -C "$forge" rev-parse HEAD)" == "$(git -C "$forge" rev-parse origin/main)" && "$(git -C "$forge_os" rev-parse HEAD)" == "$(git -C "$forge_os" rev-parse origin/main)" ]] || { echo 'Clean update did not activate both origin/main commits.' >&2; exit 1; }
+[[ "$(<"$forge/.obsidian/graph.json")" == 'local FORGE graph state' && "$(<"$forge_os/.obsidian/workspace.json")" == 'local FORGE-OS workspace state' ]] || { echo 'Clean update did not preserve local Obsidian state.' >&2; exit 1; }
 
-echo 'PASS: updater refuses dirty/untrusted/divergent input, checkpoints pre-update state, rolls both sources back after installer failure, and completes a clean fast-forward update'
+echo 'PASS: updater refuses dirty/untrusted/divergent source input, preserves local Obsidian state, checkpoints pre-update state, rolls both sources back after installer failure, and completes a clean fast-forward update'

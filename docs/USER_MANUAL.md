@@ -77,7 +77,7 @@ forge-install-pkg --backend nix -S package-name
 
 ## Updates
 
-The top-bar Updates control opens the installed `forge-os-update` workflow in Konsole. It refuses unsafe source state and never reboots automatically.
+The top-bar Updates control opens the installed `forge-os-update` workflow in Konsole. It refuses source changes outside `.obsidian`, temporarily preserves local Obsidian UI state in both repositories, and never reboots automatically.
 
 ## Installed-system recovery
 

@@ -37,7 +37,7 @@ cd ~/FORGE-OS
 ./update.sh
 ```
 
-checks both trusted repositories, creates a root-owned pre-update FORGE-OS system checkpoint, fast-forwards `main`, and runs the authoritative installer. Source checkouts are restored to their pre-update commits if installation fails.
+checks both trusted repositories, temporarily preserves local `.obsidian` UI state, creates a root-owned pre-update FORGE-OS system checkpoint, fast-forwards `main`, and runs the authoritative installer. Source checkouts and local `.obsidian` state are restored if installation fails.
 
 ## Packages, mirrors, and services
 
