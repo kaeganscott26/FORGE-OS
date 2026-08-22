@@ -4,7 +4,7 @@
 
 ### Workspace/UI and documentation correction
 
-- Pinned FORGE `451f8ff` (runtime repair `ed943be` plus refreshed generated provenance), which removes runtime-only `reason` and `taskContext` from provider schemas, injects execution/audit identity internally, makes enabled bounded browser read/find automatic, and preserves explicit approval for navigation and high-impact tools. Action-log schema v8 retains optional task/step audit linkage.
+- Pinned FORGE `f3b7b87`, which removes runtime-only `reason`, `taskContext`, task-creation conversation identity, and task-process IDs from provider schemas, injects execution/audit identity internally, makes enabled bounded browser read/find automatic, and preserves explicit approval for navigation and high-impact tools. Action-log schema v8 retains optional task/step audit linkage.
 - Pinned the sibling FORGE runtime containing routed in-app creation dialogs, Home workspace selection, full renderer-button route coverage, and permission-tolerant home traversal. Protected rootless-container overlay directories no longer abort Explorer or model file discovery.
 - Preserved the existing typed workspace boundary: Home is the active root, not a global filesystem bypass.
 - Corrected active documentation to distinguish implemented source from old planning claims. Automatic watch reindexing, package/executable Explorer inspection, a separate top-bar Intelligence popover, packaged Ollama skill assets, and cross-platform parity workflow/script remain explicit gaps.
