@@ -130,7 +130,7 @@ FORGE_SOURCE=~/FORGE ./tests/maintenance-contract.sh
 ./scripts/build-iso.sh
 ```
 
-The source workflow pins the FORGE checkout through `FORGE_REF`, builds canonical tuigreet 0.11.0, validates greeter/setup/maintenance contracts, and then runs the complete FORGE typecheck, lint, tests, production build, package resolution, shell/TOML/unit checks, and source contract.
+The source workflow pins the FORGE checkout through `FORGE_REF`, builds canonical tuigreet 0.11.0, validates greeter/setup/maintenance contracts, verifies that provider schemas omit runtime-only tool metadata, and then runs the complete FORGE typecheck, lint, tests, production build, package resolution, shell/TOML/unit checks, and source contract. The pinned shared runtime applies the same tool schema, policy, and audit behavior to FORGE-OS/Linux, macOS, and Windows packages.
 
 A separate GitHub Actions test-ISO workflow is allowed to publish only after that source workflow succeeds for `main`. The resulting GitHub release is a **prerelease**, never a stable release, and contains one versioned x86_64 ISO plus its checksum.
 

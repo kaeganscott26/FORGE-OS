@@ -83,6 +83,8 @@ forge-install-pkg --backend nix -S package-name
 
 The top-bar Updates control opens the installed `forge-os-update` workflow in Konsole. It requires trusted sibling `~/FORGE` and `~/FORGE-OS` checkouts on `main`, requires the committed `FORGE_REF` to match the exact FORGE source, refuses source changes outside `.obsidian`, temporarily preserves local Obsidian UI state in both repositories, and never reboots automatically. On install failure it restores both pre-update source commits and local `.obsidian` state.
 
+The local or hosted model supplies only semantic tool arguments. FORGE-OS creates workspace, conversation, model, audit-reason, and active task/step execution metadata internally. With Web Research enabled, `browser.read({})` and `browser.find(...)` run as bounded automatic reads; navigation, writes, shell/process execution, destructive operations, and remote mutations keep their approval requirements.
+
 The current source does not automatically reindex workspace memory from a filesystem watcher. Use **Reindex** when you want to refresh derived workspace knowledge.
 
 ## Installed-system recovery
