@@ -15,3 +15,11 @@ UserFiles/
 node_modules/
 dist/
 cache/
+
+
+
+
+# Ignore Smart Environment folder
+.smart-env
+# Local Obsidian secrets/runtime state
+.obsidian/plugins/vault-ai-chat/data.json

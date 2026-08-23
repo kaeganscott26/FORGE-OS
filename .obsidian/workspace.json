@@ -162,13 +162,43 @@
               "icon": "lucide-list",
               "title": "Outline"
             }
+          },
+          {
+            "id": "bb04c32777e9a0c0",
+            "type": "leaf",
+            "state": {
+              "type": "footnotes",
+              "state": {},
+              "icon": "lucide-file-signature",
+              "title": "Footnotes"
+            }
+          },
+          {
+            "id": "8b32ea1d242d3d32",
+            "type": "leaf",
+            "state": {
+              "type": "obsidian-agent-sidebar",
+              "state": {},
+              "icon": "square-slash",
+              "title": "Vault Operator"
+            }
+          },
+          {
+            "id": "d88c5a857df6ead1",
+            "type": "leaf",
+            "state": {
+              "type": "smart-connections-view",
+              "state": {},
+              "icon": "smart-connections",
+              "title": "Connections"
+            }
           }
-        ]
+        ],
+        "currentTab": 6
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -178,9 +208,33 @@
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "bases:Create new base": false
+      "bases:Create new base": false,
+      "markdown-importer:Open format converter": false,
+      "workspaces:Manage workspace layouts": false,
+      "agent-client:Open agent client": false,
+      "webpage-html-export:Export as HTML": false,
+      "obsidian-shellcommands:Shell commands: Custom variables": false,
+      "open-gate:North3rnLight3r.com": false,
+      "vault-ai-chat:Open AI vault memory": false,
+      "nexus:Open chat": false,
+      "agentcairn:Agentcairn memory": false,
+      "smart-connections:Smart Connections: Open random connection": false,
+      "smart-connections:Smart Connections: Open connections view": false,
+      "smart-connections:Toggle Footer Connections": false,
+      "vault-operator:Vault Operator": false
     }
   },
   "active": "f68cc7820e6da080",
-  "lastOpenFiles": []
+  "lastOpenFiles": [
+    "README.md",
+    "session/README.md",
+    "Dev_Notes/Forge_updates.md",
+    "Nexus/data/workspaces/ws_default/shard-000001.jsonl",
+    "Nexus/data/workspaces/ws_default",
+    "Nexus/data/tasks",
+    "Nexus/data/conversations",
+    "Nexus/data/workspaces",
+    "Nexus/data",
+    "Nexus"
+  ]
 }
