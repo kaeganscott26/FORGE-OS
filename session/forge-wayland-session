@@ -17,7 +17,10 @@ export FORGE_RUNTIME_CHAIN="${FORGE_RUNTIME_CHAIN:-startplasma-wayland forge-way
 export QT_QPA_PLATFORM='wayland;xcb'
 export KDE_FULL_SESSION=true
 export KDE_SESSION_VERSION=6
-export XDG_DATA_DIRS="$HOME/.nix-profile/share:/nix/var/nix/profiles/default/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+forge_xdg_helper=/usr/local/libexec/forge-xdg-environment
+[[ -r "$forge_xdg_helper" ]] || forge_xdg_helper="$(dirname "${BASH_SOURCE[0]}")/forge-xdg-environment"
+source "$forge_xdg_helper"
+export XDG_DATA_DIRS="$XDG_DATA_DIRS:$HOME/.nix-profile/share:/nix/var/nix/profiles/default/share"
 
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/forge"
 mkdir -p "$state_dir"

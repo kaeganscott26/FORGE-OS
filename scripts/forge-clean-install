@@ -141,6 +141,7 @@ install -d -m 0755 \
   "$target/usr/share/applications" "$target/usr/share/xdg-desktop-portal" "$target/usr/share/forge-os/wayland-sessions"
 
 install -m 0755 "$repo/session/forge-wayland-session" "$target/usr/local/bin/forge-wayland-session"
+install -m 0755 "$repo/session/forge-xdg-environment" "$target/usr/local/libexec/forge-xdg-environment"
 install -m 0755 "$repo/session/startplasma-wayland" "$target/usr/local/bin/startplasma-wayland"
 install -m 0755 "$repo/session/forge-session" "$target/usr/local/bin/forge-session"
 install -m 0755 "$repo/session/forge-wayland-client" "$target/usr/local/libexec/forge-wayland-client"

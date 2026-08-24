@@ -11,7 +11,10 @@ export FORGE_RECOVERY_MODE=1
 export QT_QPA_PLATFORM=wayland
 export ELECTRON_OZONE_PLATFORM_HINT=wayland
 export XDG_CONFIG_DIRS="/etc/xdg${XDG_CONFIG_DIRS:+:$XDG_CONFIG_DIRS}"
-export XDG_DATA_DIRS="$HOME/.nix-profile/share:/nix/var/nix/profiles/default/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+forge_xdg_helper=/usr/local/libexec/forge-xdg-environment
+[[ -r "$forge_xdg_helper" ]] || forge_xdg_helper="$(dirname "${BASH_SOURCE[0]}")/forge-xdg-environment"
+source "$forge_xdg_helper"
+export XDG_DATA_DIRS="$XDG_DATA_DIRS:$HOME/.nix-profile/share:/nix/var/nix/profiles/default/share"
 export FORGE_OS_VERSION="$(cat /etc/forge-os-version 2>/dev/null || printf development)"
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/forge"
 mkdir -p "$state_dir"

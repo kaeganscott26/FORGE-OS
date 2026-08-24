@@ -33,6 +33,7 @@ verify_squashfs_executables() {
   local -a critical=(
     usr/local/bin/tuigreet
     usr/local/bin/forge-wayland-session
+    usr/local/libexec/forge-xdg-environment
     usr/local/libexec/forge-wayland-client
     usr/local/libexec/forge-live-setup
     usr/local/libexec/forge-live-install
@@ -129,6 +130,7 @@ install -m 0755 "$tuigreet_source" "$profile/airootfs/usr/local/bin/tuigreet"
 install -m 0644 /usr/share/forge-os/tuigreet-source.env "$profile/airootfs/usr/share/forge-os/tuigreet-source.env"
 
 install -m 0755 "$root/session/forge-wayland-session" "$profile/airootfs/usr/local/bin/forge-wayland-session"
+install -m 0755 "$root/session/forge-xdg-environment" "$profile/airootfs/usr/local/libexec/forge-xdg-environment"
 install -m 0755 "$root/session/startplasma-wayland" "$profile/airootfs/usr/local/bin/startplasma-wayland"
 install -m 0755 "$root/session/forge-session" "$profile/airootfs/usr/local/bin/forge-session"
 install -m 0755 "$root/session/forge-wayland-client" "$profile/airootfs/usr/local/libexec/forge-wayland-client"

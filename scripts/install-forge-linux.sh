@@ -72,7 +72,7 @@ for command in greetd /usr/local/bin/tuigreet kwin_wayland plasmashell qdbus6 kr
 done
 "$root/tests/greeter-contract.sh"
 for file in \
-  session/forge-wayland-session session/forge-wayland-client session/forge-recovery-session session/forge-recovery-client \
+  session/forge-wayland-session session/forge-xdg-environment session/forge-wayland-client session/forge-recovery-session session/forge-recovery-client \
   session/forge-plasma-initialize session/forge-session scripts/forge-panel-manager scripts/forge-system-surface \
   scripts/forge-session-control scripts/configure-aur.sh scripts/forge-live-setup scripts/forge-live-install scripts/forge-live-select-installer; do
   bash -n "$root/$file"
@@ -83,6 +83,7 @@ sudo install -d -o root -g root -m 0755 \
   /usr/share/applications /usr/share/xdg-desktop-portal /usr/share/forge-os /usr/share/forge-os/wayland-sessions
 
 sudo install -o root -g root -m 0755 "$root/session/forge-wayland-session" /usr/local/bin/forge-wayland-session
+sudo install -o root -g root -m 0755 "$root/session/forge-xdg-environment" /usr/local/libexec/forge-xdg-environment
 sudo install -o root -g root -m 0755 "$root/session/startplasma-wayland" /usr/local/bin/startplasma-wayland
 sudo install -o root -g root -m 0755 "$root/session/forge-session" /usr/local/bin/forge-session
 sudo install -o root -g root -m 0755 "$root/session/forge-wayland-client" /usr/local/libexec/forge-wayland-client
@@ -154,6 +155,7 @@ fi
 # Verify installed files before enabling the boot path.
 for pair in \
   "$root/session/forge-wayland-session:/usr/local/bin/forge-wayland-session" \
+  "$root/session/forge-xdg-environment:/usr/local/libexec/forge-xdg-environment" \
   "$root/session/forge-wayland-client:/usr/local/libexec/forge-wayland-client" \
   "$root/session/forge-session:/usr/local/bin/forge-session" \
   "$root/scripts/forge-system-surface:/usr/local/bin/forge-system-surface" \

@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Extend the session's XDG data path without discarding the caller's entries.
+# Earlier FORGE sessions replaced XDG_DATA_DIRS, hiding Flatpak exports from
+# both Plasma and applications that use the freedesktop search path.
+forge_prepend_xdg_data_dirs() {
+  local data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+  local -a candidates=(
+    "$data_home/flatpak/exports/share"
+    "/var/lib/flatpak/exports/share"
+    "/usr/local/share"
+    "/usr/share"
+  )
+  local entry existing="${XDG_DATA_DIRS:-}" seen=':'
+  local -a existing_entries=()
+  IFS=: read -r -a existing_entries <<< "$existing"
+  for entry in "${existing_entries[@]}"; do candidates+=("$entry"); done
+  XDG_DATA_DIRS=''
+  for entry in "${candidates[@]}"; do
+    [[ -n "$entry" && "$seen" != *":$entry:"* ]] || continue
+    XDG_DATA_DIRS="${XDG_DATA_DIRS:+$XDG_DATA_DIRS:}$entry"
+    seen+="$entry:"
+  done
+  export XDG_DATA_DIRS
+}
+
+forge_prepend_xdg_data_dirs
