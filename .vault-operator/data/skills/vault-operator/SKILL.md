@@ -154,7 +154,7 @@ memory:
       unknown: manual
     livingDocumentByDefault: true
     strictSourceIsolation: false
-  lastAgingRunAt: 2026-08-23T09:27:47.844Z
+  lastAgingRunAt: 2026-08-24T09:33:27.611Z
   lastCapabilityHash: ae633956
 chatLinking:
   enabled: true
@@ -258,7 +258,7 @@ _parentDirMigrated: true
 _pluginDataDirsMigrated: true
 _legacyVaultDirsCleaned: true
 _historyRepairStatus: complete
-_encrypted: false
+_encrypted: true
 ```
 (13 sensitive field(s) redacted)
 

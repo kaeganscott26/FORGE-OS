@@ -93,13 +93,14 @@ left-ribbon:
     obsidian-shellcommands:Shell commands: Custom variables: false
     open-gate:North3rnLight3r.com: false
     vault-ai-chat:Open AI vault memory: false
-    nexus:Open chat: false
     agentcairn:Agentcairn memory: false
-    smart-connections:Smart Connections: Open random connection: false
-    smart-connections:Smart Connections: Open connections view: false
-    smart-connections:Toggle Footer Connections: false
-active: f68cc7820e6da080
-lastOpenFiles: [session/README.md, Dev_Notes/Forge_updates.md, Nexus/data/workspaces/ws_default/shard-000001.jsonl, Nexus/data/workspaces/ws_default, Nexus/data/tasks, Nexus/data/conversations, Nexus/data/workspaces, Nexus/data, Nexus]
+    nexus:Open chat: false
+    vault-operator:Vault Operator: false
+    table-editor-obsidian:Advanced Tables Toolbar: false
+    obsidian-git:Open Git source control: false
+    vscode-editor:Create Code File: false
+active: 8b32ea1d242d3d32
+lastOpenFiles: [Nexus/data/tasks, Nexus/data/conversations, README.md, session/README.md, Dev_Notes/Forge_updates.md, Nexus/data/workspaces/ws_default/shard-000001.jsonl, Nexus/data/workspaces/ws_default, Nexus/data/workspaces, Nexus/data, Nexus]
 ```
 
 For full settings, read: `.obsidian/workspace.json`

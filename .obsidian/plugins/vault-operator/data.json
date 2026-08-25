@@ -52,8 +52,18 @@
   },
   "enableSemanticIndex": true,
   "embeddingModel": "",
-  "embeddingModels": [],
-  "activeEmbeddingModelKey": "",
+  "embeddingModels": [
+    {
+      "name": "nomic-embed-text",
+      "provider": "ollama",
+      "displayName": "nomic-embed-text (768 dims, popular) (nomic-embed-text)",
+      "baseUrl": "http://localhost:11434",
+      "enabled": true,
+      "isBuiltIn": false,
+      "apiVersion": "2024-10-21"
+    }
+  ],
+  "activeEmbeddingModelKey": "nomic-embed-text|ollama",
   "semanticBatchSize": 60,
   "semanticAutoIndex": "never",
   "semanticExcludedFolders": [],
@@ -61,7 +71,7 @@
   "_layoutUpgradePromptShown": false,
   "_pdfReindexHintShown": false,
   "_pdfReindexCompleted": false,
-  "semanticChunkSize": 2000,
+  "semanticChunkSize": 3000,
   "enableContextualRetrieval": true,
   "contextualModelKey": "",
   "hydeEnabled": false,
@@ -126,7 +136,7 @@
       "livingDocumentByDefault": true,
       "strictSourceIsolation": false
     },
-    "lastAgingRunAt": "2026-08-23T09:27:47.844Z",
+    "lastAgingRunAt": "2026-08-24T09:33:27.611Z",
     "lastCapabilityHash": "ae633956"
   },
   "chatLinking": {
@@ -334,5 +344,5 @@
   "_pluginDataDirsMigrated": true,
   "_legacyVaultDirsCleaned": true,
   "_historyRepairStatus": "complete",
-  "_encrypted": false
+  "_encrypted": true
 }
