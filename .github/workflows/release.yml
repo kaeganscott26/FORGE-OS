@@ -1,0 +1,66 @@
+name: FORGE-OS release ISO
+
+on:
+  push:
+    tags: ['v0.2.4']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+        with: { fetch-depth: 1, path: FORGE-OS }
+      - name: Resolve exact FORGE source
+        id: inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < FORGE-OS/VERSION)"
+          forge_ref="$(tr -d '[:space:]' < FORGE-OS/FORGE_REF)"
+          [[ "$version" = 0.2.4 && "$forge_ref" =~ ^[0-9a-f]{40}$ ]]
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "forge_ref=$forge_ref" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v7
+        with:
+          repository: kaeganscott26/FORGE
+          ref: ${{ steps.inputs.outputs.forge_ref }}
+          path: FORGE
+      - name: Build fresh ISO in Arch container
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --privileged -v "$GITHUB_WORKSPACE:/work" -w /work archlinux:base-devel bash -lc '
+            set -euo pipefail
+            pacman -Syu --noconfirm git nodejs-lts-jod npm python rust systemd desktop-file-utils pacman-contrib greetd sudo archiso squashfs-tools libxcrypt-compat
+            git config --global --add safe.directory /work/FORGE-OS
+            git config --global --add safe.directory /work/FORGE
+            git clone --branch 0.11.0 --depth 1 https://github.com/tuigreet/tuigreet.git /tmp/tuigreet
+            cargo build --locked --release --manifest-path /tmp/tuigreet/Cargo.toml -p tuigreet
+            install -Dm755 /tmp/tuigreet/target/release/tuigreet /usr/local/bin/tuigreet
+            install -d /usr/share/forge-os
+            printf "repository=https://github.com/tuigreet/tuigreet.git\nversion=0.11.0\ncommit=%s\n" "$(git -C /tmp/tuigreet rev-parse HEAD)" > /usr/share/forge-os/tuigreet-source.env
+            bash /work/FORGE-OS/scripts/clean-build.sh
+            bash /work/FORGE-OS/scripts/build-forge.sh /work/FORGE
+            bash /work/FORGE-OS/scripts/build-iso.sh
+            chmod -R a+rX /work/FORGE-OS/build/iso
+          '
+      - name: Verify and publish ISO
+        env: { GH_TOKEN: '${{ github.token }}' }
+        shell: bash
+        run: |
+          set -euo pipefail
+          version='${{ steps.inputs.outputs.version }}'
+          mapfile -t isos < <(find FORGE-OS/build/iso -maxdepth 1 -type f -name '*.iso' -print)
+          test "${#isos[@]}" -eq 1
+          release_dir="$RUNNER_TEMP/forge-os-release"
+          mkdir -p "$release_dir"
+          name="forge-os-${version}-x86_64.iso"
+          cp "${isos[0]}" "$release_dir/$name"
+          (cd "$release_dir" && sha256sum "$name" > "$name.sha256" && sha256sum -c "$name.sha256")
+          test -s "$release_dir/$name"
+          gh release create v0.2.4 "$release_dir/$name" "$release_dir/$name.sha256" --verify-tag --title "FORGE-OS 0.2.4" --prerelease --notes "FORGE-OS 0.2.4 bundling FORGE 2.4.0-beta. FORGE-OS commit $GITHUB_SHA; FORGE commit ${{ steps.inputs.outputs.forge_ref }}."

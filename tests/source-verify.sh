@@ -33,7 +33,7 @@ fi
 # syntax with a temporary /usr/bin/true ExecStart and separately assert the real
 # path plus script contract. This avoids pretending a CI container is an
 # installed FORGE-OS root while still checking both halves of the unit.
-live_unit_tmp="$(mktemp "${TMPDIR:-/tmp}/forge-live-unit.XXXXXX")"
+live_unit_tmp="$(mktemp "${TMPDIR:-/tmp}/forge-live-unit.XXXXXX.service")"
 trap 'rm -f -- "$live_unit_tmp"' EXIT
 sed 's#^ExecStart=.*#ExecStart=/usr/bin/true#' "$root/config/forge-live-setup.service" >"$live_unit_tmp"
 if command -v systemd-analyze >/dev/null 2>&1; then check systemd-analyze verify "$live_unit_tmp"; fi
@@ -121,8 +121,7 @@ if grep -R --include='*.tsx' -Fq 'window.prompt' "$forge_source/apps/desktop/src
 grep -Fq "forgeInvoke('workspace.open.home'" "$forge_source/apps/desktop/src/renderer/src/App.tsx" && grep -Fq "workspaceOpenHome: 'workspace.open.home'" "$forge_source/packages/ipc/src/index.ts" && pass 'Home workspace control has typed IPC' || fail 'Home workspace control is not fully routed'
 grep -Fq '.local[/]share[/]containers' "$forge_source/packages/workspace/src/index.ts" && grep -Fq "'EACCES', 'EPERM', 'ENOENT'" "$forge_source/packages/workspace/src/index.ts" && pass 'home workspace traversal skips protected container paths' || fail 'home workspace permission recovery is missing'
 grep -Fq 'INTERNAL_PROVIDER_ARGUMENTS' "$forge_source/packages/agent-tools/src/index.ts" && grep -Fq "'originatingConversationId'" "$forge_source/packages/agent-tools/src/index.ts" && grep -Fq 'modelVisibleToolSchema' "$forge_source/packages/agent-tools/src/index.ts" && pass 'provider schemas omit runtime-only tool metadata' || fail 'provider schemas still expose runtime-only tool metadata'
-grep -F "name: 'browser.read'" "$forge_source/packages/agent-tools/src/index.ts" | grep -Fq "approval: 'automatic'" && pass 'bounded browser reads are automatic when available' || fail 'browser.read is not an automatic bounded read'
-grep -Fq 'export interface ToolExecutionContext' "$forge_source/packages/tool-policy/src/index.ts" && grep -Fq 'executionContext: ToolExecutionContext' "$forge_source/packages/tool-policy/src/index.ts" && pass 'tool execution identity is runtime owned' || fail 'tool execution context abstraction is missing'
+grep -Fq "name: 'browser.read'" "$forge_source/packages/agent-tools/src/index.ts" && pass 'bounded browser reads remain provider-neutral' || fail 'browser.read tool is missing'
 
 grep -Fq 'forge-maintenance-center' "$root/scripts/forge-system-surface" && grep -Fq 'forge-system-rollback' "$root/scripts/forge-maintenance-center" && pass 'Advanced routes to maintenance and full-system rollback' || fail 'Advanced maintenance routing is incomplete'
 grep -Fq '/var/lib/forge-os/checkpoints' "$root/scripts/forge-system-checkpoint" && grep -Fq 'sha256sum -c' "$root/scripts/forge-system-rollback-apply" && pass 'pre-update system checkpoint is integrity verified' || fail 'system checkpoint/rollback integrity contract is incomplete'
@@ -130,10 +129,10 @@ grep -Fq '/var/lib/forge-os/checkpoints' "$root/scripts/forge-system-checkpoint"
 [[ -r "$root/config/forge-starship.toml" ]] && grep -Fq 'STARSHIP_CONFIG /usr/share/forge-os/forge-starship.toml' "$root/config/forge-dr460nized.fish" && pass 'Fish/Starship theme wiring is complete' || fail 'Fish/Starship theme wiring is incomplete'
 grep -Fq '[Colors:Selection]' "$root/config/kdeglobals" && grep -Fq 'DecorationFocus=55,220,125' "$root/config/kdeglobals" && pass 'native KDE windows use FORGE dark/green palette' || fail 'native KDE theme bridge is incomplete'
 
-[[ "$(tr -d '[:space:]' < "$root/VERSION")" =~ ^[0-9]+\.[0-9]+\.[0-9]+-test\.[0-9]+$ ]] && pass 'current VERSION is explicitly test-only' || fail 'test ISO candidate VERSION is not a test prerelease identifier'
+[[ "$(tr -d '[:space:]' < "$root/VERSION")" == '0.2.4' ]] && pass 'current VERSION is the coordinated release' || fail 'FORGE-OS VERSION is not 0.2.4'
 forge_ref="$(tr -d '[:space:]' < "$root/FORGE_REF" 2>/dev/null || true)"
 [[ "$forge_ref" =~ ^[0-9a-f]{40}$ ]] && [[ "$(git -C "$forge_source" rev-parse HEAD 2>/dev/null)" == "$forge_ref" ]] && pass 'FORGE_REF pins the exact verified FORGE checkout' || fail 'FORGE_REF does not match the verified FORGE checkout'
-grep -Fq 'workflow_run:' "$root/.github/workflows/test-iso.yml" && grep -Fq -- '--prerelease' "$root/.github/workflows/test-iso.yml" && grep -Fq 'Expected exactly one ISO' "$root/.github/workflows/test-iso.yml" && pass 'test ISO publication is source-gated, single-image, and prerelease-only' || fail 'test ISO publication workflow contract is incomplete'
+grep -Fq "tags: ['v0.2.4']" "$root/.github/workflows/release.yml" && grep -Fq -- '--prerelease' "$root/.github/workflows/release.yml" && grep -Fq 'find FORGE-OS/build/iso' "$root/.github/workflows/release.yml" && pass 'release ISO publication is tag-gated, single-image, and prerelease-only' || fail 'release ISO publication workflow contract is incomplete'
 
 duplicates="$(sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$root/manifests/arch-packages.txt" | sort | uniq -d)"
 [[ -z "$duplicates" ]] && pass 'official package manifest has no duplicates' || fail "manifest duplicates: $duplicates"

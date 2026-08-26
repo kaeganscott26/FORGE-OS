@@ -1,6 +1,6 @@
 # Clean install from the FORGE-OS test ISO
 
-This flow is for **`0.2.3-test.1`**. It is a test image, not a stable release.
+This flow is for **`0.2.4`**, bundling FORGE **`2.4.0-beta`**.
 
 The installer deliberately does **not** partition or format disks. You own the disk layout; FORGE Setup takes over once the target filesystems are mounted.
 
@@ -117,4 +117,4 @@ greetd
   -> FORGE-OS
 ```
 
-This remains **`0.2.3-test.1`** until physical USB boot, clean installation, services, UI scaling, power/session controls, recovery, update, and rollback have been exercised on real hardware. Report those results before any stable release is cut.
+Physical USB boot, clean installation, services, UI scaling, power/session controls, recovery, update, and rollback remain hardware acceptance checks for this release.

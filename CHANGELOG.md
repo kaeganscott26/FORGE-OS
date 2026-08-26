@@ -84,3 +84,7 @@
 ## 0.1.1-alpha
 
 - Protected the historical X11/Openbox session chain. Those profiles are no longer installed production paths.
+# 0.2.4 — Coordinated semantic-context release
+
+- Bundles FORGE 2.4.0-beta with native semantic indexing, governed context packets, and offline lexical fallback.
+- Adds guarded generated-build cleanup and a tag-gated fresh ISO workflow with SHA-256 provenance.

@@ -5,6 +5,7 @@ build/forge-dist/
 build/archiso-profile/
 build/archiso-work/
 build/iso/
+build/forge-source.*
 build/user-desktop-backup/
 FORGE-OS_ISO_linux_x86_x64/*.iso
 UserFiles/

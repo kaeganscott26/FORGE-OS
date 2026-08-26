@@ -8,7 +8,7 @@ This is the canonical current-state document for active FORGE-OS behavior. Histo
 
 FORGE-OS is the Arch-based operating-system integration layer for FORGE. Arch Linux, systemd, KWin/Plasma, NetworkManager, PipeWire/WirePlumber, PolicyKit, pacman, Flatpak, and native package databases remain the substrate. FORGE is the user-facing workspace/shell and owns the integrated desktop experience.
 
-Current test line documented by the repository: **0.2.3-test.1**. Stable publication remains gated by the release checklist.
+Current release line: **FORGE-OS 0.2.4**, bundling FORGE **2.4.0-beta**. ISO publication is tag-gated and checksum-verified.
 
 ## Session and login contract
 

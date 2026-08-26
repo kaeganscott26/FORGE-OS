@@ -2,7 +2,7 @@
 
 FORGE-OS is the Arch-based integration layer that makes FORGE the visible workspace, desktop, Explorer, settings, recovery, update, and setup experience. Arch, systemd, KWin, Plasma services, NetworkManager, PipeWire, PolicyKit, pacman, and the native package databases remain the operating-system substrate; they do not become the primary UI.
 
-Current test build: **`0.2.3-test.1`**. This build is intentionally published only as a prerelease/test ISO and is **not** marked stable. Stable publication remains gated by [release acceptance](docs/RELEASE_CHECKLIST.md).
+Current release: **`FORGE-OS 0.2.4`**, bundling FORGE **`2.4.0-beta`**. The versioned ISO is published only after source verification, a clean rebuild, checksum generation, and inspection.
 
 ## Login contract
 
@@ -129,6 +129,10 @@ FORGE_SOURCE=~/FORGE ./tests/maintenance-contract.sh
 ./scripts/build-forge.sh ~/FORGE
 ./scripts/build-iso.sh
 ```
+
+Run `./scripts/clean-build.sh` before a release ISO build. It removes only generated ArchISO profile/work/output and FORGE runtime staging beneath this repository's `build/` directory; it never touches repository source.
+
+The ISO reports both versions (`/etc/forge-os-version` and the bundled FORGE runtime metadata). Ollama embeddings use the local loopback API when available and degrade to lexical context when offline. Linux may use Hermes ACP; macOS and Windows use their supported headless bridge while retaining FORGE context, audit, cancellation, and ToolRouter ownership.
 
 The source workflow pins the FORGE checkout through `FORGE_REF`, builds canonical tuigreet 0.11.0, validates greeter/setup/maintenance contracts, verifies that provider schemas omit runtime-only tool metadata, and then runs the complete FORGE typecheck, lint, tests, production build, package resolution, shell/TOML/unit checks, and source contract. The pinned shared runtime applies the same tool schema, policy, and audit behavior to FORGE-OS/Linux, macOS, and Windows packages.
 

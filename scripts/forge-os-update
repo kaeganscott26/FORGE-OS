@@ -83,7 +83,7 @@ done
 # changing either source tree. Prefer the installed root-owned helper; use bash
 # on the repository copy as a recovery-compatible fallback so source file mode
 # cannot make an otherwise valid update fail.
-if [[ -x /usr/local/libexec/forge-system-checkpoint ]]; then
+if [[ -x /usr/local/libexec/forge-system-checkpoint && -z "${FORGE_UPDATE_TEST_UNPRIVILEGED:-}" && -z "${FORGE_OS_SOURCE_DIR:-}" ]]; then
   sudo /usr/local/libexec/forge-system-checkpoint "$forge_before" "$os_before"
 elif [[ -r "$os_repository/scripts/forge-system-checkpoint" ]]; then
   sudo bash "$os_repository/scripts/forge-system-checkpoint" "$forge_before" "$os_before"
