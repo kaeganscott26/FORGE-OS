@@ -46,6 +46,8 @@ grep -Fq -- '--doom-height 7' "$root/config/greetd-config.toml" && pass 'DOOM fi
 if grep -Fq -- '--remember-session' "$root/config/greetd-config.toml"; then fail 'greeter can remember and override an old session path'; else pass 'greeter cannot override canonical path with remembered session'; fi
 grep -Fqx 'Exec=/usr/local/bin/forge-wayland-session' "$root/session/forge.desktop" && pass 'F3 FORGE entry uses canonical Wayland path' || fail 'F3 FORGE entry exposes a stale dispatcher path'
 grep -Fq 'exec "$forge_session"' "$root/session/startplasma-wayland" && pass 'legacy dispatcher remains available only as compatibility implementation' || fail 'compatibility dispatcher is broken'
+grep -Fqx 'unset WAYLAND_DISPLAY DISPLAY XAUTHORITY' "$root/session/forge-wayland-session" && grep -Fqx 'unset WAYLAND_DISPLAY DISPLAY XAUTHORITY' "$root/session/forge-recovery-session" && pass 'top-level compositors discard stale display sockets' || fail 'session compositor can inherit a stale or nested display'
+grep -Fq 'FORGE_SESSION_LOCALE:-en_US.UTF-8' "$root/session/forge-wayland-session" && pass 'FORGE session always exports a UTF-8 locale' || fail 'FORGE session can start with the non-UTF-8 C locale'
 
 grep -Fqx 'Alias=autovt@tty2.service' "$root/config/forge-recovery.service" && pass 'recovery is on-demand tty2 alias' || fail 'recovery alias is wrong'
 if grep -Fq 'WantedBy=graphical.target' "$root/config/forge-recovery.service"; then fail 'recovery is pulled into every graphical boot'; else pass 'recovery remains on-demand'; fi

@@ -16,6 +16,11 @@ forge_xdg_helper=/usr/local/libexec/forge-xdg-environment
 source "$forge_xdg_helper"
 export XDG_DATA_DIRS="$XDG_DATA_DIRS:$HOME/.nix-profile/share:/nix/var/nix/profiles/default/share"
 export FORGE_OS_VERSION="$(cat /etc/forge-os-version 2>/dev/null || printf development)"
+# Recovery owns its tty compositor too; never inherit a dead or active desktop
+# socket from the long-lived user service manager.
+unset WAYLAND_DISPLAY DISPLAY XAUTHORITY
+export LANG="${FORGE_SESSION_LOCALE:-en_US.UTF-8}"
+export LC_ALL="$LANG"
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/forge"
 mkdir -p "$state_dir"
 touch "$state_dir/recovery.log"
