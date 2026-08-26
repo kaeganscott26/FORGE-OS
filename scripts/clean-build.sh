@@ -6,7 +6,7 @@ build="$root/build"
 for target in "$build/archiso-profile" "$build/archiso-work" "$build/iso" "$build/forge-dist" "$build/latest.env" "$build/user-desktop-backup"; do
   [[ "$target" == "$build/"* ]] || { echo "Refusing path outside build directory: $target" >&2; exit 1; }
   if [[ -e "$target" || -L "$target" ]]; then
-    if [[ -w "$target" || -w "$(dirname "$target")" ]]; then rm -rf -- "$target"; else sudo rm -rf -- "$target"; fi
+    sudo rm -rf -- "$target"
     echo "Removed generated build state: ${target#"$root/"}"
   fi
 done
