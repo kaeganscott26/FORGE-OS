@@ -7,6 +7,7 @@
 - Pinned FORGE `430796e`, advancing the shared renderer/runtime to `2.5.0-beta` across FORGE-OS/Linux, macOS, and Windows source packaging.
 - Fixed the Intelligence layer to measure and enumerate the complete artifact packet—including deterministic source, documentation, Git, metadata, and selected durable memory—instead of leaving the surface at semantic-only zeroes.
 - Replaced millisecond cache freshness with monotonic invalidation revisions so rapid memory or file changes cannot preserve stale intelligence packets on fast platform runners.
+- Put Arch's DevOps-managed Tier 1 geo mirror first in the ISO/install baseline and made image construction tolerate the optional inherited `broadcom-wl` module being temporarily absent during an upstream kernel/module transition; FORGE-OS's required package manifest still fails closed.
 - Correlated live tool/task operations so both indicators illuminate for fast and long-running work, and repaired Web Audio unlock/resume behavior for tap, completion, warning, and indexing sounds.
 - Fixed integrated-terminal ANSI/TUI corruption by preserving the emulator across panel switches, resetting parser state between sessions, retaining PTY dimensions on restart, and stabilizing font/resize metrics.
 - Kept installed and live accounts inside the explicit wheel/sudo policy while routing npm global tools such as Codex to the user-owned `~/.local` prefix instead of root-owned `/usr`.

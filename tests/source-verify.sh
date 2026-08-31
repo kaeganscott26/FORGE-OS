@@ -70,6 +70,8 @@ grep -Fq 'greetd-tuigreet-fork-git' "$root/scripts/configure-aur.sh" && grep -Fq
 grep -Fq 'chaotic-aur' "$root/scripts/configure-aur.sh" && grep -Fq '3056513887B78AEB' "$root/scripts/configure-aur.sh" && pass 'Chaotic-AUR bootstrap is explicit and pinned to primary key' || fail 'Chaotic-AUR bootstrap is incomplete'
 grep -Fq 'yay-bin' "$root/scripts/configure-aur.sh" && pass 'AUR helper is provisioned' || fail 'AUR helper is missing'
 grep -Fq 'install_reference_mirrors' "$root/scripts/bootstrap-forgeos.sh" && grep -Fq 'refresh_ranked_mirrors' "$root/scripts/bootstrap-forgeos.sh" && pass 'bootstrap uses tracked mirror baseline plus reflector ranking' || fail 'mirror bootstrap is incomplete'
+[[ "$(awk '/^Server[[:space:]]*=/{print; exit}' "$root/config/mirrorlist")" == 'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' ]] && pass 'official Tier 1 Arch geo mirror leads the tracked baseline' || fail 'tracked mirror baseline can prefer a stale community mirror'
+grep -Fq "pacman -Si --config \"\$profile/pacman.conf\" broadcom-wl" "$root/scripts/build-iso.sh" && grep -Fq "sed -i '/^broadcom-wl\$/d'" "$root/scripts/build-iso.sh" && pass 'ISO tolerates upstream broadcom module transitions' || fail 'optional upstream broadcom module can block ISO publication'
 
 service_manifest="$root/manifests/system-services.tsv"
 [[ -r "$service_manifest" ]] && pass 'authoritative service manifest exists' || fail 'authoritative service manifest is missing'

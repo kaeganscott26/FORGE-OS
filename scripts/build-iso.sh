@@ -113,6 +113,16 @@ for repository in core extra multilib; do
   grep -q '^https://' <<<"$repository_servers" || { echo "ISO has no tracked HTTPS server for [$repository]." >&2; exit 1; }
 done
 
+# The upstream releng profile includes the kernel-versioned proprietary
+# broadcom-wl module. Arch can temporarily remove it from stable repositories
+# while kernel/module rebuilds move through testing. It is optional inherited
+# hardware coverage, not part of FORGE-OS's required manifest, so omit it only
+# while the configured official repositories cannot resolve it.
+if ! /usr/bin/pacman -Si --config "$profile/pacman.conf" broadcom-wl >/dev/null 2>&1; then
+  sed -i '/^broadcom-wl$/d' "$profile/packages.x86_64"
+  echo 'Skipping unavailable optional upstream releng package: broadcom-wl'
+fi
+
 release="$profile/airootfs/opt/forge/releases/$FORGE_RUNTIME_ID"
 install -d \
   "$release" "$profile/airootfs/opt/forge-os" "$profile/airootfs/usr/local/bin" "$profile/airootfs/usr/local/libexec" \
