@@ -4,8 +4,9 @@
 
 ### FORGE 2.5 living intelligence
 
-- Pinned FORGE `95a9ea7`, advancing the shared renderer/runtime to `2.5.0-beta` across FORGE-OS/Linux, macOS, and Windows source packaging.
+- Pinned FORGE `4f213d3`, advancing the shared renderer/runtime to `2.5.0-beta` across FORGE-OS/Linux, macOS, and Windows source packaging.
 - Fixed the Intelligence layer to measure and enumerate the complete artifact packet—including deterministic source, documentation, Git, metadata, and selected durable memory—instead of leaving the surface at semantic-only zeroes.
+- Replaced millisecond cache freshness with monotonic invalidation revisions so rapid memory or file changes cannot preserve stale intelligence packets on fast platform runners.
 - Correlated live tool/task operations so both indicators illuminate for fast and long-running work, and repaired Web Audio unlock/resume behavior for tap, completion, warning, and indexing sounds.
 - Fixed integrated-terminal ANSI/TUI corruption by preserving the emulator across panel switches, resetting parser state between sessions, retaining PTY dimensions on restart, and stabilizing font/resize metrics.
 - Kept installed and live accounts inside the explicit wheel/sudo policy while routing npm global tools such as Codex to the user-owned `~/.local` prefix instead of root-owned `/usr`.
