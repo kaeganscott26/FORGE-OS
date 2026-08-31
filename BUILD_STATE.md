@@ -1,8 +1,8 @@
 # Current build state
 
-Updated: 2026-08-21
-Source version: `0.2.3-test.1` (test ISO candidate; not stable)
-Pinned FORGE source: `1e69e647082ab9e35b2dcf3b5331dc1994911471`
+Updated: 2026-08-31
+Source version: `0.2.5-test.1` (local acceptance candidate; not published)
+Pinned FORGE source: `e3800d0655e2500f3c7e5b5ffe57ece8a5c522b7`
 
 ## Implemented
 
@@ -29,6 +29,9 @@ Pinned FORGE source: `1e69e647082ab9e35b2dcf3b5331dc1994911471`
 - FORGE source used for the ISO is pinned through `FORGE_REF`, preventing a moving FORGE `main` from changing the image after source verification.
 - The pinned shared renderer uses routed dialogs for file/folder, goal/task, persistent-task, and rename actions; every renderer button has a route contract.
 - Home is available on macOS, Windows, Linux, and as the FORGE-OS default. Explorer loads folders on demand, while bounded discovery skips unreadable/container-backed subtrees instead of aborting on `EACCES`.
+- The FORGE 2.5 renderer carries the northern-lights brand, adaptive Three.js aurora surfaces, bundled UI/display fonts, animated glass windows, reduced-motion handling, and optional synthesized system sounds across the shared Linux/macOS/Windows source.
+- The Intelligence surface visualizes typed read-only context, semantic-memory, process-memory, tool, task, terminal, and indexing telemetry without granting the renderer process or filesystem authority.
+- Semantic embeddings use bounded Float32 storage, batched persistence, changed-path indexing, current-source validation, and explicit Ollama unload; whole-file reads stop before allocation above 32 MB and permission failures return actionable guidance.
 
 ## Verification gates
 
@@ -47,7 +50,7 @@ The ISO workflow must then build the immutable FORGE Linux runtime, construct Ar
 
 ## Hardware acceptance still required
 
-`0.2.3-test.1` is deliberately not stable. After the CI-built ISO exists it still needs real boot/install testing for:
+`0.2.5-test.1` is deliberately not stable. After an approval-gated ISO exists it still needs real boot/install testing for:
 
 - UEFI USB boot and automatic Guided Setup launch;
 - disk partition/mount workflow and clean installation;

@@ -1,6 +1,6 @@
 # Clean install from the FORGE-OS test ISO
 
-This flow is for **`0.2.4`**, bundling FORGE **`2.4.0-beta`**.
+This flow currently targets the local **`0.2.5-test.1`** candidate, bundling FORGE **`2.5.0-beta`**. It is not a published ISO release.
 
 The installer deliberately does **not** partition or format disks. You own the disk layout; FORGE Setup takes over once the target filesystems are mounted.
 

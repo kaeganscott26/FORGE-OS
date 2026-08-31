@@ -2,7 +2,7 @@
 
 FORGE-OS is the Arch-based integration layer that makes FORGE the visible workspace, desktop, Explorer, settings, recovery, update, and setup experience. Arch, systemd, KWin, Plasma services, NetworkManager, PipeWire, PolicyKit, pacman, and the native package databases remain the operating-system substrate; they do not become the primary UI.
 
-Current release: **`FORGE-OS 0.2.4`**, bundling FORGE **`2.4.0-beta`**. The versioned ISO is published only after source verification, a clean rebuild, checksum generation, and inspection.
+Current source candidate: **`FORGE-OS 0.2.5-test.1`**, bundling the unpublished FORGE **`2.5.0-beta`** living-intelligence runtime. The last published coordinated line remains 0.2.4; no v2.5 ISO or public release is authorized until local and cross-platform acceptance is approved.
 
 ## Login contract
 

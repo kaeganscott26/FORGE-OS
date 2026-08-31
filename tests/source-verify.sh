@@ -131,10 +131,10 @@ grep -Fq '/var/lib/forge-os/checkpoints' "$root/scripts/forge-system-checkpoint"
 [[ -r "$root/config/forge-starship.toml" ]] && grep -Fq 'STARSHIP_CONFIG /usr/share/forge-os/forge-starship.toml' "$root/config/forge-dr460nized.fish" && pass 'Fish/Starship theme wiring is complete' || fail 'Fish/Starship theme wiring is incomplete'
 grep -Fq '[Colors:Selection]' "$root/config/kdeglobals" && grep -Fq 'DecorationFocus=55,220,125' "$root/config/kdeglobals" && pass 'native KDE windows use FORGE dark/green palette' || fail 'native KDE theme bridge is incomplete'
 
-[[ "$(tr -d '[:space:]' < "$root/VERSION")" == '0.2.4' ]] && pass 'current VERSION is the coordinated release' || fail 'FORGE-OS VERSION is not 0.2.4'
+[[ "$(tr -d '[:space:]' < "$root/VERSION")" == '0.2.5-test.1' ]] && pass 'current VERSION is the unpublished 0.2.5 test candidate' || fail 'FORGE-OS VERSION is not 0.2.5-test.1'
 forge_ref="$(tr -d '[:space:]' < "$root/FORGE_REF" 2>/dev/null || true)"
 [[ "$forge_ref" =~ ^[0-9a-f]{40}$ ]] && [[ "$(git -C "$forge_source" rev-parse HEAD 2>/dev/null)" == "$forge_ref" ]] && pass 'FORGE_REF pins the exact verified FORGE checkout' || fail 'FORGE_REF does not match the verified FORGE checkout'
-grep -Fq "tags: ['v0.2.4']" "$root/.github/workflows/release.yml" && grep -Fq -- '--prerelease' "$root/.github/workflows/release.yml" && grep -Fq 'find FORGE-OS/build/iso' "$root/.github/workflows/release.yml" && pass 'release ISO publication is tag-gated, single-image, and prerelease-only' || fail 'release ISO publication workflow contract is incomplete'
+grep -Fq "tags: ['v0.2.4']" "$root/.github/workflows/release.yml" && ! grep -Fq "tags: ['v0.2.5" "$root/.github/workflows/release.yml" && grep -Fq -- '--prerelease' "$root/.github/workflows/release.yml" && grep -Fq 'find FORGE-OS/build/iso' "$root/.github/workflows/release.yml" && pass 'candidate publication remains locked while the prior release workflow stays tag-gated' || fail 'candidate release publication lock is incomplete'
 
 duplicates="$(sed -e 's/#.*$//' -e '/^[[:space:]]*$/d' "$root/manifests/arch-packages.txt" | sort | uniq -d)"
 [[ -z "$duplicates" ]] && pass 'official package manifest has no duplicates' || fail "manifest duplicates: $duplicates"

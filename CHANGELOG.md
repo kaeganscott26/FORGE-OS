@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### FORGE 2.5 living intelligence candidate
+
+- Pinned FORGE `e3800d0`, advancing the shared renderer/runtime to `2.5.0-beta` across FORGE-OS/Linux, macOS, and Windows source packaging.
+- Integrated the new northern-lights mark, bundled display/UI typography, adaptive Three.js aurora field, animated Explorer/Browser/Intelligence backgrounds, glass window transitions, and opt-out system sounds into the existing FORGE-OS shell theme.
+- Added live typed visualization of context utilization, semantic memory records, FORGE RSS/heap state, running tools, durable tasks, terminals, and semantic-index activity.
+- Carried in the repaired bounded embedding lifecycle: lazy/off-by-default discovery, Float32 vectors, batched sql.js persistence, changed-path indexing, current-source validation, and explicit Ollama unload after scoped operations.
+- Added a 32 MB pre-allocation direct-read guard and actionable `EACCES`/`EPERM` reporting while preserving permission-tolerant Home traversal.
+- Marks this tree `0.2.5-test.1`; public tag/ISO/release publication remains held for native acceptance approval.
+
 ### Workspace/UI and documentation correction
 
 - Pinned FORGE `f3b7b87`, which removes runtime-only `reason`, `taskContext`, task-creation conversation identity, and task-process IDs from provider schemas, injects execution/audit identity internally, makes enabled bounded browser read/find automatic, and preserves explicit approval for navigation and high-impact tools. Action-log schema v8 retains optional task/step audit linkage.

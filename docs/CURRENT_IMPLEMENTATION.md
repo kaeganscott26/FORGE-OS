@@ -1,6 +1,6 @@
 # FORGE-OS Current Implementation
 
-Last reconciled with `main`: **2026-08-25**.
+Last reconciled with `main`: **2026-08-31**.
 
 This is the canonical current-state document for active FORGE-OS behavior. Historical build notes and old release evidence remain useful for chronology, but they do not override the current source, tests, or this implementation contract.
 
@@ -8,7 +8,7 @@ This is the canonical current-state document for active FORGE-OS behavior. Histo
 
 FORGE-OS is the Arch-based operating-system integration layer for FORGE. Arch Linux, systemd, KWin/Plasma, NetworkManager, PipeWire/WirePlumber, PolicyKit, pacman, Flatpak, and native package databases remain the substrate. FORGE is the user-facing workspace/shell and owns the integrated desktop experience.
 
-Current release line: **FORGE-OS 0.2.4**, bundling FORGE **2.4.0-beta**. ISO publication is tag-gated and checksum-verified.
+Current source candidate: **FORGE-OS 0.2.5-test.1**, bundling FORGE **2.5.0-beta**. The published line remains 0.2.4; candidate ISO/release publication is held until native acceptance approval.
 
 ## Session and login contract
 
@@ -41,6 +41,9 @@ The production profile no longer depends on an experimental X11-first path. Reco
 - Native KDE/KCM/KDialog settings open inside the same KWin Wayland compositor and inherit the FORGE palette/accent.
 - Fixed quick actions cover Network, Audio, Display, Power, Applications, Storage, Appearance, Updates, Security, Recovery, and Advanced maintenance.
 - Session actions use detached helpers so logout/restart/shutdown do not terminate their own IPC response before dispatch.
+- The shared v2.5 renderer provides the northern-lights brand mark, bundled display/UI fonts, a bounded Three.js aurora field, animated glass surfaces, optional synthesized system sounds, reduced-motion handling, and hidden-window animation suspension.
+- Intelligence surfaces visualize typed read-only context, semantic-memory, process-memory, tool, task, terminal, and indexing telemetry. The renderer receives no direct process or filesystem authority.
+- Direct whole-file reads stop before allocation above 32 MB, and permission failures return actionable user-owned-workspace guidance.
 
 ## Flatpak and application discovery
 
