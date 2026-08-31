@@ -99,6 +99,10 @@ grep -Fq 'Exec=/usr/local/bin/forge-wayland-session' /usr/share/forge-os/wayland
 
 grep -Fq 'function pacman' "$HOME/.config/fish/conf.d/forge-dr460nized.fish" && pass 'interactive pacman wrapper is installed' || fail 'interactive pacman wrapper is missing'
 grep -Fq '/usr/local/bin/forge-install-pkg --backend arch' "$HOME/.config/fish/conf.d/forge-dr460nized.fish" && pass 'interactive pacman routes through forge-install-pkg' || fail 'interactive pacman routing is wrong'
+getent group wheel | cut -d: -f4 | tr ',' '\n' | grep -Fxq "$USER" && pass 'signed-in user is a persistent wheel administrator' || fail 'signed-in user is not in the wheel administrator group'
+npm_prefix="$(fish -lc 'npm config get prefix' 2>/dev/null || true)"
+[[ "$npm_prefix" == "$HOME/.local" ]] && pass 'npm global prefix is user-owned ~/.local' || fail "npm global prefix is not user-owned: ${npm_prefix:-missing}"
+[[ -d "$HOME/.local/bin" && -w "$HOME/.local/bin" ]] && pass 'user npm executable directory is writable' || fail 'user npm executable directory is not writable'
 
 for unit in NetworkManager.service bluetooth.service firewalld.service irqbalance.service systemd-timesyncd.service cups.service ollama.service; do
   systemctl is-enabled "$unit" >/dev/null 2>&1 && pass "$unit enabled" || fail "$unit is not enabled"

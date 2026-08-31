@@ -6,6 +6,9 @@ set -gx COLORTERM truecolor
 set -gx EDITOR nano
 set -gx VISUAL nano
 set -gx STARSHIP_CONFIG /usr/share/forge-os/forge-starship.toml
+# Keep npm global tools user-owned. The Arch npm package correctly owns /usr,
+# while user-updated CLIs such as Codex belong beneath ~/.local.
+set -gx NPM_CONFIG_PREFIX "$HOME/.local"
 set -g fish_color_command b8ff4d
 set -g fish_color_param 71d5ff
 set -g fish_color_error ff6b81

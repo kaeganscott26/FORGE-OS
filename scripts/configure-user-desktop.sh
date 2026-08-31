@@ -14,6 +14,12 @@ for desktop in "$browser_desktop" "$file_manager_desktop"; do
 done
 
 mkdir -p "$state_dir"
+for user_path in "$HOME/.npm" "$HOME/.local"; do
+  if [[ -e "$user_path" ]] && [[ ! -O "$user_path" || -n "$(find "$user_path" -xdev ! -user "$(id -u)" -print -quit 2>/dev/null)" ]]; then
+    sudo chown -R "$USER:$(id -gn)" "$user_path"
+  fi
+done
+install -d -m 0755 "$HOME/.local/bin"
 if [[ -e "$mimeapps" && ! -e "$state_dir/mimeapps.list" ]]; then
   cp -p "$mimeapps" "$state_dir/mimeapps.list"
 fi

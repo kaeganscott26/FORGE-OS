@@ -67,6 +67,8 @@ The current application-discovery path supports native `.desktop` applications a
 - Official Arch repositories remain authoritative; `multilib` is enabled.
 - Chaotic-AUR is configured as the reviewed binary community repository and `yay` supports normal AUR access.
 - Package mutation is routed through FORGE-OS wrappers for interactive use while bootstrap internals call `/usr/bin/pacman` directly to avoid wrapper recursion.
+- Installed users are authenticated wheel administrators, but system paths remain root-owned. npm global tools install beneath user-owned `~/.local`, which is first on both the FORGE terminal and Fish paths.
+- The integrated terminal stays mounted across bottom-panel switches so full-screen ANSI/TUI applications retain parser state; session changes reset the emulator and PTY restarts retain their fitted dimensions.
 - Required services are declared in `manifests/system-services.tsv` and verified on first boot.
 - NetworkManager, firewall, time sync, trim, mirrors, greetd, and PipeWire/WirePlumber are part of the required system contract; optional hardware/capability services remain selectable where documented.
 

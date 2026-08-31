@@ -192,7 +192,7 @@ sed -e "s/@VERSION@/$FORGE_OS_VERSION/g" -e "s/@SOURCE_COMMIT@/${FORGE_SOURCE_CO
 
 # User defaults that do not require a live D-Bus desktop session.
 user_home="$target/home/$install_user"
-install -d -m 0755 "$user_home/.config/fish/conf.d" "$user_home/.local/state/forge"
+install -d -m 0755 "$user_home/.config/fish/conf.d" "$user_home/.local/bin" "$user_home/.local/state/forge"
 install -m 0644 "$repo/config/forge-dr460nized.fish" "$user_home/.config/fish/conf.d/forge-dr460nized.fish"
 chown -R "$(arch-chroot "$target" id -u "$install_user"):$(arch-chroot "$target" id -g "$install_user")" "$user_home/.config" "$user_home/.local"
 
