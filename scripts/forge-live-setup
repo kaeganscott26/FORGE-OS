@@ -27,6 +27,7 @@ fi
 passwd --lock "$live_user" >/dev/null
 
 install -d -o "$live_user" -g "$live_user" -m 0700 "$live_home/.local/state/forge"
+install -d -o "$live_user" -g "$live_user" -m 0755 "$live_home/.local/bin"
 install -d -o "$live_user" -g "$live_user" -m 0755 "$live_home/.config/fish/conf.d"
 install -d -o "$live_user" -g "$live_user" -m 0700 /run/forge-live-setup
 if [[ -r /usr/share/forge-os/forge-dr460nized.fish ]]; then

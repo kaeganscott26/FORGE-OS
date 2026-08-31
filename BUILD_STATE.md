@@ -2,7 +2,7 @@
 
 Updated: 2026-08-31
 Source version: `0.2.5-test.1` (local acceptance candidate; not published)
-Pinned FORGE source: `e3800d0655e2500f3c7e5b5ffe57ece8a5c522b7`
+Pinned FORGE source: `f1c51f3165a8b6677fd19224fea7e5c5bdc87d76`
 
 ## Implemented
 
@@ -18,6 +18,7 @@ Pinned FORGE source: `e3800d0655e2500f3c7e5b5ffe57ece8a5c522b7`
 - Updates create a root-owned `/var/lib/forge-os/checkpoints/previous` checkpoint with FORGE/FORGE-OS source provenance, active runtime identity, file SHA-256 manifest, and symlink manifest. Full rollback verifies that checkpoint before restoring FORGE-owned greetd/session/service/theme/helper integration plus the checkpoint runtime.
 - Normal install/update retain bootstrap, hardware/service configuration, FORGE build, runtime install, and user desktop configuration as explicit installer stages behind `./install.sh` and `./update.sh`.
 - Interactive Fish pacman mutations route through `forge-install-pkg`; GUI installs route `forge-install-program -> forge-app-install -> forge-install-pkg`; installer bootstrap uses absolute `/usr/bin/pacman`.
+- Normal and live users retain the explicit wheel/sudo boundary while npm global tools use writable `~/.local`; the integrated terminal preserves live ANSI/TUI parser state, resets between sessions, and refits stable Noto Mono cell metrics.
 - Official Arch + multilib, tracked HTTPS mirror baseline, Reflector, Chaotic-AUR, and `yay` are configured by the install path.
 - Authoritative service policy is stored in `manifests/system-services.tsv`; required system/timer/global-user units are persistently enabled.
 - Installed graphical recovery remains on-demand through tty2; console recovery remains independent of the graphical stack.

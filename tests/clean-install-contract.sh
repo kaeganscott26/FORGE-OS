@@ -28,6 +28,9 @@ grep -Fq '/opt/forge-os/scripts/configure-aur.sh' "$installer" || fail 'communit
 grep -Fq 'systemctl --root="$target" enable greetd.service' "$installer" || fail 'graphical login is not enabled in the installed target.'
 grep -Fq 'reflector.timer' "$installer" || fail 'persistent mirror refresh is not enabled in the installed target.'
 grep -Fq 'pipewire.socket' "$installer" && grep -Fq 'wireplumber.service' "$installer" || fail 'persistent user audio services are missing from clean install.'
+grep -Fq -- '--groups wheel,audio,video,input,storage' "$installer" || fail 'primary installed user is not created as an administrator.'
+grep -Fq '%%wheel ALL=(ALL:ALL) ALL' "$installer" || fail 'installed wheel administrators do not have authenticated sudo policy.'
+grep -Fq '"$user_home/.local/bin"' "$installer" || fail 'clean install does not provision the user-owned npm executable directory.'
 
 # Partitioning and formatting remain deliberately outside the installer core.
 if grep -Eq '(^|[;&|[:space:]])(mkfs(\.|[[:space:]])|wipefs([[:space:]]|$)|fdisk([[:space:]]|$)|cfdisk([[:space:]]|$)|parted([[:space:]]|$)|sgdisk([[:space:]]|$))' "$installer"; then

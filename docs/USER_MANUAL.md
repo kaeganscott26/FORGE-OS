@@ -56,6 +56,14 @@ Required system services are enabled persistently. PipeWire, PipeWire Pulse, and
 
 Inside FORGE's Fish shell, interactive `pacman` commands route through `forge-install-pkg`. GUI program installation routes through `forge-install-program`, then `forge-app-install`, then `forge-install-pkg`.
 
+The signed-in account is an authenticated `wheel` administrator. System packages remain root-owned; sudo does not make `/usr` directly writable by the user. npm global tools use the user-owned `~/.local` prefix, which is first on the terminal `PATH`. Update Codex without sudo:
+
+```bash
+npm install --global @openai/codex@latest
+command -v codex
+codex --version
+```
+
 ```bash
 forge-app-install -S steam
 forge-install-pkg -S npm
