@@ -2,7 +2,7 @@
 
 FORGE-OS is the Arch-based integration layer that makes FORGE the visible workspace, desktop, Explorer, settings, recovery, update, and setup experience. Arch, systemd, KWin, Plasma services, NetworkManager, PipeWire, PolicyKit, pacman, and the native package databases remain the operating-system substrate; they do not become the primary UI.
 
-Current source candidate: **`FORGE-OS 0.2.5-test.1`**, bundling the unpublished FORGE **`2.5.0-beta`** living-intelligence runtime. The last published coordinated line remains 0.2.4; no v2.5 ISO or public release is authorized until local and cross-platform acceptance is approved.
+Current Beta release: **`FORGE-OS 2.5.0-beta`**, bundling the FORGE **`2.5.0-beta`** living-intelligence runtime. The tag workflow builds and publishes the versioned x86_64 ISO and checksum from the exact pinned shared source.
 
 ## Login contract
 
@@ -102,7 +102,7 @@ That restores console-first access while preserving FORGE runtimes and user/proj
 
 ## Live ISO: boot straight into Guided Setup
 
-The test ISO uses a separate live-only profile. `forge-live-setup.service` first proves it is running on ArchISO, creates the locked ephemeral `forge` account, and grants passwordless sudo **only in that disposable live environment**. It then enters the same KWin Wayland/FORGE runtime with live flags.
+The Beta ISO uses a separate live-only profile. `forge-live-setup.service` first proves it is running on ArchISO, creates the locked ephemeral `forge` account, and grants passwordless sudo **only in that disposable live environment**. It then enters the same KWin Wayland/FORGE runtime with live flags.
 
 Once KWin, Plasma services, PolicyKit, and FORGE are active, **FORGE-OS Setup opens automatically as a normal themed KDE/Qt window**. The live workspace remains available underneath. Setup provides:
 
@@ -115,9 +115,9 @@ Once KWin, Plasma services, PolicyKit, and FORGE are active, **FORGE-OS Setup op
 
 Guided Install collects the mounted target, username, hostname, timezone, and optional-service checkboxes. Required boot/network/firewall/audio/greetd services are not optional. The installer still requires the new-user password and a literal `INSTALL` confirmation before target mutation.
 
-The test installer intentionally **does not partition or format disks**. You prepare the disk and mount the target yourself; setup verifies the mount points, reproduces the exact FORGE runtime embedded in the ISO, installs the authoritative package/service policy, installs systemd-boot for UEFI, installs Advanced/recovery tools, enables the first-boot service verifier, and removes live-only sudo policy from the installed target.
+The Beta installer intentionally **does not partition or format disks**. You prepare the disk and mount the target yourself; setup verifies the mount points, reproduces the exact FORGE runtime embedded in the ISO, installs the authoritative package/service policy, installs systemd-boot for UEFI, installs Advanced/recovery tools, enables the first-boot service verifier, and removes live-only sudo policy from the installed target.
 
-See [Clean install from the test ISO](docs/CLEAN_INSTALL.md).
+See [Clean install from the Beta ISO](docs/CLEAN_INSTALL.md).
 
 ## Build and validate
 

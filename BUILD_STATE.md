@@ -1,8 +1,8 @@
 # Current build state
 
 Updated: 2026-08-31
-Source version: `0.2.5-test.1` (local acceptance candidate; not published)
-Pinned FORGE source: `f1c51f3165a8b6677fd19224fea7e5c5bdc87d76`
+Source version: `2.5.0-beta`
+Pinned FORGE source: `95a9ea7f6b43a67b9cf5fe4177aa756a72922b60`
 
 ## Implemented
 
@@ -30,8 +30,8 @@ Pinned FORGE source: `f1c51f3165a8b6677fd19224fea7e5c5bdc87d76`
 - FORGE source used for the ISO is pinned through `FORGE_REF`, preventing a moving FORGE `main` from changing the image after source verification.
 - The pinned shared renderer uses routed dialogs for file/folder, goal/task, persistent-task, and rename actions; every renderer button has a route contract.
 - Home is available on macOS, Windows, Linux, and as the FORGE-OS default. Explorer loads folders on demand, while bounded discovery skips unreadable/container-backed subtrees instead of aborting on `EACCES`.
-- The FORGE 2.5 renderer carries the northern-lights brand, adaptive Three.js aurora surfaces, bundled UI/display fonts, animated glass windows, reduced-motion handling, and optional synthesized system sounds across the shared Linux/macOS/Windows source.
-- The Intelligence surface visualizes typed read-only context, semantic-memory, process-memory, tool, task, terminal, and indexing telemetry without granting the renderer process or filesystem authority.
+- The FORGE 2.5 renderer carries the northern-lights brand, adaptive Three.js aurora surfaces, bundled UI/display fonts, animated glass windows, reduced-motion handling, and reliable opt-out synthesized system sounds across the shared Linux/macOS/Windows source.
+- The Intelligence surface visualizes the actual selected artifact packet, durable-memory summaries, semantic-memory, process-memory, correlated tool/task activity, terminal, and indexing telemetry without granting the renderer process or filesystem authority.
 - Semantic embeddings use bounded Float32 storage, batched persistence, changed-path indexing, current-source validation, and explicit Ollama unload; whole-file reads stop before allocation above 32 MB and permission failures return actionable guidance.
 
 ## Verification gates
@@ -47,11 +47,11 @@ The GitHub source contract must pass, on the same pinned FORGE source used for t
 - FORGE typecheck, lint, tests, and production build;
 - runtime-source and repository diff checks.
 
-The ISO workflow must then build the immutable FORGE Linux runtime, construct ArchISO in a privileged Linux build environment, verify critical executable modes and hashes inside the SquashFS, and publish exactly one versioned x86_64 ISO as a GitHub **prerelease/test build** with SHA-256 checksum.
+The ISO workflow builds the immutable FORGE Linux runtime, constructs ArchISO in a privileged Linux build environment, verifies critical executable modes and hashes inside the SquashFS, and publishes exactly one versioned x86_64 ISO as a GitHub **Beta prerelease** with SHA-256 checksum.
 
 ## Hardware acceptance still required
 
-`0.2.5-test.1` is deliberately not stable. After an approval-gated ISO exists it still needs real boot/install testing for:
+`2.5.0-beta` is deliberately a beta rather than a stable release. Continued hardware acceptance covers:
 
 - UEFI USB boot and automatic Guided Setup launch;
 - disk partition/mount workflow and clean installation;

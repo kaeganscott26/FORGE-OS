@@ -2,7 +2,7 @@ name: FORGE-OS release ISO
 
 on:
   push:
-    tags: ['v0.2.4']
+    tags: ['v2.5.0-beta']
   workflow_dispatch:
 
 permissions:
@@ -22,7 +22,7 @@ jobs:
           set -euo pipefail
           version="$(tr -d '[:space:]' < FORGE-OS/VERSION)"
           forge_ref="$(tr -d '[:space:]' < FORGE-OS/FORGE_REF)"
-          [[ "$version" = 0.2.4 && "$forge_ref" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$version" = 2.5.0-beta && "$forge_ref" =~ ^[0-9a-f]{40}$ ]]
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "forge_ref=$forge_ref" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v7
@@ -63,4 +63,4 @@ jobs:
           cp "${isos[0]}" "$release_dir/$name"
           (cd "$release_dir" && sha256sum "$name" > "$name.sha256" && sha256sum -c "$name.sha256")
           test -s "$release_dir/$name"
-          gh release create v0.2.4 "$release_dir/$name" "$release_dir/$name.sha256" --verify-tag --title "FORGE-OS 0.2.4" --prerelease --notes "FORGE-OS 0.2.4 bundling FORGE 2.4.0-beta. FORGE-OS commit $GITHUB_SHA; FORGE commit ${{ steps.inputs.outputs.forge_ref }}."
+          gh release create v2.5.0-beta "$release_dir/$name" "$release_dir/$name.sha256" --verify-tag --title "FORGE-OS 2.5.0-beta" --prerelease --notes "FORGE-OS 2.5.0-beta bundling FORGE 2.5.0-beta. Fixes complete artifact-context telemetry, tool/task activity indicators, and system sounds across the shared runtime. FORGE-OS commit $GITHUB_SHA; FORGE commit ${{ steps.inputs.outputs.forge_ref }}."

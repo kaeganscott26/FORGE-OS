@@ -8,7 +8,7 @@ This is the canonical current-state document for active FORGE-OS behavior. Histo
 
 FORGE-OS is the Arch-based operating-system integration layer for FORGE. Arch Linux, systemd, KWin/Plasma, NetworkManager, PipeWire/WirePlumber, PolicyKit, pacman, Flatpak, and native package databases remain the substrate. FORGE is the user-facing workspace/shell and owns the integrated desktop experience.
 
-Current source candidate: **FORGE-OS 0.2.5-test.1**, bundling FORGE **2.5.0-beta**. The published line remains 0.2.4; candidate ISO/release publication is held until native acceptance approval.
+Current Beta release: **FORGE-OS 2.5.0-beta**, bundling FORGE **2.5.0-beta**.
 
 ## Session and login contract
 
@@ -41,8 +41,8 @@ The production profile no longer depends on an experimental X11-first path. Reco
 - Native KDE/KCM/KDialog settings open inside the same KWin Wayland compositor and inherit the FORGE palette/accent.
 - Fixed quick actions cover Network, Audio, Display, Power, Applications, Storage, Appearance, Updates, Security, Recovery, and Advanced maintenance.
 - Session actions use detached helpers so logout/restart/shutdown do not terminate their own IPC response before dispatch.
-- The shared v2.5 renderer provides the northern-lights brand mark, bundled display/UI fonts, a bounded Three.js aurora field, animated glass surfaces, optional synthesized system sounds, reduced-motion handling, and hidden-window animation suspension.
-- Intelligence surfaces visualize typed read-only context, semantic-memory, process-memory, tool, task, terminal, and indexing telemetry. The renderer receives no direct process or filesystem authority.
+- The shared v2.5 renderer provides the northern-lights brand mark, bundled display/UI fonts, a bounded Three.js aurora field, animated glass surfaces, reliable opt-out synthesized system sounds, reduced-motion handling, and hidden-window animation suspension.
+- Intelligence surfaces visualize the actual provider-neutral artifact packet, selected durable memory, semantic-memory, process-memory, correlated tool/task activity, terminals, and indexing telemetry. The renderer receives no direct process or filesystem authority.
 - Direct whole-file reads stop before allocation above 32 MB, and permission failures return actionable user-owned-workspace guidance.
 
 ## Flatpak and application discovery
@@ -82,7 +82,7 @@ FORGE-OS provides the host environment for local runtimes such as Ollama and opt
 
 ## Live ISO and install flow
 
-- Test ISO boots into the live FORGE/KWin environment and launches Guided Setup.
+- The Beta ISO boots into the live FORGE/KWin environment and launches Guided Setup.
 - The live `forge` account is intentionally ephemeral; passwordless sudo is restricted to the disposable live profile and removed from the installed target.
 - Guided Install expects the target disk/mounts to be prepared and does not silently partition/format disks.
 - Installer reproduces the pinned FORGE runtime, package/service policy, systemd-boot setup, recovery/advanced tools, and first-boot verification.
