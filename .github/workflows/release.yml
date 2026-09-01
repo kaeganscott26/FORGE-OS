@@ -63,4 +63,4 @@ jobs:
           cp "${isos[0]}" "$release_dir/$name"
           (cd "$release_dir" && sha256sum "$name" > "$name.sha256" && sha256sum -c "$name.sha256")
           test -s "$release_dir/$name"
-          gh release create v2.5.0-beta "$release_dir/$name" "$release_dir/$name.sha256" --verify-tag --title "FORGE-OS 2.5.0-beta" --prerelease --notes "FORGE-OS 2.5.0-beta bundling FORGE 2.5.0-beta. Fixes complete artifact-context telemetry, tool/task activity indicators, and system sounds across the shared runtime. FORGE-OS commit $GITHUB_SHA; FORGE commit ${{ steps.inputs.outputs.forge_ref }}."
+          gh release create v2.5.0-beta "$release_dir/$name" "$release_dir/$name.sha256" --repo kaeganscott26/FORGE-OS --verify-tag --title "FORGE-OS 2.5.0-beta" --prerelease --notes "FORGE-OS 2.5.0-beta bundling FORGE 2.5.0-beta. Fixes complete artifact-context telemetry, tool/task activity indicators, and system sounds across the shared runtime. FORGE-OS commit $GITHUB_SHA; FORGE commit ${{ steps.inputs.outputs.forge_ref }}."
