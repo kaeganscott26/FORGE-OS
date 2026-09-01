@@ -60,7 +60,27 @@ jobs:
           release_dir="$RUNNER_TEMP/forge-os-release"
           mkdir -p "$release_dir"
           name="forge-os-${version}-x86_64.iso"
-          cp "${isos[0]}" "$release_dir/$name"
-          (cd "$release_dir" && sha256sum "$name" > "$name.sha256" && sha256sum -c "$name.sha256")
-          test -s "$release_dir/$name"
-          gh release create v2.5.0-beta "$release_dir/$name" "$release_dir/$name.sha256" --repo kaeganscott26/FORGE-OS --verify-tag --title "FORGE-OS 2.5.0-beta" --prerelease --notes "FORGE-OS 2.5.0-beta bundling FORGE 2.5.0-beta. Fixes complete artifact-context telemetry, tool/task activity indicators, and system sounds across the shared runtime. FORGE-OS commit $GITHUB_SHA; FORGE commit ${{ steps.inputs.outputs.forge_ref }}."
+          asset_files=()
+          if (( $(stat -c '%s' "${isos[0]}") >= 2000000000 )); then
+            split_prefix="$release_dir/$name.part-"
+            split --bytes=1900M --numeric-suffixes=0 --suffix-length=2 "${isos[0]}" "$split_prefix"
+            mapfile -t parts < <(find "$release_dir" -maxdepth 1 -type f -name "$name.part-*" -print | sort)
+            test "${#parts[@]}" -gt 1
+            checksum="$release_dir/$name.parts.sha256"
+            (cd "$release_dir"; : > "$checksum"; for part in "${parts[@]}"; do sha256sum "$(basename "$part")" >> "$checksum"; done; sha256sum -c "$checksum")
+            instructions="$release_dir/$name.REASSEMBLE.txt"
+            printf 'Reassemble the ISO with: cat %s.part-* > %s\nVerify with: sha256sum -c %s.parts.sha256\n' "$name" "$name" "$name" > "$instructions"
+            asset_files=("${parts[@]}" "$checksum" "$instructions")
+          else
+            cp "${isos[0]}" "$release_dir/$name"
+            (cd "$release_dir" && sha256sum "$name" > "$name.sha256" && sha256sum -c "$name.sha256")
+            test -s "$release_dir/$name"
+            asset_files=("$release_dir/$name" "$release_dir/$name.sha256")
+          fi
+          notes="FORGE-OS 2.5.0-beta bundling FORGE 2.5.0-beta. Fixes complete artifact-context telemetry, tool/task activity indicators, and system sounds across the shared runtime. FORGE-OS commit $GITHUB_SHA; FORGE commit ${{ steps.inputs.outputs.forge_ref }}."
+          if gh release view v2.5.0-beta --repo kaeganscott26/FORGE-OS >/dev/null 2>&1; then
+            gh release upload v2.5.0-beta "${asset_files[@]}" --repo kaeganscott26/FORGE-OS --clobber
+            gh release edit v2.5.0-beta --repo kaeganscott26/FORGE-OS --title "FORGE-OS 2.5.0-beta" --prerelease --notes "$notes"
+          else
+            gh release create v2.5.0-beta "${asset_files[@]}" --repo kaeganscott26/FORGE-OS --verify-tag --title "FORGE-OS 2.5.0-beta" --prerelease --notes "$notes"
+          fi

@@ -72,6 +72,7 @@ grep -Fq 'yay-bin' "$root/scripts/configure-aur.sh" && pass 'AUR helper is provi
 grep -Fq 'install_reference_mirrors' "$root/scripts/bootstrap-forgeos.sh" && grep -Fq 'refresh_ranked_mirrors' "$root/scripts/bootstrap-forgeos.sh" && pass 'bootstrap uses tracked mirror baseline plus reflector ranking' || fail 'mirror bootstrap is incomplete'
 [[ "$(awk '/^Server[[:space:]]*=/{print; exit}' "$root/config/mirrorlist")" == 'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' ]] && pass 'official Tier 1 Arch geo mirror leads the tracked baseline' || fail 'tracked mirror baseline can prefer a stale community mirror'
 grep -Fq "pacman -Si --config \"\$profile/pacman.conf\" broadcom-wl" "$root/scripts/build-iso.sh" && grep -Fq "sed -i '/^broadcom-wl\$/d'" "$root/scripts/build-iso.sh" && pass 'ISO tolerates upstream broadcom module transitions' || fail 'optional upstream broadcom module can block ISO publication'
+grep -Fq 'split --bytes=1900M' "$root/.github/workflows/release.yml" && grep -Fq 'gh release upload v2.5.0-beta' "$root/.github/workflows/release.yml" && pass 'ISO publisher handles GitHub asset size limits' || fail 'ISO publisher cannot handle oversized GitHub assets'
 
 service_manifest="$root/manifests/system-services.tsv"
 [[ -r "$service_manifest" ]] && pass 'authoritative service manifest exists' || fail 'authoritative service manifest is missing'
